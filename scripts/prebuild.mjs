@@ -10,7 +10,6 @@ import { glob } from 'glob'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { extract } from 'tar'
 
-import { resolveServiceRelease } from './service-release.mjs'
 import { log_debug, log_error, log_info, log_success } from './utils.mjs'
 
 /** Prepares platform resources, caching versions and unchanged files unless `--force` is used. */
@@ -560,73 +559,45 @@ function serviceFileInfo(name) {
   }
 }
 
-async function findExtractedFile(dir, fileName) {
-  const entries = await fsp.readdir(dir, { withFileTypes: true })
-  for (const entry of entries) {
-    const entryPath = path.join(dir, entry.name)
-    if (entry.isFile() && entry.name === fileName) return entryPath
-    if (entry.isDirectory()) {
-      const found = await findExtractedFile(entryPath, fileName)
-      if (found) return found
-    }
-  }
-  return null
-}
+/// Built from the Openn service fork: the service compiles in the app's bundle id and its own
+/// install paths, so the upstream release archives would install a service this app cannot own.
+const SERVICE_REPOSITORY = path.resolve(cwd, '..', 'clash-verge-service-ipc')
 
 async function resolveServiceBundle() {
-  const files = SERVICE_BINARIES.map((name) => {
-    const info = serviceFileInfo(name)
-    return {
-      ...info,
-      targetPath: path.join(SERVICE_DIR, info.targetFile),
-    }
-  })
-
-  const cargoManifest = await fsp.readFile(
-    path.join(cwd, 'src-tauri', 'Cargo.toml'),
-    'utf8',
+  const manifest = path.join(SERVICE_REPOSITORY, 'Cargo.toml')
+  if (!fs.existsSync(manifest)) {
+    throw new Error(`Openn service fork not found at ${SERVICE_REPOSITORY}`)
+  }
+  execFileSync(
+    'cargo',
+    [
+      'build',
+      '--release',
+      '--manifest-path',
+      manifest,
+      '--features',
+      'standalone,client',
+      '--bins',
+      '--target',
+      SIDECAR_HOST,
+    ],
+    { stdio: 'inherit' },
   )
-  const { archiveFile, downloadURL } = resolveServiceRelease(
-    cargoManifest,
-    SIDECAR_HOST,
-    platform,
-  )
-  const tempDir = path.join(TEMP_DIR, 'clash-verge-service-ipc')
-  const tempArchive = path.join(tempDir, archiveFile)
 
-  await fsp.mkdir(tempDir, { recursive: true })
   await fsp.mkdir(SERVICE_DIR, { recursive: true })
-
-  try {
-    await downloadFile(downloadURL, tempArchive)
-
-    if (platform === 'win32') {
-      const zip = new AdmZip(tempArchive)
-      zip
-        .getEntries()
-        .forEach((entry) =>
-          log_debug('"clash-verge-service-ipc" entry:', entry.entryName),
-        )
-      zip.extractAllTo(tempDir, true)
-    } else {
-      await extract({ cwd: tempDir, file: tempArchive })
-    }
-
-    for (const { sourceFile, targetFile, targetPath } of files) {
-      const extractedFile = await findExtractedFile(tempDir, sourceFile)
-      if (!extractedFile) {
-        throw new Error(`Expected binary ${sourceFile} not found in archive`)
-      }
-
-      await fsp.copyFile(extractedFile, targetPath)
-      if (platform !== 'win32') await fsp.chmod(targetPath, 0o755)
-      await updateHashCache(targetPath)
-      log_success(`Extracted service file: ${targetFile}`)
-    }
-
-    log_success(`service bundle finished: ${archiveFile}`)
-  } finally {
-    await fsp.rm(tempDir, { recursive: true, force: true })
+  const buildDir = path.join(
+    SERVICE_REPOSITORY,
+    'target',
+    SIDECAR_HOST,
+    'release',
+  )
+  for (const name of SERVICE_BINARIES) {
+    const { sourceFile, targetFile } = serviceFileInfo(name)
+    const targetPath = path.join(SERVICE_DIR, targetFile)
+    await fsp.copyFile(path.join(buildDir, sourceFile), targetPath)
+    if (platform !== 'win32') await fsp.chmod(targetPath, 0o755)
+    await updateHashCache(targetPath)
+    log_success(`Built service file: ${targetFile}`)
   }
 }
 

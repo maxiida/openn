@@ -205,10 +205,6 @@ fn macos_service_install_markers() -> Vec<String> {
             "/Library/PrivilegedHelperTools/{}.bundle",
             clash_verge_service_ipc::MACOS_SERVICE_ID
         ),
-        #[cfg(not(feature = "verge-dev"))]
-        "/Library/LaunchDaemons/io.github.clashverge.helper.plist".to_owned(),
-        #[cfg(not(feature = "verge-dev"))]
-        "/Library/PrivilegedHelperTools/io.github.clashverge.helper".to_owned(),
     ]
 }
 
@@ -515,9 +511,21 @@ fn shell_single_quote(value: &str) -> String {
 }
 
 #[cfg(any(target_os = "macos", test))]
-fn macos_install_shell(install_path: &Path, gid: u32) -> String {
+fn macos_install_shell(install_path: &Path, gid: u32, cores: &[PathBuf]) -> Result<String> {
+    if cores.is_empty() {
+        bail!("no core executable is available; restore a bundled core before installing the service");
+    }
     let install_quoted = shell_single_quote(&install_path.to_string_lossy());
-    format!("cd /; CLASH_VERGE_SERVICE_GID={gid} {install_quoted}")
+    let mut command = format!("cd /; CLASH_VERGE_SERVICE_GID={gid} {install_quoted} --install-service");
+    for core in cores {
+        let digest = sha256_hex(core)?;
+        command.push_str(&format!(
+            " --install-core {} --sha256 {}",
+            shell_single_quote(&core.to_string_lossy()),
+            shell_single_quote(&digest),
+        ));
+    }
+    Ok(command)
 }
 
 fn packaged_service_tool_path(file_name: &str, packaged_path: impl FnOnce() -> Result<PathBuf>) -> Result<PathBuf> {
@@ -817,11 +825,19 @@ fn install_service() -> Result<()> {
     macos_service_tool_path(&binary_path)?;
     let install_path = macos_service_tool_path(&install_path)?;
 
+    // Development installers live apart from the cores and cannot discover them as siblings.
+    let executable = current_exe()?;
+    let cores = crate::config::IVerge::VALID_CLASH_CORES
+        .iter()
+        .filter(|core| executable.with_file_name(core).is_file())
+        .map(|core| service_core_path(core, ""))
+        .collect::<Result<Vec<_>>>()?;
+
     // clash_verge_i18n::sync_locale(Config::verge().await.latest_arc().language.as_deref());
 
     let gid = tauri_plugin_clash_verge_sysinfo::current_gid();
     let prompt = clash_verge_i18n::t!("service.adminInstallPrompt");
-    let shell = macos_install_shell(&install_path, gid);
+    let shell = macos_install_shell(&install_path, gid, &cores)?;
     let shell = escape_osascript_double_quoted_string(&shell);
     let command = format!(r#"do shell script "{shell}" with administrator privileges with prompt "{prompt}""#);
 
@@ -2395,14 +2411,26 @@ mod tests {
     }
 
     #[test]
-    fn macos_install_shell_starts_from_root_without_nested_sudo() {
-        let shell = macos_install_shell(Path::new("/safe/service-tools/clash-verge-service-install"), 20);
-
+    fn macos_install_shell_includes_attested_cores_in_one_authorization() -> anyhow::Result<()> {
+        let root = TestDirectory::new("macos user's cores")?;
+        let core = root.path().join("verge-mihomo");
+        std::fs::write(&core, b"abc")?;
+        let shell = macos_install_shell(
+            Path::new("/safe/service-tools/clash-verge-service-install"),
+            20,
+            std::slice::from_ref(&core),
+        )?;
         assert_eq!(
             shell,
-            "cd /; CLASH_VERGE_SERVICE_GID=20 '/safe/service-tools/clash-verge-service-install'"
+            format!(
+                "cd /; CLASH_VERGE_SERVICE_GID=20 '/safe/service-tools/clash-verge-service-install' --install-service --install-core {} --sha256 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'",
+                super::shell_single_quote(&core.to_string_lossy()),
+            )
         );
         assert!(!shell.contains("sudo"));
+        assert!(shell.contains("'\\''"));
+        assert!(macos_install_shell(Path::new("/installer"), 20, &[]).is_err());
+        Ok(())
     }
 
     #[cfg(unix)]
