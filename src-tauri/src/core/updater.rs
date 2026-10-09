@@ -156,6 +156,19 @@ impl SilentUpdater {
             return false;
         }
 
+        // Without update endpoints the cache can never be verified or installed, so asking would
+        // only repeat on every launch; a cache migrated from the upstream app lands here.
+        if let Err(e) = app_handle.updater_builder().build() {
+            logging!(
+                info,
+                Type::System,
+                "Updater unavailable ({e}), discarding cached update {}",
+                cached_version
+            );
+            Self::delete_cache();
+            return false;
+        }
+
         logging!(
             info,
             Type::System,
@@ -319,7 +332,7 @@ impl SilentUpdater {
         use tauri::{WebviewUrl, WebviewWindowBuilder};
 
         let window = match WebviewWindowBuilder::new(app_handle, "update-splash", WebviewUrl::App("index.html".into()))
-            .title("Clash Verge - Updating")
+            .title("Openn - Updating")
             .inner_size(300.0, 180.0)
             .resizable(false)
             .maximizable(false)

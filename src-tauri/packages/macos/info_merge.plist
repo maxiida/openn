@@ -2,9 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Scan proxy configuration QR codes.</string>
     <key>AssociatedBundleIdentifiers</key>
     <array>
-        <string>io.github.clash-verge-rev.clash-verge-rev.service</string>
+        <string>com.openn.app.service</string>
     </array>
 </dict>
 </plist>

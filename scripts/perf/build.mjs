@@ -72,7 +72,7 @@ execFileSync(
 if (before !== hash(source()))
   throw new Error('Source changed during build; refuse manifest')
 const binary = `${output}/clash-verge`
-copyFileSync('target/perf/cargo/release/clash-verge', binary)
+copyFileSync('target/perf/cargo/release/Openn', binary)
 const files = command('find', ['target/perf/dist', '-type', 'f'])
   .split('\n')
   .sort()

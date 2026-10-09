@@ -5,10 +5,15 @@ description = "clash verge"
 authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
 license = "GPL-3.0-only"
 repository = "https://github.com/clash-verge-rev/clash-verge-rev.git"
-default-run = "clash-verge"
+default-run = "Openn"
 build = "build.rs"
 edition = "2024"
 rust-version = "1.95"
+
+[[bin]]
+# macOS names an unbundled dev process (Dock, app menu) after its executable.
+name = "Openn"
+path = "src/main.rs"
 
 [lib]
 name = "app_lib"
@@ -26,7 +31,7 @@ clippy = ["tauri/test"]
 perf-harness = ["dep:tauri-plugin-wdio-webdriver"]
 
 [package.metadata.bundle]
-identifier = "io.github.clash-verge-rev.clash-verge-rev"
+identifier = "com.openn.app"
 
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
