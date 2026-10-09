@@ -18,18 +18,17 @@ These rules apply to every change, whether human- or agent-authored. They match
 the ownership evidence the AI-slop review evaluates (see
 [`pr-ai-slop-review.md`](.github/workflows/pr-ai-slop-review.md)).
 
-1. **Issue first.** Non-trivial changes require a pre-existing issue describing
-   the problem. If none exists, ask the maintainers to open or approve one
-   before implementing.
-2. **Scope discipline.** Every changed file must be justifiable from the linked
-   issue. No drive-by refactors, renames, formatting churn, or dependency bumps
+1. **No issue required.** Changes may be implemented directly without a
+   pre-existing issue; describe the problem being fixed in the commit or PR.
+2. **Scope discipline.** Every changed file must be justifiable from the problem
+   being fixed. No drive-by refactors, renames, formatting churn, or dependency bumps
    unrelated to the problem being fixed.
 3. **Author accountability.** AI assistance is welcome, but the contributor owns
    the result: understand the change, describe the problem and approach in your
    own words, and verify the change against the reported behavior before
    submitting.
 4. **Tests are justified, not default.** Do not add tests, test scaffolding, or
-   speculative defensive code unless the linked issue demands them. When a test
+   speculative defensive code unless the problem demands them. When a test
    is genuinely necessary — it reproduces the reported regression or guards
    behavior whose breakage would otherwise go unnoticed — keep it minimal and
    state in the PR body why it is needed. Bulk test files and defensive
@@ -44,7 +43,7 @@ the ownership evidence the AI-slop review evaluates (see
    real evidence instead: reproduction steps, failure output, targeted tests.
 8. **Minimal diffs.** Match the surrounding code's style, naming, and comment
    density. Do not introduce new dependencies or restructure working code unless
-   the issue demands it.
+   the problem demands it.
 9. **Disclose AI automation.** When an agent produces or co-produces a change,
    append a footer line to the PR body with the model and effort used (e.g.
    `Assisted by: GPT-5.6 High`). The PR template intentionally omits this line —
@@ -61,6 +60,6 @@ the ownership evidence the AI-slop review evaluates (see
 
 ## Pull Request Shape
 
-Describe three things, briefly: the problem (with issue link), why this approach
+Describe three things, briefly: the problem (with issue link if one exists), why this approach
 solves it, and what changed. See
 [`PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md).
