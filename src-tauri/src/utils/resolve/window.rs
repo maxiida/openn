@@ -44,12 +44,22 @@ fn restore_default_size_if_needed(window: &WebviewWindow) {
     logging_error!(Type::Window, window.center());
 }
 
+/// Page the next created main window opens on, overriding the configured start page once.
+static NEXT_START_PAGE: std::sync::Mutex<Option<&'static str>> = std::sync::Mutex::new(None);
+
+pub fn open_next_window_at(path: &'static str) {
+    if let Ok(mut next) = NEXT_START_PAGE.lock() {
+        *next = Some(path);
+    }
+}
+
 pub async fn build_new_window() -> Result<WebviewWindow, String> {
     let app_handle = handle::Handle::app_handle();
 
     let config = Config::verge().await;
     let latest = config.latest_arc();
-    let start_page = latest.start_page.as_deref().unwrap_or("/");
+    let next_page = NEXT_START_PAGE.lock().ok().and_then(|mut next| next.take());
+    let start_page = next_page.unwrap_or_else(|| latest.start_page.as_deref().unwrap_or("/"));
     let initial_theme_mode = match latest.theme_mode.as_deref() {
         Some("dark") => "dark",
         Some("light") => "light",
@@ -81,7 +91,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         "main", /* the unique window label */
         tauri::WebviewUrl::App(start_page.into()),
     )
-    .title("Clash Verge")
+    .title("Openn")
     .center()
     .decorations(DEFAULT_DECORATIONS)
     .fullscreen(false)
@@ -98,6 +108,13 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         logging_error!(Type::Window, window.show());
         logging_error!(Type::Window, window.set_focus());
     });
+
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true);
+    }
 
     if let Some(theme) = resolved_theme {
         builder = builder.theme(Some(theme));

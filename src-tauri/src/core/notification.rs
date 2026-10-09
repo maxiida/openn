@@ -15,7 +15,6 @@ pub enum FrontendEvent<'a> {
     RefreshClash,
     RefreshVerge,
     RefreshProfiles,
-    RefreshProxyConfig,
     NoticeMessage {
         status: &'a str,
         message: String,
@@ -36,6 +35,9 @@ pub enum FrontendEvent<'a> {
         state: serde_json::Value,
     },
     PendingFailuresChanged,
+    Navigate {
+        path: &'a str,
+    },
     #[cfg(target_os = "linux")]
     ThemeChanged {
         theme: tauri::Theme,
@@ -282,7 +284,6 @@ impl NotificationSystem {
             FrontendEvent::RefreshClash => ("verge://refresh-clash-config", Ok(json!("yes"))),
             FrontendEvent::RefreshVerge => ("verge://refresh-verge-config", Ok(json!("yes"))),
             FrontendEvent::RefreshProfiles => ("verge://refresh-profiles", Ok(json!("yes"))),
-            FrontendEvent::RefreshProxyConfig => ("verge://refresh-proxy-config", Ok(serde_json::Value::Null)),
             FrontendEvent::NoticeMessage { status, message } => {
                 ("verge://notice-message", serde_json::to_value((status, message)))
             }
@@ -292,6 +293,7 @@ impl NotificationSystem {
             FrontendEvent::ProfileUpdateCompleted { uid } => ("profile-update-completed", Ok(json!({ "uid": uid }))),
             FrontendEvent::RunStateChanged { state } => ("verge://run-state-changed", Ok(state)),
             FrontendEvent::PendingFailuresChanged => ("verge://pending-failures-changed", Ok(serde_json::Value::Null)),
+            FrontendEvent::Navigate { path } => ("verge://navigate", Ok(json!(path))),
             #[cfg(target_os = "linux")]
             FrontendEvent::ThemeChanged { theme } => ("tauri://theme-changed", serde_json::to_value(theme)),
         }

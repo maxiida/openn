@@ -135,6 +135,7 @@ mod app_init {
             cmd::restart_core,
             cmd::upgrade_clash_core,
             cmd::get_runtime_state,
+            cmd::get_preflight_report,
             cmd::get_pending_failures,
             cmd::entry_lightweight_mode,
             cmd::install_service,
@@ -320,6 +321,32 @@ pub fn run() -> std::process::ExitCode {
     #[cfg(target_os = "macos")]
     let builder = builder.on_web_content_process_terminate(resolve::window::on_web_content_process_terminated);
 
+    // Replaces Tauri's default File/View/Window/Help menus. The Edit menu stays because
+    // WKWebView only receives ⌘C/⌘V/⌘Z through menu key equivalents.
+    #[cfg(target_os = "macos")]
+    let builder = builder.menu(|app| {
+        use tauri::menu::{MenuBuilder, SubmenuBuilder};
+        let app_menu = SubmenuBuilder::new(app, "Openn")
+            .about_with_text("关于 Openn", None)
+            .separator()
+            .hide_with_text("隐藏 Openn")
+            .hide_others_with_text("隐藏其他")
+            .show_all_with_text("全部显示")
+            .separator()
+            .quit_with_text("退出 Openn")
+            .build()?;
+        let edit_menu = SubmenuBuilder::new(app, "编辑")
+            .undo_with_text("撤销")
+            .redo_with_text("重做")
+            .separator()
+            .cut_with_text("剪切")
+            .copy_with_text("拷贝")
+            .paste_with_text("粘贴")
+            .select_all_with_text("全选")
+            .build()?;
+        MenuBuilder::new(app).items(&[&app_menu, &edit_menu]).build()
+    });
+
     mod event_handlers {
         #[cfg(target_os = "macos")]
         use crate::module::lightweight;
@@ -345,7 +372,7 @@ pub fn run() -> std::process::ExitCode {
 
             #[cfg(target_os = "macos")]
             if let Some(window) = _app_handle.get_webview_window("main") {
-                let _ = window.set_title("Clash Verge");
+                let _ = window.set_title("Openn");
             }
         }
 

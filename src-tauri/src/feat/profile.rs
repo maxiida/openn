@@ -1,7 +1,7 @@
 use crate::{
     cmd,
     config::{Config, PrfItem, PrfOption, profiles::profiles_update_item_safe},
-    core::{CoreManager, handle, tray, validate::ValidationOutcome},
+    core::{CoreManager, handle, validate::ValidationOutcome},
     utils::help::{mask_err, mask_url},
 };
 use anyhow::{Result, bail};
@@ -16,54 +16,6 @@ pub async fn toggle_proxy_profile(profile_index: String) {
             Type::Config,
             "toggle proxy profile {profile_index} failed: {err}"
         );
-    }
-}
-
-/// Tell the profile which node this group is on now.
-///
-/// The core is already switched by the time this runs, so failing to record is not a reason to
-/// report the switch as failed — but it is worth a log line, because what the profile holds is
-/// what gets re-applied the next time a core starts.
-async fn record_switched_node(group_name: &str, proxy_name: &str) {
-    if let Err(error) = crate::config::profiles::record_selected_node(group_name, proxy_name).await {
-        logging!(
-            warn,
-            Type::Config,
-            "切换代理成功但未能记录到配置: {} -> {}, 错误: {error:#}",
-            group_name,
-            proxy_name
-        );
-    }
-}
-
-pub async fn switch_proxy_node(group_name: &str, proxy_name: &str) {
-    match handle::Handle::mihomo()
-        .select_node_for_group(group_name, proxy_name)
-        .await
-    {
-        Ok(_) => {
-            record_switched_node(group_name, proxy_name).await;
-            handle::Handle::refresh_proxy_config();
-            let _ = tray::Tray::global().update_menu().await;
-            return;
-        }
-        Err(err) => {
-            logging!(error, Type::Tray, "切换代理失败: {err:?}");
-        }
-    }
-
-    match handle::Handle::mihomo()
-        .select_node_for_group(group_name, proxy_name)
-        .await
-    {
-        Ok(_) => {
-            logging!(info, Type::Tray, "代理切换回退成功: {} -> {}", group_name, proxy_name);
-            record_switched_node(group_name, proxy_name).await;
-            let _ = tray::Tray::global().update_menu().await;
-        }
-        Err(err) => {
-            logging!(error, Type::Tray, "代理切换最终失败: {err:?}");
-        }
     }
 }
 

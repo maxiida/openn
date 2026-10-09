@@ -47,10 +47,6 @@ impl Handle {
         Self::send_event(FrontendEvent::RefreshProfiles);
     }
 
-    pub fn refresh_proxy_config() {
-        Self::send_event(FrontendEvent::RefreshProxyConfig);
-    }
-
     /// Push a Run State snapshot to the frontend.
     ///
     /// Sent on every transition, so the frontend does not have to poll to notice that the Core
@@ -78,6 +74,10 @@ impl Handle {
 
     pub fn notify_profile_update_completed(uid: &String) {
         Self::send_event(FrontendEvent::ProfileUpdateCompleted { uid });
+    }
+
+    pub fn navigate(path: &str) {
+        Self::send_event(FrontendEvent::Navigate { path });
     }
 
     pub fn notice_message<S: AsRef<str>, M: Into<String>>(status: S, msg: M) {

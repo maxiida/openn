@@ -256,7 +256,7 @@ async fn process_terminated_flags(update_flags: UpdateFlags, patch: &IVerge) -> 
         tray::Tray::global().update_tooltip().await?;
     }
     if update_flags.contains(UpdateFlags::SYSTRAY_CLICK_BEHAVIOR) {
-        tray::Tray::global().update_click_behavior().await?;
+        tray::Tray::global().update_click_behavior()?;
     }
     if update_flags.contains(UpdateFlags::LIGHT_WEIGHT) {
         if patch.enable_auto_light_weight_mode.unwrap_or(false) {
