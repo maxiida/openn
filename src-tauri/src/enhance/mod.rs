@@ -284,6 +284,51 @@ fn process_seq_items(
     config
 }
 
+const DEFAULT_SPLIT_RULES: &[&str] = &[
+    "GEOSITE,private,DIRECT",
+    "GEOIP,LAN,DIRECT,no-resolve",
+    "GEOSITE,cn,DIRECT",
+    "GEOIP,CN,DIRECT",
+];
+
+/// The app always runs in rule mode, so a profile without split rules (a bare node, or a lone
+/// `MATCH`) would send mainland sites abroad. Keep its final target, add the mainland split.
+fn ensure_split_rules(mut config: Mapping) -> Mapping {
+    let rules = config
+        .get("rules")
+        .and_then(Value::as_sequence)
+        .map(|seq| seq.iter().filter_map(Value::as_str).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let is_match = |rule: &&str| rule.trim_start().to_ascii_uppercase().starts_with("MATCH,");
+    if rules.iter().any(|rule| !is_match(rule)) {
+        return config;
+    }
+
+    let first_name = |key: &str| {
+        config
+            .get(key)
+            .and_then(Value::as_sequence)
+            .and_then(|seq| seq.first())
+            .and_then(|item| item.get("name"))
+            .and_then(Value::as_str)
+    };
+    let target = rules
+        .last()
+        .and_then(|rule| rule.split(',').nth(1))
+        .map(str::trim)
+        .or_else(|| first_name("proxy-groups"))
+        .or_else(|| first_name("proxies"))
+        .map(|target| format!("MATCH,{target}"));
+    let Some(target) = target else {
+        return config;
+    };
+
+    let mut split: Vec<Value> = DEFAULT_SPLIT_RULES.iter().map(|rule| Value::from(*rule)).collect();
+    split.push(Value::from(target));
+    config.insert("rules".into(), Value::Sequence(split));
+    config
+}
+
 /// App 权威的顶层控制面键;`dns.ipv6` 单独处理。
 const CONTROL_PLANE_KEYS: &[&str] = &[
     "external-controller",
@@ -696,6 +741,42 @@ fn ensure_fake_ip_range6(dns: &mut Mapping) {
     }
 }
 
+/// Resolves proxy node hostnames; must be reachable without any proxy, so plain IP DoH.
+const PROXY_SERVER_NAMESERVERS: &[&str] = &["https://223.5.5.5/dns-query", "https://223.6.6.6/dns-query"];
+
+/// Keeps the core's own lookups off unreachable upstreams.
+///
+/// Subscriptions routinely ship `fallback` and `nameserver-policy` servers (Cloudflare, Google)
+/// that the core dials DIRECT, where they are blocked. Any rule needing an IP then waits out the
+/// 5s resolver timeout on every new connection, and a failed lookup is never cached. With
+/// `respect-rules` those servers follow the rules like any other traffic; under fake-ip the proxy
+/// resolves the real address remotely, so `fallback` only ever delays IP-rule matching.
+fn use_reachable_dns(mut config: Mapping) -> Mapping {
+    let Some(Value::Mapping(dns)) = config.get_mut("dns") else {
+        return config;
+    };
+
+    let fake_ip = dns
+        .get("enhanced-mode")
+        .and_then(Value::as_str)
+        .is_none_or(|mode| mode == "fake-ip");
+    if fake_ip {
+        dns.remove("fallback");
+        dns.remove("fallback-filter");
+    }
+
+    dns.insert("respect-rules".into(), true.into());
+    // The core refuses `respect-rules` without somewhere direct to resolve node hostnames.
+    if !dns.get("proxy-server-nameserver").is_some_and(is_set) {
+        dns.insert(
+            "proxy-server-nameserver".into(),
+            PROXY_SERVER_NAMESERVERS.iter().copied().map(Value::from).collect(),
+        );
+    }
+
+    config
+}
+
 /// On, non-blank text, or non-empty list/map; anything else keeps the profile's value.
 fn is_set(value: &Value) -> bool {
     match value {
@@ -808,6 +889,7 @@ pub async fn enhance(
     let result_map = HashMap::new();
 
     let config = process_seq_items(config, rules_item, proxies_item, groups_item);
+    let config = ensure_split_rules(config);
     let exists_keys = use_keys(&config).collect::<Vec<_>>();
     let gui_tun_keys = gui_tun_keys(&clash_config);
 
@@ -825,6 +907,7 @@ pub async fn enhance(
 
     let config = apply_builtin_scripts(config, clash_core, enable_builtin);
     let config = use_tun(config, enable_tun);
+    let config = use_reachable_dns(config);
     let (config, owns_dns_ipv6) = apply_dns_settings(config, enable_dns_settings).await;
 
     let authoritative = AuthoritativeFields::capture(&config, &gui_tun_keys, owns_dns_ipv6);
@@ -1313,12 +1396,33 @@ mod authoritative_field_tests {
 mod tests {
     use super::{
         ChainItem, ChainType, cleanup_proxy_groups, ensure_lan_bind_address, process_global_items,
-        process_profile_items, use_keys,
+        process_profile_items, use_keys, use_reachable_dns,
     };
     use std::collections::HashMap;
 
     fn mapping(yaml: &str) -> serde_yaml_ng::Mapping {
         serde_yaml_ng::from_str(yaml).expect("test config should be valid")
+    }
+
+    // Guards the 5s stall on every new connection when a provider's fallback DoH is blocked.
+    #[test]
+    fn provider_dns_upstreams_follow_the_rules_instead_of_dialing_direct() {
+        let fake_ip = use_reachable_dns(mapping(
+            r"{dns: {enhanced-mode: fake-ip, fallback: [https://dns.google/dns-query],
+               fallback-filter: {geoip: true}, proxy-server-nameserver: [https://doh.pub/dns-query]}}",
+        ));
+        let dns = fake_ip["dns"].as_mapping().expect("dns stays a mapping");
+        assert!(!dns.contains_key("fallback") && !dns.contains_key("fallback-filter"));
+        assert_eq!(dns["respect-rules"], serde_yaml_ng::Value::Bool(true));
+        assert_eq!(
+            dns["proxy-server-nameserver"],
+            serde_yaml_ng::Value::Sequence(vec!["https://doh.pub/dns-query".into()])
+        );
+
+        let redir_host = use_reachable_dns(mapping(r"{dns: {enhanced-mode: redir-host, fallback: [1.1.1.1]}}"));
+        let dns = redir_host["dns"].as_mapping().expect("dns stays a mapping");
+        assert!(dns.contains_key("fallback"), "redir-host hands resolved IPs to apps, so it keeps fallback");
+        assert!(dns.get("proxy-server-nameserver").is_some_and(serde_yaml_ng::Value::is_sequence));
     }
 
     #[tokio::test]

@@ -28,6 +28,11 @@ use tokio::{sync::Mutex, time::timeout};
 const CLEAR_ATTEMPTS: u32 = 3;
 const CLEAR_RETRY_DELAY: Duration = Duration::from_millis(100);
 
+/// How long the Core gets to bind the mixed port before a system-proxy apply is refused. Apply runs
+/// while the Core is still starting, so an immediate probe would reject a perfectly good startup.
+const LISTENER_WAIT: Duration = Duration::from_secs(3);
+const LISTENER_POLL: Duration = Duration::from_millis(200);
+
 /// Actionable system-proxy failure attached to an `anyhow` chain.
 ///
 /// Classification remains downcastable while the original error stays available for diagnostics.
@@ -37,6 +42,8 @@ pub enum SysproxyFailure {
     PrivilegeRequired,
     /// The service failed to apply the proxy and attempted direct fallback.
     DirectFallback { detail: String },
+    /// Another VPN owns the primary network service, which holds no proxy settings to write.
+    OtherVpnActive,
     /// A ready service can replace the refused sidecar write.
     SidecarWhileServiceReady,
     /// The proxy guard stopped after repeated failures.
@@ -53,6 +60,7 @@ impl SysproxyFailure {
         match self {
             Self::PrivilegeRequired => "SYSPROXY_PRIVILEGE_REQUIRED",
             Self::DirectFallback { .. } => "SYSPROXY_DIRECT_FALLBACK",
+            Self::OtherVpnActive => "SYSPROXY_OTHER_VPN_ACTIVE",
             Self::SidecarWhileServiceReady => "SYSPROXY_SIDECAR_WHILE_SERVICE_READY",
             Self::GuardStopped { .. } => "SYSPROXY_GUARD_STOPPED",
             Self::CoreNotReady => "SYSPROXY_CORE_NOT_READY",
@@ -72,6 +80,9 @@ impl std::fmt::Display for SysproxyFailure {
             Self::PrivilegeRequired => f.write_str("system proxy write requires elevated privileges"),
             Self::DirectFallback { detail } => {
                 write!(f, "system proxy failed and fell back to direct: {detail}")
+            }
+            Self::OtherVpnActive => {
+                f.write_str("another VPN owns the active network service, so the system proxy cannot be set")
             }
             Self::SidecarWhileServiceReady => {
                 f.write_str("system proxy write was refused locally while the service was ready")
@@ -367,6 +378,10 @@ fn service_apply_result(requested: &MacosProxyConfig, outcome: ProxyApplyOutcome
         ProxyApplyOutcome::Applied | ProxyApplyOutcome::NotRequested => Ok(()),
         // Direct fallback satisfies a disable request.
         ProxyApplyOutcome::DirectFallback { .. } if matches!(requested, MacosProxyConfig::Disabled) => Ok(()),
+        // The service reports a VPN's dynamic primary service only through this sysproxy message.
+        ProxyApplyOutcome::DirectFallback { message } if message.contains("resolve active network service") => {
+            Err(anyhow::anyhow!(message).context(SysproxyFailure::OtherVpnActive))
+        }
         ProxyApplyOutcome::DirectFallback { message } => {
             Err(SysproxyFailure::DirectFallback { detail: message }.into())
         }
@@ -470,10 +485,46 @@ fn table_effect(result: &Result<()>) -> TableEffect<'_> {
     }
 }
 
+/// Refuses a system proxy aimed at a port nothing is listening on.
+///
+/// That state takes the whole machine offline rather than merely failing to proxy: every app that
+/// follows the system proxy fails outright, including the browser needed to undo it. Recovering
+/// needs a terminal and `networksetup`, which is not something to ask of the people this app is
+/// for. Only a port we can *prove* is free counts as a refusal; an indeterminate probe proceeds.
+async fn ensure_mixed_port_is_served(port: u16) -> Result<()> {
+    let scope = {
+        let clash = Config::clash().await.latest_arc();
+        crate::core::listener::ListenerBindScope::from_mapping(&clash.0)?
+    };
+    wait_for_listener(&scope, port, LISTENER_WAIT).await
+}
+
+async fn wait_for_listener(scope: &crate::core::listener::ListenerBindScope, port: u16, wait: Duration) -> Result<()> {
+    use crate::core::listener::ListenerProbeOutcome;
+
+    let deadline = tokio::time::Instant::now() + wait;
+    loop {
+        let probing = scope.clone();
+        let outcome = AsyncHandler::spawn_blocking(move || probing.probe_mixed_port(port)).await?;
+        if !matches!(outcome, ListenerProbeOutcome::Available) {
+            return Ok(());
+        }
+        ensure!(
+            tokio::time::Instant::now() < deadline,
+            "refusing to point the system proxy at 127.0.0.1:{port}: nothing is listening there, \
+             so enabling it would take every app offline"
+        );
+        tokio::time::sleep(LISTENER_POLL).await;
+    }
+}
+
 #[tracing::instrument(skip_all, level = "info", fields(route = tracing::field::Empty))]
 pub async fn apply() -> Result<()> {
     let running_mode = CoreManager::global().get_running_mode();
     let verge = Config::verge().await.latest_arc();
+    if verge.enable_system_proxy.unwrap_or(false) {
+        ensure_mixed_port_is_served(MixedPort::desired().await).await?;
+    }
     let route = proxy_backend_route(cfg!(target_os = "macos"), &running_mode);
     tracing::Span::current().record("route", tracing::field::debug(&route));
     let result = match route {
@@ -660,16 +711,24 @@ pub async fn stop_guard() -> bool {
 mod tests {
     use super::{
         ProxyBackendRoute, ServiceProxyOperations, guard_generation_is_current, proxy_backend_route,
-        service_proxy_config,
+        service_proxy_config, wait_for_listener,
     };
-    use crate::{config::IVerge, core::manager::RunningMode};
+    use crate::{
+        config::IVerge,
+        core::{listener::ListenerBindScope, manager::RunningMode},
+    };
     use clash_verge_service_ipc::{MacosProxyConfig, OwnerSessionProof, ProxyApplyOutcome};
     use parking_lot::Mutex;
+    use serde_yaml_ng::Mapping;
     use std::sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
     };
     use std::task::Poll;
+    use std::{
+        net::{Ipv4Addr, TcpListener},
+        time::Duration,
+    };
     use tokio::sync::Barrier;
 
     fn guarded_proxy() -> MacosProxyConfig {
@@ -1313,5 +1372,42 @@ mod tests {
             Some("SYSPROXY_DIRECT_FALLBACK")
         );
         assert!(format!("{error:#}").contains("service could not set the proxy"));
+    }
+
+    fn loopback_scope() -> ListenerBindScope {
+        ListenerBindScope::from_mapping(&Mapping::new()).expect("a default mapping binds loopback")
+    }
+
+    // The two tests below guard the one state that strands the machine offline: a system proxy
+    // aimed at a port with no listener. Refusing has to be the outcome, because committing it
+    // takes away the very browser the user would need to undo it.
+
+    #[tokio::test]
+    async fn a_served_port_is_accepted_without_waiting_out_the_window() {
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).expect("loopback accepts an ephemeral bind");
+        let port = listener.local_addr().expect("a bound listener has an address").port();
+
+        assert!(
+            wait_for_listener(&loopback_scope(), port, Duration::from_millis(500))
+                .await
+                .is_ok()
+        );
+    }
+
+    #[tokio::test]
+    async fn an_unserved_port_is_refused_rather_than_committed() {
+        // Bind and release, so the port is known free instead of merely guessed at.
+        let port = {
+            let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).expect("loopback accepts a bind");
+            listener.local_addr().expect("a bound listener has an address").port()
+        };
+
+        let error = wait_for_listener(&loopback_scope(), port, Duration::from_millis(300))
+            .await
+            .expect_err("a port with nothing on it must not be accepted");
+        assert!(
+            error.to_string().contains("nothing is listening"),
+            "the refusal should name the reason, got: {error}"
+        );
     }
 }

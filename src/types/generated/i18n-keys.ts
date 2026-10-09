@@ -783,6 +783,7 @@ export const translationKeys = [
   'settings.feedback.errors.clashService.sidecarFailed',
   'settings.feedback.errors.sysproxy.privilegeRequired',
   'settings.feedback.errors.sysproxy.directFallback',
+  'settings.feedback.errors.sysproxy.otherVpnActive',
   'settings.feedback.errors.sysproxy.guardStopped',
   'settings.feedback.errors.sysproxy.sidecarWhileServiceReady',
   'settings.feedback.errors.sysproxy.coreNotReady',

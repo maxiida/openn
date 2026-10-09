@@ -818,6 +818,7 @@ export interface TranslationResources {
             coreNotReady: string
             directFallback: string
             guardStopped: string
+            otherVpnActive: string
             privilegeRequired: string
             sidecarWhileServiceReady: string
             systemCallFailed: string

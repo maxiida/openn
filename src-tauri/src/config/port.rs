@@ -331,16 +331,24 @@ mod listener_key_tests {
 mod tests {
     use super::configured_listener_ports;
     use crate::config::{IClashTemp, IVerge};
+    use crate::constants::network::{DEFAULT_EXTERNAL_CONTROLLER, ports};
 
     #[test]
     fn configured_ports_include_disabled_listener_assignments() {
-        let ports = configured_listener_ports(&IClashTemp::template(), &IVerge::template());
-        assert!(ports.contains(&7898));
-        assert!(ports.contains(&7899));
-        assert!(ports.contains(&9097));
+        let controller_port: u16 = DEFAULT_EXTERNAL_CONTROLLER
+            .rsplit_once(':')
+            .expect("the default external controller carries a port")
+            .1
+            .parse()
+            .expect("the default external controller port parses");
+
+        let ports_in_use = configured_listener_ports(&IClashTemp::template(), &IVerge::template());
+        assert!(ports_in_use.contains(&ports::DEFAULT_SOCKS));
+        assert!(ports_in_use.contains(&ports::DEFAULT_HTTP));
+        assert!(ports_in_use.contains(&controller_port));
         #[cfg(not(target_os = "windows"))]
-        assert!(ports.contains(&7895));
+        assert!(ports_in_use.contains(&ports::DEFAULT_REDIR));
         #[cfg(target_os = "linux")]
-        assert!(ports.contains(&7896));
+        assert!(ports_in_use.contains(&ports::DEFAULT_TPROXY));
     }
 }

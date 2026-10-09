@@ -558,3 +558,36 @@ fn fix_dirty_url(input: &str) -> Result<Url> {
 
     Ok(url)
 }
+
+#[cfg(test)]
+mod direct_import_diagnostics {
+    use super::*;
+    use std::time::Instant;
+
+    #[tokio::test]
+    #[ignore = "requires a private subscription URL and live network"]
+    async fn direct_root_request_diagnostic() {
+        NetworkManager::new()
+            .get("https://www.shadow-airport.top/", ProxyType::None, Some(3), None, false)
+            .await
+            .unwrap_or_else(|error| panic!("DIRECT root request failed: {error:#}"));
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a private subscription URL and live network"]
+    async fn cold_direct_subscription_imports_succeed_five_times() {
+        let url = std::env::var("DIRECT_SUBSCRIPTION_URL").expect("DIRECT_SUBSCRIPTION_URL is required");
+        let option = PrfOption {
+            timeout_seconds: Some(3),
+            ..PrfOption::default()
+        };
+
+        for attempt in 1..=5 {
+            let started = Instant::now();
+            PrfItem::from_url(&url, None, None, Some(&option))
+                .await
+                .unwrap_or_else(|error| panic!("DIRECT attempt {attempt} failed: {error:#}"));
+            eprintln!("DIRECT attempt {attempt} succeeded in {:?}", started.elapsed());
+        }
+    }
+}

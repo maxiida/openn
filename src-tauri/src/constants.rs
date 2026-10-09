@@ -1,16 +1,19 @@
 use std::time::Duration;
 
 pub mod network {
-    pub const DEFAULT_EXTERNAL_CONTROLLER: &str = "127.0.0.1:9097";
+    pub const DEFAULT_EXTERNAL_CONTROLLER: &str = "127.0.0.1:9687";
 
+    /// Deliberately outside the 7890-7899 block every Clash-family GUI defaults to. A user who
+    /// still has ClashX or Clash Verge installed would otherwise lose the port race on startup and
+    /// get silently relocated, breaking anything that had been pointed at the advertised port.
     pub mod ports {
         #[cfg(not(target_os = "windows"))]
-        pub const DEFAULT_REDIR: u16 = 7895;
+        pub const DEFAULT_REDIR: u16 = 7686;
         #[cfg(target_os = "linux")]
-        pub const DEFAULT_TPROXY: u16 = 7896;
-        pub const DEFAULT_MIXED: u16 = 7897;
-        pub const DEFAULT_SOCKS: u16 = 7898;
-        pub const DEFAULT_HTTP: u16 = 7899;
+        pub const DEFAULT_TPROXY: u16 = 7687;
+        pub const DEFAULT_MIXED: u16 = 7688;
+        pub const DEFAULT_SOCKS: u16 = 7689;
+        pub const DEFAULT_HTTP: u16 = 7690;
     }
 }
 
