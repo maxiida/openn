@@ -276,8 +276,9 @@ class DelayManager {
     member: InteractableProxyMember,
     group: string,
     timeout: number,
+    minDuration = 500,
   ): Promise<DelayUpdate> {
-    const update = await this.measureDelay(member, group, timeout)
+    const update = await this.measureDelay(member, group, timeout, minDuration)
     this.queueGroupNotification(group)
     return update
   }
@@ -286,6 +287,7 @@ class DelayManager {
     member: InteractableProxyMember,
     group: string,
     timeout: number,
+    minDuration = 500,
   ): Promise<DelayUpdate> {
     const name = member.ref.name
     const providerName =
@@ -316,8 +318,10 @@ class DelayManager {
       ])
 
       const elapsedTime = Date.now() - startTime
-      if (elapsedTime < 500) {
-        await new Promise((resolve) => setTimeout(resolve, 500 - elapsedTime))
+      if (elapsedTime < minDuration) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, minDuration - elapsedTime),
+        )
       }
 
       const delay = result.delay
@@ -326,7 +330,7 @@ class DelayManager {
 
       return this.setDelay(name, group, delay, { elapsed })
     } catch (error) {
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await new Promise((resolve) => setTimeout(resolve, minDuration))
       console.error(`[DelayManager] 延迟测试出错，代理: ${name}`, error)
       const delay = 1e6 // error
       const elapsed = Date.now() - startTime
@@ -340,6 +344,7 @@ class DelayManager {
     group: string,
     timeout: number,
     concurrency = 36,
+    options: { minDuration?: number; maxConcurrency?: number } = {},
   ) {
     debugLog(
       `[DelayManager] 批量测试延迟开始，组: ${group}, 数量: ${proxies.length}, 并发数: ${concurrency}`,
@@ -369,7 +374,7 @@ class DelayManager {
         }
 
         // Do not reorder a list around the pointer while batch results are arriving.
-        await this.measureDelay(currMember, group, timeout)
+        await this.measureDelay(currMember, group, timeout, options.minDuration)
       } catch (error) {
         console.error(
           `[DelayManager] 批量测试单个代理出错，代理: ${currName}`,
@@ -381,7 +386,11 @@ class DelayManager {
       return help()
     }
 
-    const actualConcurrency = Math.min(concurrency, names.length, 10)
+    const actualConcurrency = Math.min(
+      concurrency,
+      names.length,
+      options.maxConcurrency ?? 10,
+    )
     debugLog(`[DelayManager] 实际并发数: ${actualConcurrency}`)
 
     const promiseList: Promise<void>[] = []

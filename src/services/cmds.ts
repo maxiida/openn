@@ -28,7 +28,7 @@ export async function createProfile(
   item: Partial<IProfileItem>,
   fileData?: string | null,
 ) {
-  return invoke<void>('create_profile', { item, fileData })
+  return invoke<string>('create_profile', { item, fileData })
 }
 
 export async function viewProfile(index: string) {
@@ -53,8 +53,48 @@ export async function saveProfileFile(index: string, fileData: string) {
 export async function importProfile(url: string, option?: IProfileOption) {
   return invoke<void>('import_profile', {
     url,
-    option: option || { with_proxy: true },
+    option,
   })
+}
+
+export type ProfileImportRoute = 'direct' | 'system' | 'clash'
+
+export async function importProfileWithFallbacks(
+  url: string,
+): Promise<ProfileImportRoute> {
+  let lastError: unknown
+
+  try {
+    await importProfile(url)
+    return 'direct'
+  } catch (error) {
+    lastError = error
+  }
+
+  const systemProxy = await getSystemProxy().catch(() => null)
+  if (systemProxy?.enable && systemProxy.server) {
+    try {
+      await importProfile(url, { with_proxy: true, self_proxy: false })
+      return 'system'
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  const [profiles, runtime] = await Promise.all([
+    getProfiles(),
+    getRuntimeState(),
+  ])
+  if (profiles.current && runtime.mode !== 'NotRunning') {
+    try {
+      await importProfile(url, { with_proxy: false, self_proxy: true })
+      return 'clash'
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  throw lastError
 }
 
 export async function reorderProfile(activeId: string, overId: string) {
@@ -419,6 +459,24 @@ export interface RunState {
 
 export const getRuntimeState = async () => {
   return invoke<RunState>('get_runtime_state')
+}
+
+export interface StaleProxyEnv {
+  variable: string
+  value: string
+}
+
+export interface PreflightReport {
+  // Interface of a tunnel holding the default route that this app did not raise.
+  foreignTunnel: string | null
+  // Port the active system proxy points at, when that is not our own listener.
+  foreignSystemProxy: number | null
+  // A login-session proxy variable aimed somewhere other than our own listener.
+  staleProxyEnv: StaleProxyEnv | null
+}
+
+export const getPreflightReport = async () => {
+  return invoke<PreflightReport>('get_preflight_report')
 }
 
 export type FailedOperation =

@@ -1,4 +1,10 @@
-import { alpha, createTheme, Theme as MuiTheme, Shadows } from '@mui/material'
+import {
+  alpha,
+  createTheme,
+  Theme as MuiTheme,
+  Shadows,
+  ThemeOptions,
+} from '@mui/material'
 import {
   getCurrentWebviewWindow,
   WebviewWindow,
@@ -26,6 +32,20 @@ const TOP_LEVEL_AT_RULES = [
   '@color-profile',
 ]
 let cssScopeSupport: boolean | null = null
+
+// Every spinner shares the speed-test look: a divider-colored full ring under the moving arc.
+// Spinners inside filled buttons inherit the label color, where a gray ring would clash.
+const components: ThemeOptions['components'] = {
+  MuiCircularProgress: {
+    defaultProps: { enableTrackSlot: true, thickness: 4 },
+    styleOverrides: {
+      track: ({ ownerState, theme }) =>
+        ownerState.color === 'inherit'
+          ? {}
+          : { stroke: theme.palette.divider, opacity: 1 },
+    },
+  },
+}
 
 const canUseCssScope = () => {
   if (cssScopeSupport !== null) {
@@ -169,6 +189,7 @@ export const useCustomTheme = () => {
           },
         },
         shadows: Array(25).fill('none') as Shadows,
+        components,
         typography: {
           fontFamily: setting.font_family
             ? `${setting.font_family}, ${dt.font_family}`
@@ -195,6 +216,7 @@ export const useCustomTheme = () => {
             default: dt.background_color,
           },
         },
+        components,
         typography: { fontFamily: dt.font_family },
       })
     }

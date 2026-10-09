@@ -2,21 +2,24 @@ import { Paper, ThemeProvider } from '@mui/material'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useTranslation } from 'react-i18next'
 import { Outlet, useNavigate } from 'react-router'
 
 import { BaseErrorBoundary } from '@/components/base'
-import { LayoutSidebar } from '@/components/layout/layout-sidebar'
 import { NoticeManager } from '@/components/layout/notice-manager'
-import { ServiceMigrationDialog } from '@/components/layout/service-migration-dialog'
-import { SysproxyPrivilegeDialog } from '@/components/layout/sysproxy-privilege-dialog'
 import {
   WindowControls,
   WindowResizeHandles,
 } from '@/components/layout/window-controller'
 import { useI18n } from '@/hooks/use-i18n'
+import { useProfiles } from '@/hooks/use-profiles'
 import { useVerge } from '@/hooks/use-verge'
 import { useWindowDecorations } from '@/hooks/use-window'
+import {
+  useAppRefreshers,
+  useClashConfigData,
+} from '@/providers/app-data-context'
+import { subscribeVergeEvents } from '@/services/events'
+import { ensureRuleMode } from '@/services/mvp'
 import { useThemeMode } from '@/services/states'
 import getSystem from '@/utils/get-system'
 
@@ -24,9 +27,7 @@ import {
   useCustomTheme,
   useLayoutEvents,
   useLoadingOverlay,
-  usePendingFailures,
 } from './_layout/hooks'
-import { handleNoticeMessage } from './_layout/utils'
 
 import 'dayjs/locale/ru'
 import 'dayjs/locale/zh-cn'
@@ -37,14 +38,14 @@ const OS = getSystem()
 
 const Layout = () => {
   const mode = useThemeMode()
-  const isDark = mode !== 'light'
-  const { t } = useTranslation()
   const { theme } = useCustomTheme()
   const { verge } = useVerge()
+  const { profiles } = useProfiles()
+  const { clashConfig } = useClashConfigData()
+  const { refreshClashConfig } = useAppRefreshers()
   const { language } = verge ?? {}
-  const navCollapsed = verge?.collapse_navbar ?? false
+  const currentProfileId = profiles?.current
   const { switchLanguage } = useI18n()
-  const navigate = useNavigate()
   const themeReady = useMemo(() => Boolean(theme), [theme])
   const windowControlsRef = useRef<any>(null)
   const { decorated } = useWindowDecorations()
@@ -65,20 +66,32 @@ const Layout = () => {
 
   useLoadingOverlay(themeReady)
 
-  const handleNotice = useCallback(
-    (payload: [string, string]) => {
-      const [status, msg] = payload
-      try {
-        handleNoticeMessage(status, msg, t, navigate)
-      } catch (error) {
-        console.error('[通知处理] 失败:', error)
-      }
-    },
-    [t, navigate],
-  )
+  const handleNotice = useCallback((payload: [string, string]) => {
+    const [status, msg] = payload
+    if (status.includes('error') || status.includes('failed')) {
+      console.error(`[Proxy MVP] Background operation failed: ${status}`, msg)
+    }
+  }, [])
 
   useLayoutEvents(handleNotice)
-  usePendingFailures()
+
+  const navigate = useNavigate()
+  useEffect(
+    () =>
+      subscribeVergeEvents({ 'verge://navigate': (path) => navigate(path) }),
+    [navigate],
+  )
+
+  useEffect(() => {
+    if (!currentProfileId) return
+    if (clashConfig?.mode?.toLowerCase() === 'rule') return
+
+    void ensureRuleMode()
+      .then(() => refreshClashConfig())
+      .catch((error) => {
+        console.error('[Proxy MVP] Failed to enforce Rule mode:', error)
+      })
+  }, [clashConfig?.mode, currentProfileId, refreshClashConfig])
 
   useEffect(() => {
     if (language) {
@@ -108,8 +121,6 @@ const Layout = () => {
     <ThemeProvider theme={theme}>
       {/* 左侧底部窗口控制按钮 */}
       <NoticeManager position={verge?.notice_position} />
-      <ServiceMigrationDialog />
-      <SysproxyPrivilegeDialog />
       <div
         style={{
           animation: 'fadeIn 0.5s',
@@ -127,7 +138,7 @@ const Layout = () => {
       <Paper
         square
         elevation={0}
-        className={`${OS} layout${navCollapsed ? ' layout--nav-collapsed' : ''}`}
+        className={`${OS} layout`}
         style={{
           borderTopLeftRadius: '0px',
           borderTopRightRadius: '0px',
@@ -160,8 +171,6 @@ const Layout = () => {
         {customTitlebar}
 
         <div className="layout-content">
-          <LayoutSidebar isDark={isDark} isCollapsed={navCollapsed} />
-
           <div className="layout-content__right">
             <div className="the-bar"></div>
             <div className="the-content">

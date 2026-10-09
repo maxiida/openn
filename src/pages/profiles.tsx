@@ -46,7 +46,7 @@ import {
   deleteProfile,
   enhanceProfiles,
   getRuntimeLogs,
-  importProfile,
+  importProfileWithFallbacks,
   reorderProfile,
   updateProfile,
 } from '@/services/cmds'
@@ -227,32 +227,19 @@ const ProfilePage = () => {
       await performRobustRefresh()
     }
     try {
-      await importProfile(url)
-      await handleImportSuccess('shared.feedback.notifications.importSuccess')
-    } catch (initialErr) {
-      console.warn('[订阅导入] 首次导入失败:', initialErr)
-
-      const initialDetail = errorDetail(initialErr)
-      if (initialDetail.toLowerCase().includes('legacy tls')) {
-        showNotice.error(initialErr)
+      const route = await importProfileWithFallbacks(url)
+      await handleImportSuccess(
+        route === 'clash'
+          ? 'shared.feedback.notifications.importWithClashProxy'
+          : 'shared.feedback.notifications.importSuccess',
+      )
+    } catch (error) {
+      const detail = errorDetail(error)
+      if (detail.toLowerCase().includes('legacy tls')) {
+        showNotice.error(error)
         return
       }
-
-      showNotice.info('profiles.page.feedback.notifications.importRetry')
-      try {
-        await importProfile(url, {
-          with_proxy: false,
-          self_proxy: true,
-        })
-        await handleImportSuccess(
-          'shared.feedback.notifications.importWithClashProxy',
-        )
-      } catch (retryErr) {
-        showNotice.error(
-          'profiles.page.feedback.notifications.importFail',
-          retryErr,
-        )
-      }
+      showNotice.error('profiles.page.feedback.notifications.importFail', error)
     } finally {
       setDisabled(false)
       setLoading(false)

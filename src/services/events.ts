@@ -13,6 +13,8 @@ interface VergeEvents {
   'verge://timer-updated': string
   'verge://run-state-changed': RunState
   'verge://pending-failures-changed': null
+  /** A route the backend wants the main window to show, e.g. from the tray menu. */
+  'verge://navigate': string
   'profile-changed': string
   'profile-update-started': { uid?: string }
   'profile-update-completed': { uid?: string }

@@ -75,6 +75,7 @@
     "global-shortcut:allow-unregister-all",
     "process:allow-exit",
     "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-read-image",
     "clipboard-manager:allow-write-text",
     "dialog:default"
   ]

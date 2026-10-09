@@ -54,7 +54,7 @@ export const useProxySelection = (options: ProxySelectionOptions = {}) => {
 
   const { onSuccess, onError, enableConnectionCleanup = true } = options
 
-  const autoCloseConnection = verge?.auto_close_connection ?? false
+  const autoCloseConnection = verge?.auto_close_connection ?? true
 
   // 切换节点
   const syncTraySelection = useCallback(() => {

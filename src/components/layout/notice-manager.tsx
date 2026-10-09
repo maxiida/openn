@@ -8,6 +8,7 @@ import {
   type SnackbarOrigin,
 } from '@mui/material'
 import React, { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -22,6 +23,9 @@ import type { TranslationKey } from '@/types/generated/i18n-keys'
 type NoticePosition = NonNullable<IVergeConfig['notice_position']>
 type NoticeItem = ReturnType<typeof getSnapshotNotices>[number]
 type TranslationFn = ReturnType<typeof useTranslation>['t']
+
+// Notices sit above every other layer, dialogs and window resize handles included.
+const NOTICE_Z_INDEX = 2147483647
 
 const VALID_POSITIONS: NoticePosition[] = [
   'top-left',
@@ -184,7 +188,8 @@ export const NoticeManager: React.FC<NoticeManagerProps> = ({ position }) => {
     [t],
   )
 
-  return (
+  // Portaled to <body> so no ancestor stacking context can bury it under a dialog portal.
+  return createPortal(
     <Box
       sx={{
         position: 'fixed',
@@ -192,7 +197,7 @@ export const NoticeManager: React.FC<NoticeManagerProps> = ({ position }) => {
         bottom: anchorOrigin.vertical === 'bottom' ? '20px' : 'auto',
         left: anchorOrigin.horizontal === 'left' ? '20px' : 'auto',
         right: anchorOrigin.horizontal === 'right' ? '20px' : 'auto',
-        zIndex: 1500,
+        zIndex: NOTICE_Z_INDEX,
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
@@ -243,6 +248,7 @@ export const NoticeManager: React.FC<NoticeManagerProps> = ({ position }) => {
           </Alert>
         </Snackbar>
       ))}
-    </Box>
+    </Box>,
+    document.body,
   )
 }

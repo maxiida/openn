@@ -86,6 +86,8 @@ const CODED_ERROR_TRANSLATION_KEYS: Readonly<Record<string, TranslationKey>> = {
     'settings.feedback.errors.clashService.uninstallFailed',
   SYSPROXY_CORE_NOT_READY: 'settings.feedback.errors.sysproxy.coreNotReady',
   SYSPROXY_DIRECT_FALLBACK: 'settings.feedback.errors.sysproxy.directFallback',
+  SYSPROXY_OTHER_VPN_ACTIVE:
+    'settings.feedback.errors.sysproxy.otherVpnActive',
   SYSPROXY_GUARD_STOPPED: 'settings.feedback.errors.sysproxy.guardStopped',
   SYSPROXY_SIDECAR_WHILE_SERVICE_READY:
     'settings.feedback.errors.sysproxy.sidecarWhileServiceReady',
