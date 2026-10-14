@@ -31,7 +31,7 @@
   "identifier": "com.openn.app",
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyOEMyRjBCQkVGOUJEREYKUldUZnZmbStDeStNMHU5Mmo1N24xQXZwSVRYbXA2NUpzZE5oVzlqeS9Bc0t6RVV4MmtwVjBZaHgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRFN0Q4Q0E3OUI1RUZFNkUKUldSdS9sNmJwNHg5VGpTRmZVRjI2OFpZcmZwcFByTlNGa2xjSTZhY25OVGwyQUlOWG5md1NvcloK",
       "endpoints": [],
       "windows": {
         "installMode": "passive"
