@@ -21,6 +21,9 @@ use tauri::Url;
 const DIRECT_RETRY_DELAY: Duration = Duration::from_millis(250);
 const DIRECT_DOH_URL: &str = "https://doh.pub/dns-query";
 const DIRECT_DOH_TIMEOUT: Duration = Duration::from_secs(8);
+/// Subscription panels pick node protocols by this client version, so it stays at the upstream
+/// release Openn is based on instead of following Openn's own version.
+const DEFAULT_USER_AGENT: &str = "clash-verge/v2.5.5";
 
 #[derive(Debug, Deserialize)]
 struct DnsJsonResponse {
@@ -312,7 +315,7 @@ impl NetworkManager {
         } else {
             headers.insert(
                 USER_AGENT,
-                HeaderValue::from_str(&format!("clash-verge/v{}", env!("CARGO_PKG_VERSION")))?,
+                HeaderValue::from_static(DEFAULT_USER_AGENT),
             );
         }
 
@@ -528,7 +531,7 @@ impl NetworkManager {
         let host = host.to_owned();
         let resolved_addrs = resolved_addrs.to_vec();
         let timeout_secs = timeout_secs.unwrap_or(20).max(10);
-        let user_agent = user_agent.unwrap_or_else(|| format!("clash-verge/v{}", env!("CARGO_PKG_VERSION")).into());
+        let user_agent = user_agent.unwrap_or_else(|| DEFAULT_USER_AGENT.into());
 
         tokio::task::spawn_blocking(move || {
             let mut command = Command::new("/usr/bin/curl");
