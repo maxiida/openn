@@ -90,17 +90,13 @@ mod app_init {
 
     /// Setup autostart plugin
     pub fn setup_autostart(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-        #[cfg(target_os = "macos")]
-        let mut auto_start_plugin_builder = tauri_plugin_autostart::Builder::new();
-        #[cfg(not(target_os = "macos"))]
-        let auto_start_plugin_builder = tauri_plugin_autostart::Builder::new();
+        let auto_start_plugin_builder =
+            tauri_plugin_autostart::Builder::new().args([crate::core::autostart::AUTOSTART_ARG]);
 
         #[cfg(target_os = "macos")]
-        {
-            auto_start_plugin_builder = auto_start_plugin_builder
-                .macos_launcher(MacosLauncher::LaunchAgent)
-                .app_name(&app.config().identifier);
-        }
+        let auto_start_plugin_builder = auto_start_plugin_builder
+            .macos_launcher(MacosLauncher::LaunchAgent)
+            .app_name(&app.config().identifier);
         app.handle().plugin(auto_start_plugin_builder.build())?;
         Ok(())
     }
@@ -170,6 +166,7 @@ mod app_init {
             cmd::get_clash_logs,
             cmd::get_verge_config,
             cmd::patch_verge_config,
+            cmd::get_system_language,
             cmd::test_delay,
             cmd::get_app_dir,
             cmd::copy_icon_file,

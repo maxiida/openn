@@ -24,6 +24,9 @@ const HIDDEN_BUILTIN_MEMBERS = new Set([
   'COMPATIBLE',
 ])
 
+// Providers list quota and expiry as dummy nodes; picking one would route through an arbitrary server.
+const PROVIDER_INFO_NODE = /^(剩余流量|距离下次重置|下次重置|套餐到期|过期时间|到期时间)/
+
 export const useMainProxyGroup = () => {
   const { proxyView, isProxyViewPending, isProxyViewError } = useProxiesData()
   const group = useMemo(() => getMainProxyGroup(proxyView), [proxyView])
@@ -37,6 +40,7 @@ export const useMainProxyGroup = () => {
       .filter(isInteractableMember)
       .filter((member) => member.kind === 'node')
       .filter((member) => !HIDDEN_BUILTIN_MEMBERS.has(member.ref.name))
+      .filter((member) => !PROVIDER_INFO_NODE.test(member.ref.name))
   }, [group, proxyView])
 
   const current = useMemo(() => {

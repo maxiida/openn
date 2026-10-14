@@ -550,19 +550,31 @@ async fn create_tray_menu(app_handle: &AppHandle) -> Result<tauri::menu::Menu<Wr
     let open_window = &MenuItem::with_id(
         app_handle,
         MenuIds::DASHBOARD,
-        texts.dashboard,
+        clash_verge_i18n::translate(texts.dashboard),
         true,
         hotkeys.get("open_or_close_dashboard").copied(),
     )?;
 
-    let proxies = &MenuItem::with_id(app_handle, MenuIds::PROXIES, texts.proxies, true, None::<&str>)?;
+    let proxies = &MenuItem::with_id(
+        app_handle,
+        MenuIds::PROXIES,
+        clash_verge_i18n::translate(texts.proxies),
+        true,
+        None::<&str>,
+    )?;
 
     let quit_accelerator = hotkeys.get("quit").copied();
 
     #[cfg(target_os = "macos")]
     let quit_accelerator = quit_accelerator.or(Some("Cmd+Q"));
 
-    let quit = &MenuItem::with_id(app_handle, MenuIds::EXIT, texts.exit, true, quit_accelerator)?;
+    let quit = &MenuItem::with_id(
+        app_handle,
+        MenuIds::EXIT,
+        clash_verge_i18n::translate(texts.exit),
+        true,
+        quit_accelerator,
+    )?;
 
     let separator = &PredefinedMenuItem::separator(app_handle)?;
 

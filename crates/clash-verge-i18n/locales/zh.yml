@@ -61,6 +61,8 @@ launchGuard:
   move: 移动
   ok: 好
 tray:
+  home: 主页
+  nodes: 节点
   dashboard: 仪表板
   ruleMode: 规则模式
   globalMode: 全局模式

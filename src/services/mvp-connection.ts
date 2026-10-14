@@ -12,7 +12,7 @@ import {
   restartCore,
 } from '@/services/cmds'
 
-import { ensureRuleMode } from './mvp'
+import { ensureRuleMode, type MvpStepReporter } from './mvp'
 
 export class MvpConnectionError extends Error {
   constructor(
@@ -23,11 +23,19 @@ export class MvpConnectionError extends Error {
   }
 }
 
-export const connectMvpTunnel = async (setupService = false) => {
+export const connectMvpTunnel = async (
+  setupService = false,
+  onStep?: MvpStepReporter,
+) => {
   let state = await getRuntimeState()
   if (state.opInFlight) throw new Error('Service operation is in progress')
 
-  if (setupService || !state.tunCapable) {
+  // Setup, starting the core and enabling the tunnel; a step with nothing to do finishes at once.
+  const needsSetup = setupService || !state.tunCapable
+  const total = needsSetup ? 3 : 2
+  onStep?.(0, total)
+
+  if (needsSetup) {
     if (!setupService) throw new Error('Service setup is required')
     try {
       if (state.service === 'notInstalled') {
@@ -41,6 +49,7 @@ export const connectMvpTunnel = async (setupService = false) => {
       throw new MvpConnectionError('setup', error)
     }
     state = await getRuntimeState()
+    onStep?.(1, total)
   }
 
   if (
@@ -61,6 +70,7 @@ export const connectMvpTunnel = async (setupService = false) => {
     }
     state = await getRuntimeState()
   }
+  onStep?.(total - 1, total)
   if (
     !state.tunCapable ||
     (state.mode !== 'Service' && !(state.mode === 'Sidecar' && state.isAdmin))
@@ -115,20 +125,61 @@ export const connectMvpTunnel = async (setupService = false) => {
   } catch (error) {
     console.error('[Proxy MVP] Clearing the system proxy failed:', error)
   }
+  onStep?.(total, total)
 }
 
-export const disconnectMvp = async () => {
+export const disconnectMvp = async (onStep?: MvpStepReporter) => {
   // Each path must be released even if releasing the other one fails.
   const errors: unknown[] = []
-  for (const patch of [
-    { enable_system_proxy: false },
-    { enable_tun_mode: false },
-  ]) {
+  const patches = [{ enable_system_proxy: false }, { enable_tun_mode: false }]
+  onStep?.(0, patches.length)
+  for (const [index, patch] of patches.entries()) {
     try {
       await patchVergeConfig(patch)
     } catch (error) {
       errors.push(error)
     }
+    onStep?.(index + 1, patches.length)
   }
   if (errors.length) throw new AggregateError(errors, 'Disconnect failed')
+}
+
+/** Reinstalls the privileged service and reconnects only if a connection was in place. */
+export const repairMvp = async (onStep?: MvpStepReporter) => {
+  const state = await getRuntimeState()
+  if (state.opInFlight) throw new Error('Service operation is in progress')
+
+  const { enable_system_proxy, enable_tun_mode } = await getVergeConfig()
+  const wasConnected = Boolean(enable_system_proxy || enable_tun_mode)
+  // Release, reinstall, and reconnect when there was a connection to restore.
+  const total = wasConnected ? 3 : 2
+  onStep?.(0, total)
+  // A proxy left pointing at a dead listener is one of the faults being repaired, so a failed
+  // release must not stop the reinstall.
+  try {
+    await disconnectMvp()
+  } catch (error) {
+    console.error(
+      '[Proxy MVP] Releasing the connection before repair failed:',
+      error,
+    )
+  }
+  onStep?.(1, total)
+
+  try {
+    if (state.service === 'notInstalled') {
+      await installService()
+    } else {
+      await repairService()
+    }
+  } catch (error) {
+    throw new MvpConnectionError('setup', error)
+  }
+  onStep?.(2, total)
+
+  if (wasConnected) {
+    await connectMvpTunnel()
+    onStep?.(3, total)
+  }
+  return wasConnected
 }

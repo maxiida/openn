@@ -1,8 +1,10 @@
-import { ContentPasteRounded, ImageOutlined } from '@mui/icons-material'
 import { Box, Button, Dialog, Stack, Typography } from '@mui/material'
+import { IconClipboard, IconPhoto } from '@tabler/icons-react'
 import { readImage } from '@tauri-apps/plugin-clipboard-manager'
+import i18n from 'i18next'
 import jsQR from 'jsqr'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface QrScannerDialogProps {
   open: boolean
@@ -30,15 +32,19 @@ const readQrCode = (
 
 const getCameraErrorMessage = (error: unknown) => {
   if (!(error instanceof DOMException)) {
-    return '无法使用摄像头，请粘贴或选择二维码图片'
+    return i18n.t(($) => $.mvp.qr.errors.cameraUnavailable)
   }
 
   if (error.name === 'NotAllowedError') {
-    return '摄像头权限未开启，请在系统设置中允许'
+    return i18n.t(($) => $.mvp.qr.errors.cameraDenied)
   }
-  if (error.name === 'NotFoundError') return '未检测到可用的摄像头'
-  if (error.name === 'NotReadableError') return '摄像头可能正被其他应用占用'
-  return '无法使用摄像头，请粘贴或选择二维码图片'
+  if (error.name === 'NotFoundError') {
+    return i18n.t(($) => $.mvp.qr.errors.cameraNotFound)
+  }
+  if (error.name === 'NotReadableError') {
+    return i18n.t(($) => $.mvp.qr.errors.cameraBusy)
+  }
+  return i18n.t(($) => $.mvp.qr.errors.cameraUnavailable)
 }
 
 export const QrScannerDialog = ({
@@ -46,6 +52,7 @@ export const QrScannerDialog = ({
   onClose,
   onDetected,
 }: QrScannerDialogProps) => {
+  const { t } = useTranslation()
   const cameraSupported = Boolean(navigator.mediaDevices?.getUserMedia)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -53,8 +60,8 @@ export const QrScannerDialog = ({
   const streamRef = useRef<MediaStream | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const detectedRef = useRef(false)
-  const [cameraError, setCameraError] = useState<string | null>(
-    cameraSupported ? null : '当前环境不支持摄像头',
+  const [cameraError, setCameraError] = useState<string | null>(() =>
+    cameraSupported ? null : t('mvp.qr.errors.cameraUnsupported'),
   )
   const [scanError, setScanError] = useState<string | null>(null)
   const [readingClipboard, setReadingClipboard] = useState(false)
@@ -149,15 +156,15 @@ export const QrScannerDialog = ({
           : null
         URL.revokeObjectURL(objectUrl)
         if (payload) finish(payload)
-        else setScanError('未识别到二维码，请换一张更清晰的图片')
+        else setScanError(t('mvp.qr.errors.notRecognized'))
       }
       image.onerror = () => {
         URL.revokeObjectURL(objectUrl)
-        setScanError('无法读取这张图片')
+        setScanError(t('mvp.qr.errors.imageUnreadable'))
       }
       image.src = objectUrl
     },
-    [finish],
+    [finish, t],
   )
 
   const onPasteImage = useCallback(async () => {
@@ -175,26 +182,26 @@ export const QrScannerDialog = ({
       payload = jsQR(new Uint8ClampedArray(rgba), width, height, {
         inversionAttempts: 'attemptBoth',
       })?.data
-      if (!payload) setScanError('剪贴板里没有可识别的二维码图片')
+      if (!payload) setScanError(t('mvp.qr.errors.clipboardNoQr'))
     } catch {
-      setScanError('剪贴板里没有可读取的图片')
+      setScanError(t('mvp.qr.errors.clipboardNoImage'))
     } finally {
       await clipboardImage?.close().catch(() => undefined)
       setReadingClipboard(false)
     }
 
     if (payload) finish(payload)
-  }, [finish])
+  }, [finish, t])
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <Stack spacing={2.5} sx={{ p: 3 }}>
         <Box>
-          <Typography sx={{ fontSize: 20, fontWeight: 650 }}>
-            扫描二维码
+          <Typography sx={{ fontSize: 17, fontWeight: 650 }}>
+            {t('mvp.common.scanQr')}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 13 }}>
-            将节点二维码放入取景框
+            {t('mvp.qr.subtitle')}
           </Typography>
         </Box>
 
@@ -203,7 +210,7 @@ export const QrScannerDialog = ({
             position: 'relative',
             aspectRatio: '1 / 1',
             overflow: 'hidden',
-            borderRadius: 3,
+            borderRadius: '16px',
             bgcolor: 'action.hover',
             display: 'grid',
             placeItems: 'center',
@@ -231,7 +238,7 @@ export const QrScannerDialog = ({
                 height: '68%',
                 border: '2px solid',
                 borderColor: 'common.white',
-                borderRadius: 2,
+                borderRadius: '18px',
                 boxShadow: '0 0 0 999px rgba(0, 0, 0, 0.18)',
                 pointerEvents: 'none',
               }}
@@ -249,19 +256,19 @@ export const QrScannerDialog = ({
           <Button
             fullWidth
             variant="outlined"
-            startIcon={<ContentPasteRounded />}
+            startIcon={<IconClipboard size={20} />}
             loading={readingClipboard}
             onClick={onPasteImage}
           >
-            粘贴图片
+            {t('mvp.qr.pasteImage')}
           </Button>
           <Button
             fullWidth
             variant="outlined"
-            startIcon={<ImageOutlined />}
+            startIcon={<IconPhoto size={20} />}
             onClick={() => fileInputRef.current?.click()}
           >
-            选择图片
+            {t('mvp.qr.chooseImage')}
           </Button>
         </Stack>
         <Button
@@ -270,7 +277,7 @@ export const QrScannerDialog = ({
           sx={{ alignSelf: 'center' }}
           onClick={onClose}
         >
-          取消
+          {t('mvp.common.cancel')}
         </Button>
 
         <input

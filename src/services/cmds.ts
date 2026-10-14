@@ -212,6 +212,10 @@ export async function patchVergeConfig(payload: IVergeConfig) {
   return invoke<void>('patch_verge_config', { payload })
 }
 
+export async function getSystemLanguage() {
+  return invoke<string>('get_system_language')
+}
+
 export async function setDnsOverride(enabled: boolean, confirmation?: string) {
   return invoke<
     { status: 'applied' } | { status: 'confirmation_required'; source: string }

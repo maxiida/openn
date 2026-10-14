@@ -260,6 +260,395 @@ export interface TranslationResources {
         title: string
       }
     }
+    mvp: {
+      check: {
+        actions: {
+          changeNode: string
+          connect: string
+          copied: string
+          copyReport: string
+          open: string
+          recheck: string
+          speedTest: string
+          subscription: string
+        }
+        details: {
+          deviceOk: string
+          disconnected: string
+          expired: string
+          foreignDown: string
+          foreignSystemProxy: string
+          foreignTunnel: string
+          networkOk: string
+          nodeDown: string
+          nodeOk: string
+          offline: string
+          quotaUsedUp: string
+          sitesDown: string
+          sitesOk: string
+          staleProxyEnv: string
+          subscriptionExpire: string
+          subscriptionNone: string
+          subscriptionRemaining: string
+          subscriptionUsage: string
+        }
+        idle: {
+          cost: string
+          desc: string
+          start: string
+          title: string
+        }
+        report: {
+          footer: string
+          line: string
+          title: string
+        }
+        running: {
+          desc: string
+          title: string
+        }
+        steps: {
+          device: string
+          network: string
+          node: string
+          sites: string
+          subscription: string
+        }
+        stepStatus: {
+          running: string
+          skipped: string
+          waiting: string
+        }
+        tabs: {
+          checkup: string
+          speed: string
+        }
+        title: string
+        verdicts: {
+          disconnected: {
+            desc: string
+            title: string
+          }
+          expired: {
+            desc: string
+            title: string
+          }
+          foreignDown: {
+            desc: string
+            title: string
+          }
+          foreignSystemProxy: {
+            desc: string
+            title: string
+          }
+          foreignTunnel: {
+            desc: string
+            title: string
+          }
+          nodeDown: {
+            desc: string
+            title: string
+          }
+          offline: {
+            desc: string
+            title: string
+          }
+          ok: {
+            desc: string
+            title: string
+          }
+          quotaUsedUp: {
+            desc: string
+            title: string
+          }
+          sitesDown: {
+            desc: string
+            title: string
+          }
+          staleProxyEnv: {
+            desc: string
+            title: string
+          }
+        }
+      }
+      common: {
+        back: string
+        cancel: string
+        invalidLink: string
+        invalidQr: string
+        scanQr: string
+        space: string
+        testing: string
+      }
+      delay: {
+        error: string
+        errorHint: string
+        high: {
+          hint: string
+          label: string
+        }
+        low: {
+          hint: string
+          label: string
+        }
+        medium: {
+          hint: string
+          label: string
+        }
+        testing: string
+        tierHint: string
+        timeout: string
+        timeoutHint: string
+        untested: string
+        untestedHint: string
+      }
+      home: {
+        actions: {
+          changeNode: string
+          connect: string
+          disconnect: string
+          reconnect: string
+          retest: string
+          routeAllApps: string
+          settings: string
+        }
+        blockers: {
+          foreignSystemProxy: string
+          foreignTunnel: string
+          staleProxyEnv: string
+        }
+        currentNode: string
+        nodeUnavailable: string
+        noNode: string
+        notices: {
+          activateFailed: string
+          connectFailed: string
+          connectFailedVpn: string
+          disconnectFailed: string
+          importFailed: string
+          importSuccess: string
+          qrImportSuccess: string
+          setupIncomplete: string
+          speedTestFailed: string
+        }
+        partialProxy: string
+        setup: {
+          body: string
+          confirm: string
+          title: string
+          vpnHint: string
+        }
+        sites: {
+          allOk: string
+          baidu: string
+          checkingAll: string
+          details: string
+          domestic: string
+          foreignDownHint: string
+          oneDown: string
+          someDown: string
+          status: {
+            checking: string
+            down: string
+            ok: string
+            slow: string
+          }
+        }
+        speedTestPrompt: string
+        speedUntested: string
+        status: {
+          connected: string
+          disconnected: string
+          pending: string
+        }
+        welcome: {
+          import: string
+          linkLabel: string
+          subtitle: string
+          title: string
+        }
+      }
+      nodes: {
+        done: string
+        empty: string
+        notices: {
+          switchFailed: string
+        }
+        pin: string
+        testAll: string
+        title: string
+        unavailable: string
+        unavailableHint: string
+      }
+      qr: {
+        chooseImage: string
+        errors: {
+          cameraBusy: string
+          cameraDenied: string
+          cameraNotFound: string
+          cameraUnavailable: string
+          cameraUnsupported: string
+          clipboardNoImage: string
+          clipboardNoQr: string
+          imageUnreadable: string
+          notRecognized: string
+        }
+        pasteImage: string
+        subtitle: string
+      }
+      settings: {
+        about: string
+        appearance: {
+          dark: string
+          label: string
+          light: string
+          system: string
+        }
+        autoLaunch: {
+          failed: string
+          hint: string
+          label: string
+        }
+        general: string
+        language: {
+          label: string
+          system: string
+        }
+        repair: {
+          body: string
+          confirm: string
+          done: string
+          failed: string
+          hint: string
+          label: string
+          reconnected: string
+          setupIncomplete: string
+        }
+        title: string
+        version: string
+      }
+      speed: {
+        blazing: {
+          hint: string
+          label: string
+        }
+        fair: {
+          hint: string
+          label: string
+        }
+        good: {
+          hint: string
+          label: string
+        }
+        poor: {
+          hint: string
+          label: string
+        }
+        smooth: {
+          hint: string
+          label: string
+        }
+      }
+      speedTest: {
+        actions: {
+          retry: string
+          stop: string
+        }
+        compare: {
+          broadband: string
+          latencyValue: string
+          okDesc: string
+          okTitle: string
+          ringLabel: string
+          slowDesc: string
+          slowTitle: string
+          viaNode: string
+        }
+        cost: {
+          both: string
+          direct: string
+          node: string
+        }
+        idle: {
+          start: string
+          title: string
+        }
+        metrics: {
+          download: string
+          latency: string
+          used: string
+        }
+        modes: {
+          both: string
+          direct: string
+          node: string
+        }
+        notices: {
+          failed: string
+        }
+        result: {
+          beats: string
+          direct: string
+          node: string
+          slow: string
+        }
+        running: {
+          directStep: string
+          download: string
+          latency: string
+          nodeStep: string
+          title: string
+        }
+        what: {
+          both: string
+          direct: string
+          node: string
+        }
+      }
+      subscriptions: {
+        add: string
+        current: string
+        delete: string
+        deleteAction: string
+        deleteConfirm: string
+        deleteNamed: string
+        fallbackName: string
+        inputLabel: string
+        localSource: string
+        notices: {
+          added: string
+          addFailed: string
+          deleted: string
+          deleteFailed: string
+          switched: string
+          switchFailed: string
+          updated: string
+          updateFailed: string
+        }
+        placeholder: string
+        remoteSource: string
+        subtitle: string
+        switching: string
+        title: string
+        update: string
+        updated: {
+          date: string
+          dateFormat: string
+          dateFormatWithYear: string
+          never: string
+          today: string
+          yesterday: string
+        }
+        updateNamed: string
+        use: string
+      }
+      usage: {
+        expired: string
+        expiresIn: string
+        expiresOn: string
+        total: string
+      }
+    }
     profiles: {
       components: {
         card: {

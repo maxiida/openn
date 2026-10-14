@@ -22,7 +22,7 @@ macro_rules! define_menu {
 }
 
 define_menu! {
-    dashboard => DASHBOARD, "tray_dashboard", "主页",
-    proxies => PROXIES, "tray_proxies", "节点",
-    exit => EXIT, "tray_exit", "退出",
+    dashboard => DASHBOARD, "tray_dashboard", "tray.home",
+    proxies => PROXIES, "tray_proxies", "tray.nodes",
+    exit => EXIT, "tray_exit", "tray.exit",
 }

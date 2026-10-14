@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::{
     config::Config,
     core::{
-        CoreManager, Timer,
+        CoreManager, Timer, autostart,
         handle::Handle,
         hotkey::Hotkey,
         logger,
@@ -231,13 +231,13 @@ async fn refresh_tray_menu() {
 }
 
 async fn init_window() {
-    let is_silent_start = Config::verge().await.data_arc().enable_silent_start.unwrap_or(false);
+    let is_silent_start = autostart::is_silent_launch(Config::verge().await.data_arc().enable_silent_start);
     WindowManager::create_window(!is_silent_start).await;
 }
 
 #[cfg(target_os = "macos")]
 async fn resolve_dock_show() {
-    let is_silent_start = Config::verge().await.data_arc().enable_silent_start.unwrap_or(false);
+    let is_silent_start = autostart::is_silent_launch(Config::verge().await.data_arc().enable_silent_start);
     if is_silent_start {
         Handle::global().set_activation_policy_accessory();
     }

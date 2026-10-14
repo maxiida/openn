@@ -51,6 +51,7 @@
     "@monaco-editor/react": "^4.7.0",
     "@mui/icons-material": "^9.0.1",
     "@mui/material": "^9.0.1",
+    "@tabler/icons-react": "3.35.0",
     "@tanstack/react-virtual": "^3.13.25",
     "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",

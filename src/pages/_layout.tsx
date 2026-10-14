@@ -11,6 +11,7 @@ import {
   WindowResizeHandles,
 } from '@/components/layout/window-controller'
 import { useI18n } from '@/hooks/use-i18n'
+import { useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useVerge } from '@/hooks/use-verge'
 import { useWindowDecorations } from '@/hooks/use-window'
@@ -19,6 +20,7 @@ import {
   useClashConfigData,
 } from '@/providers/app-data-context'
 import { subscribeVergeEvents } from '@/services/events'
+import { resolveLanguage } from '@/services/i18n'
 import { ensureRuleMode } from '@/services/mvp'
 import { useThemeMode } from '@/services/states'
 import getSystem from '@/utils/get-system'
@@ -76,6 +78,10 @@ const Layout = () => {
   useLayoutEvents(handleNotice)
 
   const navigate = useNavigate()
+  useMvpShortcuts([
+    { key: ',', command: true, onPress: () => navigate('/settings') },
+    { key: 'd', command: true, onPress: () => navigate('/check') },
+  ])
   useEffect(
     () =>
       subscribeVergeEvents({ 'verge://navigate': (path) => navigate(path) }),
@@ -94,10 +100,10 @@ const Layout = () => {
   }, [clashConfig?.mode, currentProfileId, refreshClashConfig])
 
   useEffect(() => {
-    if (language) {
-      dayjs.locale(language === 'zh' ? 'zh-cn' : language)
-      switchLanguage(language)
-    }
+    if (language === undefined) return
+    const resolved = resolveLanguage(language)
+    dayjs.locale(resolved === 'zh' ? 'zh-cn' : resolved)
+    switchLanguage(resolved)
   }, [language, switchLanguage])
 
   if (!themeReady) {
@@ -120,7 +126,7 @@ const Layout = () => {
   return (
     <ThemeProvider theme={theme}>
       {/* 左侧底部窗口控制按钮 */}
-      <NoticeManager position={verge?.notice_position} />
+      <NoticeManager />
       <div
         style={{
           animation: 'fadeIn 0.5s',

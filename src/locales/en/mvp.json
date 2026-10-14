@@ -1,0 +1,389 @@
+{
+  "common": {
+    "space": "Space",
+    "back": "Back",
+    "cancel": "Cancel",
+    "scanQr": "Scan QR Code",
+    "testing": "Testing…",
+    "invalidLink": "This link isn't valid",
+    "invalidQr": "This QR code isn't valid or isn't supported"
+  },
+  "home": {
+    "welcome": {
+      "title": "Welcome to Openn",
+      "subtitle": "Paste your subscription link to get started",
+      "linkLabel": "Subscription link",
+      "import": "Import"
+    },
+    "status": {
+      "connected": "Connected",
+      "pending": "Not fully connected",
+      "disconnected": "Not connected"
+    },
+    "actions": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "routeAllApps": "Use the proxy for all apps",
+      "reconnect": "Reconnect",
+      "retest": "Check again",
+      "changeNode": "Change node",
+      "settings": "Settings"
+    },
+    "partialProxy": "Only some apps, such as browsers, use the proxy right now",
+    "currentNode": "Current node",
+    "noNode": "No nodes available",
+    "nodeUnavailable": "This node isn't working. Try another one",
+    "speedUntested": "Not tested",
+    "speedTestPrompt": "Click the refresh button on the right to test the speed",
+    "sites": {
+      "baidu": "Baidu",
+      "domestic": "China",
+      "checkingAll": "Checking sites",
+      "details": "Site details",
+      "allOk": "Sites OK",
+      "oneDown": "{{name}} won't load",
+      "someDown": "{{count}} sites won't load",
+      "foreignDownHint": "No sites outside China load, so this node may be down. Try another one.",
+      "status": {
+        "checking": "Checking…",
+        "ok": "OK",
+        "slow": "A bit slow",
+        "down": "Won't load"
+      }
+    },
+    "blockers": {
+      "foreignTunnel": "Another VPN, such as Shadowrocket, is running. Quit it, then click Connect.",
+      "foreignSystemProxy": "Another app is using the system proxy, so websites may not load. Quit that app, then click Connect.",
+      "staleProxyEnv": "Old proxy settings are left on this computer, so some apps may not connect. Restart your computer to clear them."
+    },
+    "setup": {
+      "title": "One-time permission needed",
+      "body": "Openn needs to install a background component, and your computer will ask for your password. You only need to do this once. After that, just click Connect.",
+      "vpnHint": "If another VPN such as Shadowrocket is running, quit it first.",
+      "confirm": "Allow and Connect"
+    },
+    "notices": {
+      "activateFailed": "Couldn't apply the subscription. Try again later",
+      "speedTestFailed": "Speed test failed. Try again later",
+      "importSuccess": "Subscription imported",
+      "importFailed": "Couldn't import the subscription",
+      "qrImportSuccess": "QR code imported",
+      "disconnectFailed": "Couldn't disconnect. Try again",
+      "setupIncomplete": "Permission wasn't granted. Click Connect again",
+      "connectFailedVpn": "Couldn't connect. If another VPN such as Shadowrocket is running, quit it and try again",
+      "connectFailed": "Couldn't connect. Try again"
+    }
+  },
+  "nodes": {
+    "title": "Nodes",
+    "pin": "Pin nodes",
+    "done": "Done",
+    "testAll": "Test all",
+    "empty": "No nodes are working. Check your subscription",
+    "unavailable": "Unavailable · {{count}}",
+    "unavailableHint": "Nodes that didn't respond within {{seconds}} seconds or failed to connect",
+    "notices": {
+      "switchFailed": "Couldn't switch nodes"
+    }
+  },
+  "usage": {
+    "total": "/ {{total}}",
+    "expiresOn": "Expires {{date}}",
+    "expiresIn": "Expires in {{count}}d · {{date}}",
+    "expired": "Expired {{date}}"
+  },
+  "subscriptions": {
+    "title": "Subscriptions",
+    "subtitle": "Add, switch or remove subscription links",
+    "placeholder": "Paste a new subscription link",
+    "inputLabel": "New subscription link",
+    "add": "Add",
+    "current": "Current",
+    "use": "Use",
+    "switching": "Switching…",
+    "update": "Update subscription",
+    "updateNamed": "Update {{name}}",
+    "delete": "Delete subscription",
+    "deleteNamed": "Delete {{name}}",
+    "deleteConfirm": "Delete “{{name}}”?",
+    "deleteAction": "Delete",
+    "fallbackName": "subscription",
+    "localSource": "Local profile",
+    "remoteSource": "Remote subscription",
+    "updated": {
+      "never": "Not updated yet",
+      "today": "Updated today at {{time}}",
+      "yesterday": "Updated yesterday at {{time}}",
+      "date": "Updated {{date}}",
+      "dateFormat": "MMM D",
+      "dateFormatWithYear": "MMM D, YYYY"
+    },
+    "notices": {
+      "added": "Subscription added and in use",
+      "addFailed": "Couldn't add the subscription",
+      "switched": "Subscription switched",
+      "switchFailed": "Couldn't switch subscriptions",
+      "updated": "Subscription updated",
+      "updateFailed": "Couldn't update the subscription",
+      "deleted": "Subscription deleted",
+      "deleteFailed": "Couldn't delete the subscription"
+    }
+  },
+  "qr": {
+    "subtitle": "Place the node's QR code inside the frame",
+    "pasteImage": "Paste Image",
+    "chooseImage": "Choose Image",
+    "errors": {
+      "cameraUnsupported": "A camera isn't available here",
+      "cameraUnavailable": "Can't use the camera. Paste or choose a QR code image instead",
+      "cameraDenied": "Camera access is off. Allow it in System Settings",
+      "cameraNotFound": "No camera found",
+      "cameraBusy": "Another app may be using the camera",
+      "notRecognized": "No QR code found. Try a clearer image",
+      "imageUnreadable": "Can't read this image",
+      "clipboardNoQr": "The clipboard image doesn't contain a QR code",
+      "clipboardNoImage": "There's no image on the clipboard"
+    }
+  },
+  "delay": {
+    "testing": "Testing",
+    "timeout": "Timed out",
+    "error": "Failed",
+    "untested": "Not tested",
+    "untestedHint": "No test result yet",
+    "timeoutHint": "Timed out: no response within {{seconds}} seconds. The node is too slow or no longer works",
+    "errorHint": "Failed: the node may no longer work",
+    "tierHint": "{{label}} ({{range}}): {{hint}}",
+    "low": {
+      "label": "Low latency",
+      "hint": "Web pages and videos run smoothly"
+    },
+    "medium": {
+      "label": "Medium latency",
+      "hint": "Usable, but pages take a moment to open"
+    },
+    "high": {
+      "label": "High latency",
+      "hint": "Noticeably slow"
+    }
+  },
+  "speed": {
+    "blazing": {
+      "label": "Very fast",
+      "hint": "Smooth 4K video and fast downloads"
+    },
+    "smooth": {
+      "label": "Fast",
+      "hint": "4K video works with occasional buffering"
+    },
+    "good": {
+      "label": "Good",
+      "hint": "Smooth 1080p and everyday browsing"
+    },
+    "fair": {
+      "label": "Fair",
+      "hint": "720p works, pages load a bit slowly"
+    },
+    "poor": {
+      "label": "Slow",
+      "hint": "Fine for text and chat only"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "about": "About",
+    "autoLaunch": {
+      "label": "Open at login",
+      "hint": "Runs in the background after you log in, without opening a window",
+      "failed": "Couldn't change this setting. Try again"
+    },
+    "appearance": {
+      "label": "Appearance",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "label": "Language",
+      "system": "System"
+    },
+    "version": "Version",
+    "repair": {
+      "label": "Repair",
+      "hint": "Try this if Openn can't connect",
+      "body": "This reinstalls Openn's background component and clears leftover proxy settings. Your computer will ask for your password, and you'll be briefly disconnected.",
+      "confirm": "Repair",
+      "done": "Repair complete. Go back and click Connect",
+      "reconnected": "Repair complete. You're connected again",
+      "setupIncomplete": "Repair didn't finish. Your password is needed to allow it",
+      "failed": "Repair failed. Restart your computer and try again"
+    }
+  },
+  "check": {
+    "title": "Network Check",
+    "tabs": {
+      "checkup": "Checkup",
+      "speed": "Speed"
+    },
+    "steps": {
+      "device": "This computer",
+      "network": "Your internet",
+      "subscription": "Subscription",
+      "node": "Node",
+      "sites": "Popular sites"
+    },
+    "stepStatus": {
+      "waiting": "Waiting",
+      "running": "Checking…",
+      "skipped": "Not checked"
+    },
+    "details": {
+      "deviceOk": "No conflicts",
+      "networkOk": "Sites in China load",
+      "subscriptionUsage": "{{remaining}} left · expires {{date}}",
+      "subscriptionRemaining": "{{remaining}} left",
+      "subscriptionExpire": "Expires {{date}}",
+      "subscriptionNone": "No usage info",
+      "nodeOk": "{{name}} · {{delay}} ms",
+      "sitesOk": "{{sites}} all load",
+      "foreignTunnel": "Another VPN is running",
+      "foreignSystemProxy": "System proxy taken",
+      "staleProxyEnv": "Leftover proxy settings",
+      "offline": "Sites in China won't load either",
+      "quotaUsedUp": "Data used up",
+      "expired": "Subscription expired",
+      "disconnected": "Openn isn't connected",
+      "nodeDown": "{{name}} · no response",
+      "sitesDown": "{{sites}} won't load",
+      "foreignDown": "No sites outside China load"
+    },
+    "idle": {
+      "start": "Start checkup",
+      "title": "Find what's wrong with your network",
+      "desc": "Checks every step from your computer to the sites, so you can see which one broke",
+      "cost": "About 5 seconds · uses almost no data"
+    },
+    "running": {
+      "title": "Checking…",
+      "desc": "Checking {{step}}"
+    },
+    "verdicts": {
+      "ok": {
+        "title": "Everything works",
+        "desc": "Every step from your computer to the sites is working"
+      },
+      "foreignTunnel": {
+        "title": "Another VPN is using the network",
+        "desc": "Two VPNs can't run at once. Quit Shadowrocket or the other VPN, then check again"
+      },
+      "foreignSystemProxy": {
+        "title": "Another app took the system proxy",
+        "desc": "Pages may not load. Quit that app, then check again"
+      },
+      "staleProxyEnv": {
+        "title": "Leftover proxy settings on this computer",
+        "desc": "Some apps may not connect. Restarting your computer clears them"
+      },
+      "offline": {
+        "title": "Your internet is down",
+        "desc": "Sites in China won't load either, so it isn't Openn. Check your Wi‑Fi or restart your router"
+      },
+      "quotaUsedUp": {
+        "title": "Your subscription's data is used up",
+        "desc": "Openn is fine. Renew or wait for next month's reset to keep going"
+      },
+      "expired": {
+        "title": "Your subscription expired",
+        "desc": "Openn is fine. Renew, then update the subscription"
+      },
+      "disconnected": {
+        "title": "Openn isn't connected",
+        "desc": "Go back and click Connect, then check again"
+      },
+      "nodeDown": {
+        "title": "Node {{name}} isn't responding",
+        "desc": "This node is down right now, and it isn't your fault. Switch to another node to keep going"
+      },
+      "sitesDown": {
+        "title": "{{sites}} won't load on this node",
+        "desc": "Other sites work, only {{sites}} won't load. Switch to a node that supports {{sites}}"
+      },
+      "foreignDown": {
+        "title": "This node can't reach sites outside China",
+        "desc": "The node answers, but no sites outside China load. Try another node"
+      }
+    },
+    "actions": {
+      "open": "Network check",
+      "recheck": "Check again",
+      "changeNode": "Change node",
+      "connect": "Go connect",
+      "subscription": "View subscription",
+      "speedTest": "Test speed too",
+      "copyReport": "Copy details for support",
+      "copied": "Copied. Paste it to support"
+    },
+    "report": {
+      "title": "Openn network check · {{time}}",
+      "line": "{{step}}: {{detail}}",
+      "footer": "(No subscription link or IP address included)"
+    }
+  },
+  "speedTest": {
+    "modes": {
+      "node": "Through node",
+      "direct": "Broadband only",
+      "both": "Compare"
+    },
+    "idle": {
+      "start": "Start test",
+      "title": "See how fast your connection is"
+    },
+    "what": {
+      "node": "Tests your speed through {{name}}",
+      "direct": "Tests your broadband itself, without the node",
+      "both": "Tests broadband, then the node, to see which one is slow"
+    },
+    "cost": {
+      "node": "About 5 seconds · uses about {{mb}} MB of data",
+      "direct": "About 5 seconds · uses a server in China, no subscription data",
+      "both": "About 10 seconds · uses about {{mb}} MB of subscription data"
+    },
+    "running": {
+      "title": "Testing…",
+      "latency": "Testing latency…",
+      "download": "Testing download…",
+      "directStep": "Step 1: testing your broadband…",
+      "nodeStep": "Step 2: testing through {{name}}…"
+    },
+    "result": {
+      "node": "Speed: {{tier}}",
+      "direct": "Broadband: {{tier}}",
+      "beats": "Faster than about {{percent}}% of users worldwide",
+      "slow": "Switching nodes should speed it up"
+    },
+    "compare": {
+      "slowTitle": "The node is slowing you down",
+      "slowDesc": "Your broadband does {{direct}} Mbps, but only {{node}} Mbps through {{name}}. Switching nodes should speed it up",
+      "okTitle": "Speed looks normal",
+      "okDesc": "Your broadband does {{direct}} Mbps, and {{node}} Mbps through the node. Going through a proxy is normally a bit slower",
+      "broadband": "Your broadband",
+      "viaNode": "Through {{name}}",
+      "ringLabel": "through node",
+      "latencyValue": "Broadband {{direct}} ms · node {{node}} ms"
+    },
+    "metrics": {
+      "download": "Download",
+      "latency": "Latency",
+      "used": "Data used"
+    },
+    "actions": {
+      "stop": "Stop test",
+      "retry": "Test again"
+    },
+    "notices": {
+      "failed": "Speed test failed. Try again later"
+    }
+  }
+}

@@ -168,6 +168,7 @@ fn build_task_xml(mode: TaskMode) -> Result<String> {
   <Actions Context="Author">
     <Exec>
       <Command>{}</Command>
+      <Arguments>{}</Arguments>
     </Exec>
   </Actions>
 </Task>
@@ -175,7 +176,8 @@ fn build_task_xml(mode: TaskMode) -> Result<String> {
         user_id,
         user_id,
         mode.xml_run_level(),
-        exe_path
+        exe_path,
+        crate::core::autostart::AUTOSTART_ARG
     ))
 }
 

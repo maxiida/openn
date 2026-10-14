@@ -1,21 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-export const supportedLanguages = [
-  'en',
-  'ru',
-  'zh',
-  'fa',
-  'tt',
-  'id',
-  'ar',
-  'ko',
-  'tr',
-  'de',
-  'es',
-  'jp',
-  'zhtw',
-]
+export const supportedLanguages = ['zh', 'en']
 
 export const FALLBACK_LANGUAGE = 'zh'
 const LANGUAGE_STORAGE_KEY = 'verge-language'
@@ -23,25 +9,25 @@ const LANGUAGE_STORAGE_KEY = 'verge-language'
 const normalizeLanguage = (language?: string) =>
   language?.toLowerCase().replace(/_/g, '-')
 
+// The webview reports the app bundle's localization rather than the user's, so the system
+// language comes from the backend.
+let systemLanguage: string | undefined
+
+export const setSystemLanguage = (language: string) => {
+  systemLanguage = language
+}
+
+// An empty language follows the system. Openn ships Chinese and English only, so every
+// non-Chinese locale reads as English.
 export const resolveLanguage = (language?: string) => {
-  const normalized = normalizeLanguage(language)
-  if (!normalized) {
-    return FALLBACK_LANGUAGE
-  }
-
-  if (normalized === 'zh-tw') return 'zhtw'
-  if (normalized === 'zh-cn') return 'zh'
-
-  if (supportedLanguages.includes(normalized)) {
-    return normalized
-  }
-
-  const baseLanguage = normalized.split('-')[0]
-  if (supportedLanguages.includes(baseLanguage)) {
-    return baseLanguage
-  }
-
-  return FALLBACK_LANGUAGE
+  const normalized =
+    normalizeLanguage(language) ||
+    normalizeLanguage(
+      systemLanguage ??
+        (typeof navigator !== 'undefined' ? navigator.language : undefined),
+    )
+  if (!normalized) return FALLBACK_LANGUAGE
+  return normalized.startsWith('zh') ? 'zh' : 'en'
 }
 
 const getLanguageStorage = () => {
@@ -82,6 +68,7 @@ type LocaleModule = {
 }
 
 const STARTUP_LANGUAGE_SECTIONS = [
+  'mvp',
   'layout',
   'home',
   'shared',

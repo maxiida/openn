@@ -61,6 +61,8 @@ launchGuard:
   move: Move
   ok: OK
 tray:
+  home: Home
+  nodes: Nodes
   dashboard: Dashboard
   ruleMode: Rule Mode
   globalMode: Global Mode

@@ -1,40 +1,44 @@
 import {
-  ArrowForwardRounded,
-  QrCodeScannerRounded,
-  RefreshRounded,
-} from '@mui/icons-material'
-import {
+  Badge,
   Box,
   Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
+  Collapse,
   IconButton,
   Stack,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
+import {
+  IconActivity,
+  IconArrowRight,
+  IconChevronDown,
+  IconRefresh,
+  IconScan,
+  IconSettings,
+  IconShieldCheck,
+} from '@tabler/icons-react'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
+import { BaseDialog } from '@/components/base'
+import { MvpBanner } from '@/components/mvp/mvp-banner'
 import { MvpPage } from '@/components/mvp/mvp-page'
+import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
+import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
+import { MvpStatusPill } from '@/components/mvp/mvp-status-pill'
 import { QrScannerDialog } from '@/components/mvp/qr-scanner-dialog'
 import { testMainGroup, useMainProxyGroup } from '@/hooks/use-main-proxy-group'
+import { useMvpConnected } from '@/hooks/use-mvp-connected'
+import { mvpCommandKey, useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
+import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
-import { useSystemProxyState } from '@/hooks/use-system-proxy-state'
-import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 import { useVisibility } from '@/hooks/use-visibility'
-import {
-  useAppRefreshers,
-  useClashConfigData,
-} from '@/providers/app-data-context'
+import { useAppRefreshers } from '@/providers/app-data-context'
 import {
   getPreflightReport,
   getRuntimeState,
@@ -54,9 +58,15 @@ import {
   disconnectMvp,
   MvpConnectionError,
 } from '@/services/mvp-connection'
-import { hideNotice, showNotice } from '@/services/notice-service'
+import { showNotice } from '@/services/notice-service'
 import { revalidateQueries } from '@/services/query-client'
-import { measureDownloadMbps } from '@/services/speed-test'
+import {
+  checkMvpSites,
+  MVP_SITES,
+  type MvpSiteId,
+  type MvpSiteStatus,
+} from '@/services/site-check'
+import { measureDownloadMbps, measureLatencyMs } from '@/services/speed-test'
 import { classifyDelay } from '@/utils/delay'
 import {
   formatMvpDelay,
@@ -65,15 +75,20 @@ import {
   mvpSpeedHint,
   mvpSpeedTier,
 } from '@/utils/main-proxy-group'
+import { fractionSegments } from '@/utils/mvp-progress'
 import { isValidUrl } from '@/utils/network'
 
 const HomeLoading = () => (
   <Box sx={{ minHeight: 420, display: 'grid', placeItems: 'center' }}>
-    <CircularProgress size={24} />
+    <MvpProgressRing size={24} />
   </Box>
 )
 
+// Kept across visits to this page: returning from the node list on another node retests its speed.
+let checkedNode: string | undefined
+
 const DELAY_REFRESH_MS = 30_000
+const SITE_REFRESH_MS = 60_000
 const DELAY_RETRY_MS = 3_000
 // One probe swings with every network hiccup; the median of the last few is what browsing feels like.
 const DELAY_SAMPLES = 3
@@ -96,30 +111,19 @@ const median = (values: number[]) => {
 }
 
 const MvpHomePage = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { profiles } = useProfiles()
   const { refreshAll } = useAppRefreshers()
-  const { indicator: systemProxyEnabled } = useSystemProxyState()
-  const { runState, isLoading: isRunStateLoading } = useSystemState()
-  const { verge } = useVerge()
-  const { clashConfig } = useClashConfigData()
-  const tunnelEnabled = Boolean(
-    verge?.enable_tun_mode &&
-      runState.tunCapable &&
-      runState.mode !== 'NotRunning' &&
-      clashConfig?.tun.enable &&
-      clashConfig.tun.autoRoute,
-  )
-  const indicator =
-    tunnelEnabled || (systemProxyEnabled && runState.mode !== 'NotRunning')
-  const needsDisconnect = systemProxyEnabled || Boolean(verge?.enable_tun_mode)
   const {
-    group,
-    members,
-    current,
-    delays,
-    timeout,
-  } = useMainProxyGroup()
+    connected: indicator,
+    tunnelEnabled,
+    systemProxyEnabled,
+    isRunStateLoading,
+  } = useMvpConnected()
+  const { verge } = useVerge()
+  const needsDisconnect = systemProxyEnabled || Boolean(verge?.enable_tun_mode)
+  const { group, members, current, delays, timeout } = useMainProxyGroup()
   const pageVisible = useVisibility()
   const [speedResult, setSpeedResult] = useState<{
     key: string
@@ -127,16 +131,28 @@ const MvpHomePage = () => {
     time: string
   } | null>(null)
   const [speedTesting, setSpeedTesting] = useState(false)
+  const [speedProgress, setSpeedProgress] = useState(0)
   const [url, setUrl] = useState('')
   const [importing, setImporting] = useState(false)
+  // Download and activate, then this page's own refresh.
+  const importSteps = useMvpSteps(1)
   const [qrScannerOpen, setQrScannerOpen] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  // The connection's own steps, then refreshing what the page shows.
+  const connectSteps = useMvpSteps(1)
   const [setupOpen, setSetupOpen] = useState(false)
   const [preflight, setPreflight] = useState<PreflightReport | null>(null)
   const activationAttemptRef = useRef<string | null>(null)
   const dailyUpdateAttemptRef = useRef<string | null>(null)
   const delayReadingRef = useRef<DelayReading | null>(null)
   const [delayReading, setDelayReading] = useState<DelayReading | null>(null)
+  const [delayRound, setDelayRound] = useState(0)
+  const [siteCheck, setSiteCheck] = useState<{
+    key: string
+    results: Record<MvpSiteId, MvpSiteStatus> | null
+  } | null>(null)
+  const [siteRound, setSiteRound] = useState(0)
+  const [sitesOpen, setSitesOpen] = useState(false)
 
   const refreshPreflight = useCallback(async () => {
     try {
@@ -154,17 +170,12 @@ const MvpHomePage = () => {
   // Each of these reads as "connected, but nothing works", so it has to be said out loud. Only the
   // first applies: another VPN also owns the system proxy, and one fix clears both.
   const blocker = preflight?.foreignTunnel
-    ? '检测到 Shadowrocket 等其他 VPN 正在运行。请先退出它，再点「连接」。'
+    ? t('mvp.home.blockers.foreignTunnel')
     : preflight?.foreignSystemProxy
-      ? '系统代理被其他软件占用，可能导致网页打不开。请先退出那个软件，再点「连接」。'
+      ? t('mvp.home.blockers.foreignSystemProxy')
       : preflight?.staleProxyEnv
-        ? '电脑里残留了旧的代理设置，部分应用可能连不上。重启电脑即可清除。'
+        ? t('mvp.home.blockers.staleProxyEnv')
         : null
-  useEffect(() => {
-    if (!blocker) return
-    const id = showNotice.warning(blocker, 0)
-    return () => hideNotice(id)
-  }, [blocker])
 
   const currentNode = current?.kind === 'node' ? current : undefined
   // The node object is rebuilt on every proxy refresh; only a different node restarts the schedule.
@@ -210,7 +221,7 @@ const MvpHomePage = () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [indicator, pageVisible, node, groupName, timeout])
+  }, [indicator, pageVisible, node, groupName, timeout, delayRound])
 
   const availableProfiles = useMemo(
     () =>
@@ -240,10 +251,10 @@ const MvpHomePage = () => {
           '[Proxy MVP] Failed to activate the existing profile:',
           error,
         )
-        showNotice.error('配置应用失败，请稍后重试')
+        showNotice.error(t('mvp.home.notices.activateFailed'))
       }
     })()
-  }, [activeProfile, profiles, refreshAll])
+  }, [activeProfile, profiles, refreshAll, t])
 
   // Refresh the active subscription once a day, only once connected so the fetch can use the
   // tunnel. One attempt per day: a failing subscription must not be retried on every render.
@@ -274,8 +285,12 @@ const MvpHomePage = () => {
   const speed = speedResult?.key === speedKey ? speedResult : null
   const onSpeedTest = useLockFn(async () => {
     setSpeedTesting(true)
+    setSpeedProgress(0)
     try {
-      const mbps = await measureDownloadMbps()
+      const mbps = await measureDownloadMbps(setSpeedProgress, {
+        latencyMs: await measureLatencyMs(),
+      })
+      setSpeedProgress(1)
       setSpeedResult({
         key: speedKey,
         mbps,
@@ -283,29 +298,82 @@ const MvpHomePage = () => {
       })
     } catch (error) {
       console.error('[Proxy MVP] Speed test failed:', error)
-      showNotice.error('测速失败，请稍后重试')
+      showNotice.error(t('mvp.home.notices.speedTestFailed'))
     } finally {
       setSpeedTesting(false)
     }
   })
 
+  const onUpdateSubscription = useLockFn(async () => {
+    if (currentProfile?.type !== 'remote') return
+    try {
+      await updateProfile(currentProfile.uid)
+      await fetchProfilesIntoCache()
+      await ensureRuleMode()
+      await refreshAll()
+      showNotice.success(t('mvp.subscriptions.notices.updated'))
+    } catch (error) {
+      console.error('[Proxy MVP] Subscription update failed:', error)
+      showNotice.error(t('mvp.subscriptions.notices.updateFailed'))
+    }
+  })
+
+  const onRefreshAll = () => {
+    void onSpeedTest()
+    setSiteRound((round) => round + 1)
+    setDelayRound((round) => round + 1)
+  }
+
+  // A newly chosen node gets its speed measured unasked; delay and sites follow on their own.
+  useEffect(() => {
+    if (!indicator || connecting || !node) return
+    const switched = checkedNode !== undefined && checkedNode !== node
+    checkedNode = node
+    if (switched) void onSpeedTest()
+  }, [connecting, indicator, node, onSpeedTest])
+
+  // Sites are rechecked in the background like the delay; the cheap handshakes make this safe to
+  // do unasked. Earlier results stay on screen until the new ones land.
+  useEffect(() => {
+    if (!indicator || connecting || !pageVisible || !node) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const check = async () => {
+      setSiteCheck((prev) =>
+        prev?.key === speedKey ? prev : { key: speedKey, results: null },
+      )
+      const results = await checkMvpSites()
+      if (cancelled) return
+      setSiteCheck({ key: speedKey, results })
+      timer = setTimeout(() => void check(), SITE_REFRESH_MS)
+    }
+    void check()
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [connecting, indicator, node, pageVisible, siteRound, speedKey])
+
   const onImport = useLockFn(async () => {
     const normalizedUrl = url.trim()
     if (!isValidUrl(normalizedUrl)) {
-      showNotice.error('配置链接无效')
+      showNotice.error(t('mvp.common.invalidLink'))
       return
     }
 
     setImporting(true)
+    importSteps.reset()
     try {
-      await importAndActivateMvpProfile(normalizedUrl)
+      await importAndActivateMvpProfile(normalizedUrl, importSteps.report)
       await fetchProfilesIntoCache()
       await refreshAll()
+      importSteps.advance()
       setUrl('')
-      showNotice.success('订阅导入成功')
+      showNotice.success(t('mvp.home.notices.importSuccess'))
     } catch (error) {
+      importSteps.fail()
       console.error('[Proxy MVP] Subscription import failed:', error)
-      showNotice.error('订阅导入失败')
+      showNotice.error(t('mvp.home.notices.importFailed'))
     } finally {
       setImporting(false)
     }
@@ -314,14 +382,17 @@ const MvpHomePage = () => {
   const onQrDetected = useLockFn(async (payload: string) => {
     setQrScannerOpen(false)
     setImporting(true)
+    importSteps.reset()
     try {
-      await importAndActivateMvpQrPayload(payload)
+      await importAndActivateMvpQrPayload(payload, importSteps.report)
       await fetchProfilesIntoCache()
       await refreshAll()
-      showNotice.success('二维码导入成功')
+      importSteps.advance()
+      showNotice.success(t('mvp.home.notices.qrImportSuccess'))
     } catch (error) {
+      importSteps.fail()
       console.error('[Proxy MVP] QR import failed:', error)
-      showNotice.error('二维码无效或暂不支持')
+      showNotice.error(t('mvp.common.invalidQr'))
     } finally {
       setImporting(false)
     }
@@ -330,19 +401,23 @@ const MvpHomePage = () => {
   const changeConnection = useLockFn(
     async (target: 'tunnel' | 'off', setupService = false) => {
       setConnecting(true)
+      connectSteps.reset()
+      let succeeded = false
       try {
         if (target === 'off') {
-          await disconnectMvp()
+          await disconnectMvp(connectSteps.report)
         } else {
           const state = await getRuntimeState()
           if (!state.tunCapable && !setupService) {
             setSetupOpen(true)
             return
           }
-          await connectMvpTunnel(setupService)
+          await connectMvpTunnel(setupService, connectSteps.report)
         }
+        succeeded = true
         setSetupOpen(false)
       } catch (error) {
+        connectSteps.fail()
         console.error('[Proxy MVP] Connection change failed:', error)
         // The setup dialog already asks the user to act, so a second alert would only repeat it.
         if (error instanceof MvpConnectionError && error.stage === 'start') {
@@ -351,12 +426,12 @@ const MvpHomePage = () => {
         }
         showNotice.error(
           target === 'off'
-            ? '断开失败，请再试一次'
+            ? t('mvp.home.notices.disconnectFailed')
             : error instanceof MvpConnectionError
               ? error.stage === 'setup'
-                ? '授权没有完成，请再点一次「连接」'
-                : '连接失败。如果开着 Shadowrocket 等其他 VPN，请先退出它再试'
-              : '连接失败，请再试一次',
+                ? t('mvp.home.notices.setupIncomplete')
+                : t('mvp.home.notices.connectFailedVpn')
+              : t('mvp.home.notices.connectFailed'),
         )
       } finally {
         await Promise.allSettled([
@@ -364,16 +439,87 @@ const MvpHomePage = () => {
           revalidateQueries([['getVergeConfig'], ['getRuntimeState']]),
           refreshPreflight(),
         ])
+        if (succeeded) connectSteps.advance()
         setConnecting(false)
       }
     },
   )
 
+  const openNodes = () => {
+    if (group) void testMainGroup(group.name, members, timeout)
+    navigate('/nodes')
+  }
+
+  useMvpShortcuts([
+    {
+      key: ' ',
+      onPress: () => {
+        if (hasProfile && !connecting && !isRunStateLoading && !importing) {
+          void changeConnection(needsDisconnect ? 'off' : 'tunnel')
+        }
+      },
+    },
+    {
+      key: 'ArrowRight',
+      allowInControl: true,
+      onPress: () => {
+        if (hasProfile && !connecting && !importing) openNodes()
+      },
+    },
+    {
+      key: 'r',
+      command: true,
+      onPress: () => {
+        if (indicator && current && !speedTesting) onRefreshAll()
+      },
+    },
+    {
+      key: 's',
+      allowInControl: true,
+      onPress: () => {
+        if (indicator && current) setSitesOpen((open) => !open)
+      },
+    },
+    {
+      key: 'u',
+      command: true,
+      onPress: () => {
+        if (!connecting && !importing) void onUpdateSubscription()
+      },
+    },
+  ])
+
   if (!profiles) return <HomeLoading />
+
+  const settingsButton = (
+    <Tooltip
+      title={
+        <MvpShortcutHint
+          label={t('mvp.home.actions.settings')}
+          shortcut={`${mvpCommandKey},`}
+        />
+      }
+    >
+      <IconButton
+        aria-label={t('mvp.home.actions.settings')}
+        aria-keyshortcuts={`${mvpCommandKey === '⌘' ? 'Meta' : 'Control'}+,`}
+        onClick={() => navigate('/settings')}
+      >
+        <IconSettings size={22} />
+      </IconButton>
+    </Tooltip>
+  )
+
+  const blockerBanner = blocker && (
+    <MvpBanner severity="warning" sx={{ mt: 1 }}>
+      {blocker}
+    </MvpBanner>
+  )
 
   if (!hasProfile) {
     return (
-      <MvpPage title="Openn">
+      <MvpPage title="Openn" trailing={settingsButton}>
+        {blockerBanner}
         <Stack
           spacing={3}
           sx={{
@@ -385,9 +531,11 @@ const MvpHomePage = () => {
         >
           <Box>
             <Typography sx={{ fontSize: 30, fontWeight: 650, mb: 1 }}>
-              欢迎使用 Openn
+              {t('mvp.home.welcome.title')}
             </Typography>
-            <Typography color="text.secondary">粘贴订阅链接即可开始</Typography>
+            <Typography color="text.secondary">
+              {t('mvp.home.welcome.subtitle')}
+            </Typography>
           </Box>
           <TextField
             fullWidth
@@ -399,30 +547,34 @@ const MvpHomePage = () => {
             }}
             placeholder="https://example.com/subscription"
             type="url"
-            slotProps={{ htmlInput: { 'aria-label': '订阅链接' } }}
+            slotProps={{
+              htmlInput: { 'aria-label': t('mvp.home.welcome.linkLabel') },
+            }}
           />
           <Button
             size="large"
             variant="contained"
             disabled={importing || !url.trim()}
             onClick={onImport}
-            sx={{ height: 52, borderRadius: 2, fontWeight: 650 }}
           >
-            {importing ? (
-              <CircularProgress size={22} color="inherit" />
-            ) : (
-              '导入'
-            )}
+            <MvpProgressRing
+              busy={importing}
+              size={22}
+              color="inherit"
+              segments={importSteps.segments}
+            >
+              {t('mvp.home.welcome.import')}
+            </MvpProgressRing>
           </Button>
           <Button
             size="large"
             variant="text"
-            startIcon={<QrCodeScannerRounded />}
+            startIcon={<IconScan size={20} />}
             disabled={importing}
             onClick={() => setQrScannerOpen(true)}
             sx={{ alignSelf: 'center', color: 'text.secondary' }}
           >
-            扫描二维码
+            {t('mvp.common.scanQr')}
           </Button>
           {qrScannerOpen && (
             <QrScannerDialog
@@ -448,8 +600,68 @@ const MvpHomePage = () => {
         ? median(reading.samples)
         : -2
 
+  const siteResults = siteCheck?.key === speedKey ? siteCheck.results : null
+  const sitesDown = MVP_SITES.filter(
+    (site) => siteResults?.[site.id] === 'down',
+  )
+  // Every foreign site down while the domestic one loads points at the node, not the network.
+  const foreignSitesDown = MVP_SITES.every(
+    (site) => 'domestic' in site !== (siteResults?.[site.id] === 'down'),
+  )
+  const siteSummary = !siteResults
+    ? t('mvp.home.sites.checkingAll')
+    : sitesDown.length > 1
+      ? t('mvp.home.sites.someDown', { count: sitesDown.length })
+      : sitesDown.length === 1
+        ? t('mvp.home.sites.oneDown', {
+            name: sitesDown[0].name ?? t('mvp.home.sites.baidu'),
+          })
+        : t('mvp.home.sites.allOk')
+  const delayState = classifyDelay(currentDelay, timeout)
+  // Anything the home page already sees going wrong is worth a look on the check page.
+  const hasIssue =
+    Boolean(blocker) ||
+    (indicator &&
+      Boolean(current) &&
+      (sitesDown.length > 0 ||
+        delayState === 'timeout' ||
+        delayState === 'error'))
+  const checkButton = (
+    <Tooltip
+      title={
+        <MvpShortcutHint
+          label={t('mvp.check.actions.open')}
+          shortcut={`${mvpCommandKey}D`}
+        />
+      }
+    >
+      <IconButton
+        aria-label={t('mvp.check.actions.open')}
+        aria-keyshortcuts={`${mvpCommandKey === '⌘' ? 'Meta' : 'Control'}+D`}
+        onClick={() => navigate('/check')}
+      >
+        <Badge
+          color="error"
+          variant="dot"
+          invisible={!hasIssue}
+          overlap="circular"
+        >
+          <IconActivity size={22} />
+        </Badge>
+      </IconButton>
+    </Tooltip>
+  )
   return (
-    <MvpPage title="Openn">
+    <MvpPage
+      title="Openn"
+      trailing={
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {checkButton}
+          {settingsButton}
+        </Box>
+      }
+    >
+      {blockerBanner}
       <Stack spacing={5} sx={{ pt: { xs: 5, sm: 8 } }}>
         <Stack spacing={2} sx={{ alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -465,37 +677,65 @@ const MvpHomePage = () => {
               color={indicator ? 'text.primary' : 'text.secondary'}
               sx={{ fontSize: 20, fontWeight: 650 }}
             >
-              {indicator ? '已连接' : needsDisconnect ? '连接待恢复' : '未连接'}
+              {indicator
+                ? t('mvp.home.status.connected')
+                : needsDisconnect
+                  ? t('mvp.home.status.pending')
+                  : t('mvp.home.status.disconnected')}
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            size="large"
-            disabled={connecting || isRunStateLoading}
-            onClick={() => changeConnection(needsDisconnect ? 'off' : 'tunnel')}
-            sx={{
-              minWidth: 138,
-              height: 42,
-              borderRadius: 999,
-              fontSize: 15,
-              fontWeight: 600,
-              boxShadow: indicator ? 'none' : undefined,
-              bgcolor: indicator ? 'text.primary' : undefined,
-              color: indicator ? 'background.paper' : undefined,
-              '&:hover': { bgcolor: indicator ? 'text.secondary' : undefined },
-            }}
+          <Tooltip
+            describeChild
+            title={
+              <MvpShortcutHint
+                label={t(
+                  needsDisconnect
+                    ? 'mvp.home.actions.disconnect'
+                    : 'mvp.home.actions.connect',
+                )}
+                shortcut={t('mvp.common.space')}
+              />
+            }
           >
-            {connecting ? (
-              <CircularProgress size={22} color="inherit" />
-            ) : needsDisconnect ? (
-              '断开连接'
-            ) : (
-              '连接'
-            )}
-          </Button>
+            <Box component="span" sx={{ display: 'inline-flex' }}>
+              <Button
+                variant="contained"
+                size="large"
+                aria-keyshortcuts="Space"
+                disabled={connecting || isRunStateLoading}
+                onClick={() =>
+                  changeConnection(needsDisconnect ? 'off' : 'tunnel')
+                }
+                sx={{
+                  minWidth: 138,
+                  height: 42,
+                  borderRadius: 999,
+                  fontSize: 15,
+                  fontWeight: 600,
+                  boxShadow: indicator ? 'none' : undefined,
+                  bgcolor: indicator ? 'text.primary' : undefined,
+                  color: indicator ? 'background.paper' : undefined,
+                  '&:hover': {
+                    bgcolor: indicator ? 'text.secondary' : undefined,
+                  },
+                }}
+              >
+                <MvpProgressRing
+                  busy={connecting}
+                  size={22}
+                  color="inherit"
+                  segments={connectSteps.segments}
+                >
+                  {needsDisconnect
+                    ? t('mvp.home.actions.disconnect')
+                    : t('mvp.home.actions.connect')}
+                </MvpProgressRing>
+              </Button>
+            </Box>
+          </Tooltip>
           {systemProxyEnabled && indicator && !tunnelEnabled && (
             <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-              目前只有浏览器等部分应用走代理
+              {t('mvp.home.partialProxy')}
             </Typography>
           )}
           {needsDisconnect && !tunnelEnabled && (
@@ -504,8 +744,8 @@ const MvpHomePage = () => {
               onClick={() => changeConnection('tunnel')}
             >
               {systemProxyEnabled && indicator
-                ? '让所有应用都走代理'
-                : '重新连接'}
+                ? t('mvp.home.actions.routeAllApps')
+                : t('mvp.home.actions.reconnect')}
             </Button>
           )}
         </Stack>
@@ -519,7 +759,7 @@ const MvpHomePage = () => {
           }}
         >
           <Typography color="text.secondary" sx={{ fontSize: 13, mb: 1 }}>
-            当前节点
+            {t('mvp.home.currentNode')}
           </Typography>
           <Box
             sx={{
@@ -531,116 +771,243 @@ const MvpHomePage = () => {
           >
             <Box sx={{ minWidth: 0 }}>
               <Typography noWrap sx={{ fontSize: 19, fontWeight: 600 }}>
-                {current?.ref.name ?? '暂无可用节点'}
+                {current?.ref.name ?? t('mvp.home.noNode')}
               </Typography>
-              <Box
-                sx={{
-                  mt: 0.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                }}
-              >
-                <Tooltip
-                  title={current ? mvpDelayHint(currentDelay, timeout) : ''}
+              {current ? (
+                <Box
+                  sx={{
+                    mt: 1.25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                  }}
                 >
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      fontVariantNumeric: 'tabular-nums',
-                      cursor: 'help',
-                      color: current
-                        ? mvpDelayColor(currentDelay, timeout)
-                        : 'text.secondary',
-                    }}
-                  >
-                    {current
-                      ? formatMvpDelay(currentDelay, timeout)
-                      : '当前节点不可用，请更换节点'}
-                  </Typography>
-                </Tooltip>
-                {current && indicator && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {indicator && (
                     <Tooltip
                       title={
-                        speed ? mvpSpeedHint(speed.mbps) : '点击右侧按钮测速'
+                        <MvpShortcutHint
+                          label={t('mvp.home.sites.details')}
+                          shortcut="S"
+                        />
                       }
                     >
-                      <Typography
-                        sx={{
-                          fontSize: 14,
-                          cursor: 'help',
-                          color: speed
-                            ? mvpSpeedTier(speed.mbps).color
-                            : 'text.secondary',
-                        }}
+                      <MvpStatusPill
+                        aria-keyshortcuts="S"
+                        color={
+                          !siteResults
+                            ? 'text.secondary'
+                            : sitesDown.length
+                              ? 'error.main'
+                              : 'success.main'
+                        }
+                        aria-expanded={sitesOpen}
+                        aria-controls="mvp-site-list"
+                        onClick={() => setSitesOpen((open) => !open)}
+                        endIcon={
+                          <Box
+                            component={IconChevronDown}
+                            size={15}
+                            sx={{
+                              mr: -0.5,
+                              transition: 'transform 200ms',
+                              transform: sitesOpen ? 'rotate(180deg)' : 'none',
+                            }}
+                          />
+                        }
                       >
-                        {speed ? mvpSpeedTier(speed.mbps).label : '未测速'}
-                      </Typography>
+                        {siteSummary}
+                      </MvpStatusPill>
                     </Tooltip>
-                    <Tooltip title={speedTesting ? '测速中…' : '重新测速'}>
-                      <span>
+                  )}
+                  <Tooltip title={mvpDelayHint(currentDelay, timeout)}>
+                    <MvpStatusPill
+                      color={mvpDelayColor(currentDelay, timeout)}
+                      loading={delayState === 'testing'}
+                    >
+                      {formatMvpDelay(currentDelay, timeout)}
+                    </MvpStatusPill>
+                  </Tooltip>
+                  {indicator && (
+                    <>
+                      <Tooltip
+                        title={
+                          speed
+                            ? mvpSpeedHint(speed.mbps)
+                            : t('mvp.home.speedTestPrompt')
+                        }
+                      >
+                        <MvpStatusPill
+                          color={
+                            speed && !speedTesting
+                              ? mvpSpeedTier(speed.mbps).color
+                              : 'text.secondary'
+                          }
+                        >
+                          {speedTesting
+                            ? t('mvp.common.testing')
+                            : speed
+                              ? mvpSpeedTier(speed.mbps).label
+                              : t('mvp.home.speedUntested')}
+                        </MvpStatusPill>
+                      </Tooltip>
+                      <Tooltip
+                        title={
+                          <MvpShortcutHint
+                            label={t('mvp.home.actions.retest')}
+                            shortcut={`${mvpCommandKey}R`}
+                          />
+                        }
+                      >
                         <IconButton
                           size="small"
-                          aria-label="重新测速"
-                          disabled={speedTesting}
-                          onClick={onSpeedTest}
-                          sx={{ p: 0.25 }}
+                          aria-label={t('mvp.home.actions.retest')}
+                          aria-keyshortcuts={`${mvpCommandKey === '⌘' ? 'Meta' : 'Control'}+R`}
+                          onClick={() => !speedTesting && onRefreshAll()}
+                          sx={{ p: 0.5, color: 'text.secondary' }}
                         >
-                          {speedTesting ? (
-                            <CircularProgress size={14} />
-                          ) : (
-                            <RefreshRounded sx={{ fontSize: 16 }} />
-                          )}
+                          <MvpProgressRing
+                            busy={speedTesting}
+                            size={17}
+                            segments={fractionSegments(speedProgress, 3)}
+                          >
+                            <IconRefresh size={17} />
+                          </MvpProgressRing>
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                  </Box>
-                )}
-              </Box>
+                      </Tooltip>
+                    </>
+                  )}
+                </Box>
+              ) : (
+                <Typography
+                  color="text.secondary"
+                  sx={{ mt: 0.5, fontSize: 14 }}
+                >
+                  {t('mvp.home.nodeUnavailable')}
+                </Typography>
+              )}
             </Box>
-            <Tooltip title="更换节点">
+            <Tooltip
+              title={
+                <MvpShortcutHint
+                  label={t('mvp.home.actions.changeNode')}
+                  shortcut="→"
+                />
+              }
+            >
               <IconButton
-                aria-label="更换节点"
-                onClick={() => {
-                  if (group) void testMainGroup(group.name, members, timeout)
-                  navigate('/nodes')
-                }}
+                aria-label={t('mvp.home.actions.changeNode')}
+                aria-keyshortcuts="ArrowRight"
+                onClick={openNodes}
                 sx={{ flexShrink: 0 }}
               >
-                <ArrowForwardRounded />
+                <IconArrowRight size={22} />
               </IconButton>
             </Tooltip>
           </Box>
+          {indicator && current && (
+            <Collapse in={sitesOpen} id="mvp-site-list">
+              <Box
+                sx={{
+                  mt: 2,
+                  px: 1.75,
+                  py: 0.75,
+                  borderRadius: 2.5,
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                }}
+              >
+                {MVP_SITES.map((site) => {
+                  const status = siteResults?.[site.id]
+                  const color =
+                    status === 'down'
+                      ? 'error.main'
+                      : status === 'slow'
+                        ? 'warning.main'
+                        : status === 'ok'
+                          ? 'success.main'
+                          : 'text.disabled'
+                  return (
+                    <Box
+                      key={site.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.25,
+                        py: 0.875,
+                        fontSize: 14,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          bgcolor: color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        {site.name ?? t('mvp.home.sites.baidu')}
+                        {'domestic' in site && (
+                          <Typography
+                            component="span"
+                            color="text.secondary"
+                            sx={{ ml: 0.75, fontSize: 12 }}
+                          >
+                            {t('mvp.home.sites.domestic')}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography
+                        sx={{
+                          fontSize: 14,
+                          color: status === 'ok' ? 'text.secondary' : color,
+                        }}
+                      >
+                        {t(`mvp.home.sites.status.${status ?? 'checking'}`)}
+                      </Typography>
+                    </Box>
+                  )
+                })}
+                {foreignSitesDown && (
+                  <Typography
+                    color="text.secondary"
+                    sx={{ fontSize: 12, pt: 0.25, pb: 0.75 }}
+                  >
+                    {t('mvp.home.sites.foreignDownHint')}
+                  </Typography>
+                )}
+              </Box>
+            </Collapse>
+          )}
         </Box>
       </Stack>
-      <Dialog
+      <BaseDialog
         open={setupOpen}
+        icon={<IconShieldCheck size={24} />}
+        title={t('mvp.home.setup.title')}
+        okBtn={t('mvp.home.setup.confirm')}
+        cancelBtn={t('mvp.common.cancel')}
+        loading={connecting}
+        loadingIndicator={
+          <MvpProgressRing
+            size={18}
+            color="inherit"
+            segments={connectSteps.segments}
+          />
+        }
         onClose={() => !connecting && setSetupOpen(false)}
+        onCancel={() => !connecting && setSetupOpen(false)}
+        onOk={() => changeConnection('tunnel', true)}
+        contentSx={{ width: { xs: 280, sm: 300 } }}
       >
-        <DialogTitle>需要授权一次</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Openn
-            需要安装一个后台组件，系统会请你输入电脑密码。只需授权这一次，之后点连接即可。
-          </DialogContentText>
-          <DialogContentText sx={{ mt: 2 }}>
-            如果开着 Shadowrocket 等其他 VPN，请先退出。
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={connecting} onClick={() => setSetupOpen(false)}>
-            取消
-          </Button>
-          <Button
-            loading={connecting}
-            variant="contained"
-            onClick={() => changeConnection('tunnel', true)}
-          >
-            授权并连接
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Typography variant="body2">{t('mvp.home.setup.body')}</Typography>
+        <Typography variant="body2" sx={{ mt: 1.5 }}>
+          {t('mvp.home.setup.vpnHint')}
+        </Typography>
+      </BaseDialog>
     </MvpPage>
   )
 }

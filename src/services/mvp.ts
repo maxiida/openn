@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import i18n from 'i18next'
 import { dump } from 'js-yaml'
 
 import {
@@ -11,6 +12,9 @@ import {
 } from '@/services/cmds'
 import { isValidUrl } from '@/utils/network'
 import parseUri from '@/utils/uri-parser'
+
+/** Called with 0 finished steps up front, then after each step. */
+export type MvpStepReporter = (done: number, total: number) => void
 
 const wait = (duration: number) =>
   new Promise((resolve) => setTimeout(resolve, duration))
@@ -26,15 +30,39 @@ export const isProfileUpdatedToday = (profile: IProfileItem) =>
   profile.updated !== undefined &&
   dayjs.unix(profile.updated).isSame(dayjs(), 'day')
 
+export const formatTrafficAmount = (bytes: number, language: string) => {
+  const gb = bytes / 1024 ** 3
+  if (gb < 1) {
+    const mb = new Intl.NumberFormat(language, { maximumFractionDigits: 0 })
+    return `${mb.format(bytes / 1024 ** 2)} MB`
+  }
+  const format = new Intl.NumberFormat(language, {
+    maximumFractionDigits: gb < 100 ? 1 : 0,
+  })
+  return `${format.format(gb)} GB`
+}
+
 export const formatProfileUpdated = (updated?: number) => {
-  if (!updated) return '尚未更新'
+  if (!updated) return i18n.t(($) => $.mvp.subscriptions.updated.never)
   const time = dayjs.unix(updated)
   const now = dayjs()
-  if (time.isSame(now, 'day')) return `今天 ${time.format('HH:mm')} 更新`
-  if (time.isSame(now.subtract(1, 'day'), 'day')) {
-    return `昨天 ${time.format('HH:mm')} 更新`
+  if (time.isSame(now, 'day')) {
+    return i18n.t(($) => $.mvp.subscriptions.updated.today, {
+      time: time.format('HH:mm'),
+    })
   }
-  return `${time.format(time.isSame(now, 'year') ? 'M月D日' : 'YYYY年M月D日')} 更新`
+  if (time.isSame(now.subtract(1, 'day'), 'day')) {
+    return i18n.t(($) => $.mvp.subscriptions.updated.yesterday, {
+      time: time.format('HH:mm'),
+    })
+  }
+  return i18n.t(($) => $.mvp.subscriptions.updated.date, {
+    date: time.format(
+      time.isSame(now, 'year')
+        ? i18n.t(($) => $.mvp.subscriptions.updated.dateFormat)
+        : i18n.t(($) => $.mvp.subscriptions.updated.dateFormatWithYear),
+    ),
+  })
 }
 
 export const activateMvpProfile = async (uid: string) => {
@@ -50,7 +78,11 @@ export const activateMvpProfile = async (uid: string) => {
   throw new Error('Profile activation remained busy')
 }
 
-export const importAndActivateMvpProfile = async (url: string) => {
+export const importAndActivateMvpProfile = async (
+  url: string,
+  onStep?: MvpStepReporter,
+) => {
+  onStep?.(0, 2)
   const before = await getProfiles()
   const existingIds = new Set((before.items ?? []).map((item) => item.uid))
 
@@ -64,9 +96,11 @@ export const importAndActivateMvpProfile = async (url: string) => {
   if (!imported) {
     throw new Error('Imported profile was not found after import')
   }
+  onStep?.(1, 2)
 
   await activateMvpProfile(imported.uid)
   await ensureRuleMode()
+  onStep?.(2, 2)
   return imported
 }
 
@@ -94,12 +128,16 @@ const unwrapQrPayload = (payload: string) => {
   return trimmed
 }
 
-export const importAndActivateMvpQrPayload = async (payload: string) => {
+export const importAndActivateMvpQrPayload = async (
+  payload: string,
+  onStep?: MvpStepReporter,
+) => {
   const value = unwrapQrPayload(payload)
   if (isValidUrl(value)) {
-    return importAndActivateMvpProfile(value)
+    return importAndActivateMvpProfile(value, onStep)
   }
 
+  onStep?.(0, 2)
   const proxy = parseUri(value)
   const fileData = dump(
     {
@@ -131,8 +169,10 @@ export const importAndActivateMvpQrPayload = async (payload: string) => {
   if (!imported) {
     throw new Error('Imported QR profile was not found after import')
   }
+  onStep?.(1, 2)
 
   await activateMvpProfile(imported.uid)
   await ensureRuleMode()
+  onStep?.(2, 2)
   return imported
 }

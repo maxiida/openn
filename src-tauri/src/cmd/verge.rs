@@ -24,6 +24,12 @@ pub async fn patch_verge_config(payload: IVerge) -> CmdResult {
     result.map_err(|error| proxy_aware_error(&error).asking_for(operation))
 }
 
+/// The language an empty `language` setting follows.
+#[tauri::command]
+pub fn get_system_language() -> String {
+    clash_verge_i18n::system_language().into_owned()
+}
+
 /// Extract a system proxy operation from a Verge patch.
 const fn system_proxy_operation(payload: &IVerge) -> Option<FailedOperation> {
     match payload.enable_system_proxy {

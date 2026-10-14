@@ -1,22 +1,6 @@
 import {
-  AddRounded,
-  ArrowBackRounded,
-  CheckBoxOutlineBlankRounded,
-  CheckBoxRounded,
-  CheckRounded,
-  CloseRounded,
-  DeleteOutlineRounded,
-  ExpandMoreRounded,
-  PushPinOutlined,
-  PushPinRounded,
-  QrCodeScannerRounded,
-  RefreshRounded,
-  SpeedRounded,
-} from '@mui/icons-material'
-import {
   Box,
   Button,
-  CircularProgress,
   Collapse,
   Divider,
   IconButton,
@@ -26,14 +10,36 @@ import {
   Typography,
 } from '@mui/material'
 import { keyframes } from '@mui/material/styles'
+import {
+  IconArrowLeft,
+  IconCheck,
+  IconChevronDown,
+  IconGauge,
+  IconPin,
+  IconPinFilled,
+  IconPlus,
+  IconRefresh,
+  IconScan,
+  IconSquare,
+  IconSquareCheckFilled,
+  IconTrash,
+  IconX,
+} from '@tabler/icons-react'
 import { useLockFn } from 'ahooks'
+import i18n from 'i18next'
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router'
 
 import { BaseDialog } from '@/components/base'
 import { MvpPage } from '@/components/mvp/mvp-page'
+import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
+import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
+import { MvpUsageCard } from '@/components/mvp/mvp-usage-card'
 import { QrScannerDialog } from '@/components/mvp/qr-scanner-dialog'
 import { testMainGroup, useMainProxyGroup } from '@/hooks/use-main-proxy-group'
+import { mvpCommandKey, useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
+import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
 import { useAppRefreshers } from '@/providers/app-data-context'
@@ -49,21 +55,53 @@ import { showNotice } from '@/services/notice-service'
 import type { InteractableProxyMember } from '@/types/proxy-view'
 import { classifyDelay } from '@/utils/delay'
 import { formatMvpDelay, mvpDelayColor } from '@/utils/main-proxy-group'
+import type { MvpSegment } from '@/utils/mvp-progress'
 import { isValidUrl } from '@/utils/network'
 
-const fadeIn = keyframes`
-  from { opacity: 0; }
-  to { opacity: 1; }
+const ROW_HEIGHT = 64
+const ROLL_MS = 440
+const COLLAPSE_MS = 240
+const rollDelay = (slot: number) => Math.min(slot, 12) * 35
+
+const rollUp = keyframes`
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
 `
 
+const collapse = keyframes`
+  to { height: 0; }
+`
+
+type NodeLayout = { visible: string[]; timedOut: string[] }
+
+// Drawn on a pseudo-element so the rounded fill doesn't bend the row's straight divider.
+const roundedHighlight = (active: boolean) => ({
+  position: 'relative',
+  isolation: 'isolate',
+  outline: 'none',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset: '3px 0',
+    zIndex: -1,
+    borderRadius: 2,
+    bgcolor: active ? 'action.selected' : 'transparent',
+    transition: 'background-color 0.15s',
+  },
+  '&:hover::before, &:focus-visible::before': {
+    bgcolor: active ? 'action.selected' : 'action.hover',
+  },
+})
+
 const profileSource = (profile: IProfileItem) => {
-  if (profile.type === 'local') return '本地配置'
-  if (!profile.url) return '远程订阅'
+  if (profile.type === 'local')
+    return i18n.t(($) => $.mvp.subscriptions.localSource)
+  if (!profile.url) return i18n.t(($) => $.mvp.subscriptions.remoteSource)
 
   try {
     return new URL(profile.url).host
   } catch {
-    return '远程订阅'
+    return i18n.t(($) => $.mvp.subscriptions.remoteSource)
   }
 }
 
@@ -81,6 +119,7 @@ const readPinnedNodes = (): PinnedNodes => {
 }
 
 const MvpNodesPage = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { profiles } = useProfiles()
   const { refreshAll, refreshProxy } = useAppRefreshers()
@@ -96,18 +135,22 @@ const MvpNodesPage = () => {
     const timer = setInterval(refreshProgress, 150)
     return () => clearInterval(timer)
   }, [testing])
-  const testedCount = members.filter(
-    (member) => delays.of(member) !== -2,
-  ).length
-  const [prevTesting, setPrevTesting] = useState(testing)
-  const [settleCount, setSettleCount] = useState(0)
-  if (prevTesting !== testing) {
-    setPrevTesting(testing)
-    if (prevTesting) setSettleCount((count) => count + 1)
-  }
+  const testSegments = members
+    .map((member): MvpSegment => {
+      const state = classifyDelay(delays.of(member), timeout)
+      return state === 'measured'
+        ? 'done'
+        : state === 'testing' || state === 'untested'
+          ? 'pending'
+          : 'error'
+    })
+    // Finished nodes first, so the ring fills from the top without gaps.
+    .sort((a, b) => Number(a === 'pending') - Number(b === 'pending'))
   const [switching, setSwitching] = useState<string | null>(null)
   const [url, setUrl] = useState('')
   const [importing, setImporting] = useState(false)
+  // Download and activate, then this page's own refresh.
+  const importSteps = useMvpSteps(1)
   const [qrScannerOpen, setQrScannerOpen] = useState(false)
   const [profileAction, setProfileAction] = useState<{
     uid: string
@@ -115,7 +158,10 @@ const MvpNodesPage = () => {
   } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<IProfileItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const deleteSteps = useMvpSteps()
+  const updateSteps = useMvpSteps()
   const [timeoutOpen, setTimeoutOpen] = useState(false)
+  const nodeListRef = useRef<HTMLDivElement>(null)
   const [pinnedNodes, setPinnedNodes] = useState(readPinnedNodes)
   // Non-null while choosing pins; applied to the list only on confirm.
   const [pinDraft, setPinDraft] = useState<string[] | null>(null)
@@ -156,6 +202,9 @@ const MvpNodesPage = () => {
       ),
     [profiles?.items],
   )
+  const currentProfile = availableProfiles.find(
+    (item) => item.uid === profiles?.current,
+  )
 
   const sortedMembers = useMemo(
     () =>
@@ -192,7 +241,7 @@ const MvpNodesPage = () => {
     onError: (error) => {
       console.error('[Proxy MVP] Node switch failed:', error)
       setSwitching(null)
-      showNotice.error('节点切换失败')
+      showNotice.error(t('mvp.nodes.notices.switchFailed'))
       void refreshProxy()
     },
   })
@@ -223,20 +272,23 @@ const MvpNodesPage = () => {
   const onImport = useLockFn(async () => {
     const normalizedUrl = url.trim()
     if (!isValidUrl(normalizedUrl)) {
-      showNotice.error('配置链接无效')
+      showNotice.error(t('mvp.common.invalidLink'))
       return
     }
 
     setImporting(true)
+    importSteps.reset()
     try {
-      await importAndActivateMvpProfile(normalizedUrl)
+      await importAndActivateMvpProfile(normalizedUrl, importSteps.report)
       await fetchProfilesIntoCache()
       await refreshAll()
+      importSteps.advance()
       setUrl('')
-      showNotice.success('订阅已添加并启用')
+      showNotice.success(t('mvp.subscriptions.notices.added'))
     } catch (error) {
+      importSteps.fail()
       console.error('[Proxy MVP] Subscription import failed:', error)
-      showNotice.error('订阅添加失败')
+      showNotice.error(t('mvp.subscriptions.notices.addFailed'))
     } finally {
       setImporting(false)
     }
@@ -245,14 +297,17 @@ const MvpNodesPage = () => {
   const onQrDetected = useLockFn(async (payload: string) => {
     setQrScannerOpen(false)
     setImporting(true)
+    importSteps.reset()
     try {
-      await importAndActivateMvpQrPayload(payload)
+      await importAndActivateMvpQrPayload(payload, importSteps.report)
       await fetchProfilesIntoCache()
       await refreshAll()
-      showNotice.success('订阅已添加并启用')
+      importSteps.advance()
+      showNotice.success(t('mvp.subscriptions.notices.added'))
     } catch (error) {
+      importSteps.fail()
       console.error('[Proxy MVP] QR import failed:', error)
-      showNotice.error('二维码无效或暂不支持')
+      showNotice.error(t('mvp.common.invalidQr'))
     } finally {
       setImporting(false)
     }
@@ -267,10 +322,10 @@ const MvpNodesPage = () => {
       await ensureRuleMode()
       await fetchProfilesIntoCache()
       await refreshAll()
-      showNotice.success('订阅已切换')
+      showNotice.success(t('mvp.subscriptions.notices.switched'))
     } catch (error) {
       console.error('[Proxy MVP] Profile activation failed:', error)
-      showNotice.error('订阅切换失败')
+      showNotice.error(t('mvp.subscriptions.notices.switchFailed'))
     } finally {
       setProfileAction(null)
     }
@@ -280,17 +335,25 @@ const MvpNodesPage = () => {
     if (profile.type !== 'remote') return
 
     setProfileAction({ uid: profile.uid, kind: 'update' })
+    // Download, reload the list, and refresh the core when it runs this subscription.
+    const isCurrent = profile.uid === profiles?.current
+    const total = isCurrent ? 3 : 2
+    updateSteps.report(0, total)
     try {
       await updateProfile(profile.uid)
+      updateSteps.report(1, total)
       await fetchProfilesIntoCache()
-      if (profile.uid === profiles?.current) {
+      updateSteps.report(2, total)
+      if (isCurrent) {
         await ensureRuleMode()
         await refreshAll()
+        updateSteps.report(3, total)
       }
-      showNotice.success('订阅已更新')
+      showNotice.success(t('mvp.subscriptions.notices.updated'))
     } catch (error) {
+      updateSteps.fail()
       console.error('[Proxy MVP] Subscription update failed:', error)
-      showNotice.error('订阅更新失败')
+      showNotice.error(t('mvp.subscriptions.notices.updateFailed'))
     } finally {
       setProfileAction(null)
     }
@@ -300,32 +363,117 @@ const MvpNodesPage = () => {
     if (!deleteTarget) return
 
     setDeleting(true)
+    deleteSteps.report(0, 3)
     try {
       await deleteProfile(deleteTarget.uid)
+      deleteSteps.report(1, 3)
       const remainingProfiles = await fetchProfilesIntoCache()
+      deleteSteps.report(2, 3)
       if (remainingProfiles.current) {
         await ensureRuleMode()
         await refreshAll()
       }
+      deleteSteps.report(3, 3)
       setDeleteTarget(null)
-      showNotice.success('订阅已删除')
+      showNotice.success(t('mvp.subscriptions.notices.deleted'))
     } catch (error) {
+      deleteSteps.fail()
       console.error('[Proxy MVP] Subscription deletion failed:', error)
-      showNotice.error('订阅删除失败')
+      showNotice.error(t('mvp.subscriptions.notices.deleteFailed'))
     } finally {
       setDeleting(false)
     }
   })
 
-  const isTimedOut = (member: InteractableProxyMember) => {
-    if (pinned.has(member.ref.name)) return false
-    const kind = classifyDelay(delays.of(member), timeout)
-    return kind === 'timeout' || kind === 'error'
+  const layout = useMemo<NodeLayout>(() => {
+    const isTimedOut = (member: InteractableProxyMember) => {
+      if (pinned.has(member.ref.name)) return false
+      const kind = classifyDelay(delays.of(member), timeout)
+      return kind === 'timeout' || kind === 'error'
+    }
+    const names = (list: InteractableProxyMember[]) =>
+      list.map((member) => member.ref.name)
+    return {
+      visible: names(sortedMembers.filter((member) => !isTimedOut(member))),
+      timedOut: names(sortedMembers.filter(isTimedOut)),
+    }
+  }, [delays, pinned, sortedMembers, timeout])
+
+  // Rows keep their slots while a test runs; changed slots roll to their new node once it settles.
+  const [shownLayout, setShownLayout] = useState(layout)
+  const [roll, setRoll] = useState<{ from: string[]; to: string[] } | null>(
+    null,
+  )
+  if (!testing && shownLayout !== layout) {
+    const from = shownLayout.visible
+    const to = layout.visible
+    setShownLayout(layout)
+    if (
+      from.length > 0 &&
+      (from.length !== to.length ||
+        from.some((name, slot) => name !== to[slot]))
+    )
+      setRoll({ from, to })
   }
-  const timedOutMembers = testing ? [] : sortedMembers.filter(isTimedOut)
-  const visibleMembers = testing
-    ? sortedMembers
-    : sortedMembers.filter((member) => !isTimedOut(member))
+  useEffect(() => {
+    if (!roll) return
+    const slots = Math.max(roll.from.length, roll.to.length)
+    const timer = setTimeout(
+      () => setRoll(null),
+      rollDelay(slots) + ROLL_MS + COLLAPSE_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [roll])
+
+  const memberByName = useMemo(
+    () => new Map(members.map((member) => [member.ref.name, member])),
+    [members],
+  )
+  const toMembers = (names: string[]) =>
+    names.flatMap((name) => memberByName.get(name) ?? [])
+  const visibleMembers = toMembers(shownLayout.visible)
+  const timedOutMembers = toMembers(shownLayout.timedOut)
+
+  const focusNode = (direction: number) => {
+    const rows = Array.from(
+      nodeListRef.current?.querySelectorAll<HTMLButtonElement>(
+        'button[data-mvp-node]:not(:disabled)',
+      ) ?? [],
+    )
+    if (!rows.length) return
+    const index = rows.findIndex((row) => row === document.activeElement)
+    const next =
+      index < 0
+        ? direction > 0
+          ? 0
+          : rows.length - 1
+        : Math.max(0, Math.min(rows.length - 1, index + direction))
+    rows[next].focus()
+  }
+
+  useMvpShortcuts([
+    {
+      key: 'ArrowLeft',
+      allowInControl: true,
+      onPress: () => !switching && navigate('/'),
+    },
+    {
+      key: 'Escape',
+      allowInControl: true,
+      onPress: () => {
+        if (pinDraft) setPinDraft(null)
+      },
+    },
+    {
+      key: 'r',
+      command: true,
+      onPress: () => {
+        if (!testing && !importing && !profileAction) void onTestAll()
+      },
+    },
+    { key: 'ArrowDown', allowInControl: true, onPress: () => focusNode(1) },
+    { key: 'ArrowUp', allowInControl: true, onPress: () => focusNode(-1) },
+  ])
 
   const renderRow = (member: InteractableProxyMember) => {
     const name = member.ref.name
@@ -342,6 +490,8 @@ const MvpNodesPage = () => {
         component="button"
         type="button"
         key={memberKey}
+        data-mvp-node
+        aria-pressed={pinDraft ? pinChecked : selected}
         disabled={switching !== null}
         onClick={() => {
           if (pinDraft) {
@@ -354,11 +504,11 @@ const MvpNodesPage = () => {
         sx={{
           width: '100%',
           minHeight: 64,
-          px: 1,
+          px: 1.5,
           display: 'grid',
           gridTemplateColumns: pinDraft
-            ? '28px 28px minmax(0, 1fr) auto'
-            : '28px minmax(0, 1fr) auto',
+            ? '28px minmax(0, 1fr) auto'
+            : 'minmax(0, 1fr) auto',
           alignItems: 'center',
           gap: 1.5,
           border: 0,
@@ -369,34 +519,33 @@ const MvpNodesPage = () => {
           textAlign: 'left',
           cursor: 'pointer',
           font: 'inherit',
-          '&:hover': { bgcolor: 'action.hover' },
+          ...roundedHighlight(selected && !pinDraft),
           '&:disabled': { cursor: 'default', opacity: 0.72 },
         }}
       >
         {pinDraft && (
           <Box sx={{ display: 'grid', placeItems: 'center' }}>
             {pinChecked ? (
-              <CheckBoxRounded color="primary" fontSize="small" />
+              <Box
+                component={IconSquareCheckFilled}
+                size={20}
+                sx={{ color: 'primary.main' }}
+              />
             ) : (
-              <CheckBoxOutlineBlankRounded
-                fontSize="small"
+              <Box
+                component={IconSquare}
+                size={20}
                 sx={{ color: 'text.secondary' }}
               />
             )}
           </Box>
         )}
-        <Box sx={{ display: 'grid', placeItems: 'center' }}>
-          {switching === name ? (
-            <CircularProgress size={17} />
-          ) : selected ? (
-            <CheckRounded color="primary" fontSize="small" />
-          ) : null}
-        </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
           {!pinDraft && pinned.has(name) && (
-            <PushPinRounded
-              color="primary"
-              sx={{ fontSize: 15, mr: 0.75, flexShrink: 0 }}
+            <Box
+              component={IconPinFilled}
+              size={15}
+              sx={{ color: 'primary.main', mr: 0.75, flexShrink: 0 }}
             />
           )}
           <Typography
@@ -406,15 +555,57 @@ const MvpNodesPage = () => {
             {name}
           </Typography>
         </Box>
-        <Typography
+        {switching === name ? (
+          <MvpProgressRing size={17} />
+        ) : (
+          <Typography
+            sx={{
+              fontSize: 13.5,
+              color: mvpDelayColor(delay, timeout),
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {formatMvpDelay(delay, timeout)}
+          </Typography>
+        )}
+      </Box>
+    )
+  }
+
+  const renderSlot = (
+    from: string | undefined,
+    to: string | undefined,
+    slot: number,
+  ) => {
+    const toMember = to ? memberByName.get(to) : undefined
+    if (from === to) return toMember && renderRow(toMember)
+    const fromMember = from ? memberByName.get(from) : undefined
+    const delay = rollDelay(slot)
+
+    return (
+      <Box
+        key={`roll-${slot}`}
+        sx={{
+          height: ROW_HEIGHT,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          animation: toMember
+            ? undefined
+            : `${collapse} ${COLLAPSE_MS}ms ease ${delay + ROLL_MS}ms forwards`,
+        }}
+      >
+        <Box
           sx={{
-            fontSize: 13.5,
-            color: mvpDelayColor(delay, timeout),
-            fontVariantNumeric: 'tabular-nums',
+            animation: `${rollUp} ${ROLL_MS}ms cubic-bezier(0.3, 0.9, 0.3, 1) ${delay}ms both`,
           }}
         >
-          {formatMvpDelay(delay, timeout)}
-        </Typography>
+          <Box inert sx={{ height: ROW_HEIGHT }}>
+            {fromMember && renderRow(fromMember)}
+          </Box>
+          <Box sx={{ height: ROW_HEIGHT }}>
+            {toMember && renderRow(toMember)}
+          </Box>
+        </Box>
       </Box>
     )
   }
@@ -425,47 +616,63 @@ const MvpNodesPage = () => {
 
   return (
     <MvpPage
-      title="节点"
+      title={t('mvp.nodes.title')}
       leading={
-        <IconButton aria-label="返回" onClick={() => navigate('/')}>
-          <ArrowBackRounded />
-        </IconButton>
+        <Tooltip
+          title={<MvpShortcutHint label={t('mvp.common.back')} shortcut="←" />}
+        >
+          <IconButton
+            aria-label={t('mvp.common.back')}
+            aria-keyshortcuts="ArrowLeft"
+            onClick={() => navigate('/')}
+          >
+            <IconArrowLeft size={22} />
+          </IconButton>
+        </Tooltip>
       }
       trailing={
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Tooltip title={pinDraft ? '完成' : '置顶节点'}>
+          <Tooltip title={pinDraft ? t('mvp.nodes.done') : t('mvp.nodes.pin')}>
             <span>
               <IconButton
-                aria-label={pinDraft ? '完成' : '置顶节点'}
+                aria-label={pinDraft ? t('mvp.nodes.done') : t('mvp.nodes.pin')}
                 disabled={members.length === 0}
                 onClick={onPinButton}
               >
                 {!pinDraft ? (
-                  <PushPinOutlined />
+                  <IconPin size={22} />
                 ) : pinDraft.length === 0 ? (
-                  <CloseRounded />
+                  <IconX size={22} />
                 ) : (
-                  <CheckRounded />
+                  <IconCheck size={22} />
                 )}
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title={testing ? '测速中…' : '全部测速'}>
+          <Tooltip
+            title={
+              <MvpShortcutHint
+                label={
+                  testing ? t('mvp.common.testing') : t('mvp.nodes.testAll')
+                }
+                shortcut={`${mvpCommandKey}R`}
+              />
+            }
+          >
             <span>
               <IconButton
-                aria-label="全部测速"
+                aria-label={t('mvp.nodes.testAll')}
+                aria-keyshortcuts={`${mvpCommandKey === '⌘' ? 'Meta' : 'Control'}+R`}
                 disabled={testing || members.length === 0}
                 onClick={onTestAll}
               >
-                {testing ? (
-                  <CircularProgress
-                    size={22}
-                    variant="determinate"
-                    value={(testedCount / Math.max(members.length, 1)) * 100}
-                  />
-                ) : (
-                  <SpeedRounded />
-                )}
+                <MvpProgressRing
+                  busy={testing}
+                  size={22}
+                  segments={testSegments}
+                >
+                  <IconGauge size={22} />
+                </MvpProgressRing>
               </IconButton>
             </span>
           </Tooltip>
@@ -474,30 +681,46 @@ const MvpNodesPage = () => {
     >
       <Stack spacing={5}>
         <Box>
+          {currentProfile && (
+            <MvpUsageCard
+              profile={currentProfile}
+              updating={
+                profileAction?.uid === currentProfile.uid &&
+                profileAction.kind === 'update'
+              }
+              progress={updateSteps.segments}
+              disabled={profileAction !== null || importing}
+              onUpdate={() => onUpdateProfile(currentProfile)}
+            />
+          )}
           {isLoading ? (
             <Box sx={{ minHeight: 280, display: 'grid', placeItems: 'center' }}>
-              <CircularProgress size={24} />
+              <MvpProgressRing size={24} />
             </Box>
           ) : isError || !group || members.length === 0 ? (
             <Box sx={{ py: 10, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                当前节点不可用，请先检查订阅
+                {t('mvp.nodes.empty')}
               </Typography>
             </Box>
           ) : (
             <Stack
-              key={settleCount}
-              sx={{
-                borderTop: 1,
-                borderColor: 'divider',
-                animation: settleCount ? `${fadeIn} 500ms ease` : undefined,
-              }}
+              ref={nodeListRef}
+              sx={{ borderTop: 1, borderColor: 'divider' }}
             >
-              {visibleMembers.map(renderRow)}
+              {roll
+                ? Array.from(
+                    { length: Math.max(roll.from.length, roll.to.length) },
+                    (_, slot) =>
+                      renderSlot(roll.from[slot], roll.to[slot], slot),
+                  )
+                : visibleMembers.map(renderRow)}
               {timedOutMembers.length > 0 && (
                 <>
                   <Tooltip
-                    title={`${timeout / 1000} 秒内没有响应或连接失败的节点`}
+                    title={t('mvp.nodes.unavailableHint', {
+                      seconds: timeout / 1000,
+                    })}
                   >
                     <Box
                       component="button"
@@ -507,7 +730,7 @@ const MvpNodesPage = () => {
                       sx={{
                         width: '100%',
                         minHeight: 48,
-                        px: 1,
+                        px: 1.5,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -519,12 +742,17 @@ const MvpNodesPage = () => {
                         cursor: 'pointer',
                         font: 'inherit',
                         fontSize: 13.5,
-                        '&:hover': { bgcolor: 'action.hover' },
+                        ...roundedHighlight(false),
                       }}
                     >
-                      <span>不可用 · {timedOutMembers.length}</span>
-                      <ExpandMoreRounded
-                        fontSize="small"
+                      <span>
+                        {t('mvp.nodes.unavailable', {
+                          count: timedOutMembers.length,
+                        })}
+                      </span>
+                      <Box
+                        component={IconChevronDown}
+                        size={20}
                         sx={{
                           transition: 'transform 0.2s',
                           transform: timeoutOpen ? 'rotate(180deg)' : 'none',
@@ -544,10 +772,10 @@ const MvpNodesPage = () => {
         <Box>
           <Divider sx={{ mb: 3 }} />
           <Typography sx={{ fontSize: 18, fontWeight: 650, mb: 0.5 }}>
-            订阅管理
+            {t('mvp.subscriptions.title')}
           </Typography>
           <Typography color="text.secondary" sx={{ fontSize: 13, mb: 2 }}>
-            添加、切换或删除订阅链接
+            {t('mvp.subscriptions.subtitle')}
           </Typography>
 
           <Stack direction="row" spacing={1} sx={{ mb: 2.5 }}>
@@ -559,33 +787,38 @@ const MvpNodesPage = () => {
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && url.trim()) void onImport()
               }}
-              placeholder="粘贴新的订阅链接"
+              placeholder={t('mvp.subscriptions.placeholder')}
               type="url"
-              slotProps={{ htmlInput: { 'aria-label': '新的订阅链接' } }}
+              slotProps={{
+                htmlInput: { 'aria-label': t('mvp.subscriptions.inputLabel') },
+              }}
             />
             <Button
               variant="contained"
               startIcon={
-                importing ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : (
-                  <AddRounded />
-                )
+                <MvpProgressRing
+                  busy={importing}
+                  size={16}
+                  color="inherit"
+                  segments={importSteps.segments}
+                >
+                  <IconPlus size={22} />
+                </MvpProgressRing>
               }
               disabled={importing || !url.trim()}
               onClick={onImport}
               sx={{ flexShrink: 0 }}
             >
-              添加
+              {t('mvp.subscriptions.add')}
             </Button>
-            <Tooltip title="扫描二维码">
+            <Tooltip title={t('mvp.common.scanQr')}>
               <span>
                 <IconButton
-                  aria-label="扫描二维码"
+                  aria-label={t('mvp.common.scanQr')}
                   disabled={importing}
                   onClick={() => setQrScannerOpen(true)}
                 >
-                  <QrCodeScannerRounded />
+                  <IconScan size={22} />
                 </IconButton>
               </span>
             </Tooltip>
@@ -622,7 +855,7 @@ const MvpNodesPage = () => {
                       </Typography>
                       {active && (
                         <Typography color="primary" sx={{ fontSize: 12 }}>
-                          当前
+                          {t('mvp.subscriptions.current')}
                         </Typography>
                       )}
                     </Box>
@@ -646,37 +879,49 @@ const MvpNodesPage = () => {
                         disabled={profileAction !== null || importing}
                         onClick={() => onActivateProfile(profile)}
                       >
-                        {activating ? '切换中…' : '使用'}
+                        {activating
+                          ? t('mvp.subscriptions.switching')
+                          : t('mvp.subscriptions.use')}
                       </Button>
                     )}
                     {profile.type === 'remote' && (
-                      <Tooltip title="更新订阅">
+                      <Tooltip title={t('mvp.subscriptions.update')}>
                         <span>
                           <IconButton
                             size="small"
-                            aria-label={`更新 ${profile.name || '订阅'}`}
+                            aria-label={t('mvp.subscriptions.updateNamed', {
+                              name:
+                                profile.name ||
+                                t('mvp.subscriptions.fallbackName'),
+                            })}
                             disabled={profileAction !== null || importing}
                             onClick={() => onUpdateProfile(profile)}
                           >
-                            {updating ? (
-                              <CircularProgress size={17} />
-                            ) : (
-                              <RefreshRounded fontSize="small" />
-                            )}
+                            <MvpProgressRing
+                              busy={updating}
+                              size={17}
+                              segments={updateSteps.segments}
+                            >
+                              <IconRefresh size={20} />
+                            </MvpProgressRing>
                           </IconButton>
                         </span>
                       </Tooltip>
                     )}
-                    <Tooltip title="删除订阅">
+                    <Tooltip title={t('mvp.subscriptions.delete')}>
                       <span>
                         <IconButton
                           size="small"
                           color="error"
-                          aria-label={`删除 ${profile.name || '订阅'}`}
+                          aria-label={t('mvp.subscriptions.deleteNamed', {
+                            name:
+                              profile.name ||
+                              t('mvp.subscriptions.fallbackName'),
+                          })}
                           disabled={profileAction !== null || importing}
                           onClick={() => setDeleteTarget(profile)}
                         >
-                          <DeleteOutlineRounded fontSize="small" />
+                          <IconTrash size={20} />
                         </IconButton>
                       </span>
                     </Tooltip>
@@ -698,18 +943,29 @@ const MvpNodesPage = () => {
 
       <BaseDialog
         open={deleteTarget !== null}
-        title="删除订阅"
-        okBtn="删除"
-        cancelBtn="取消"
+        icon={<IconTrash size={22} />}
+        danger
+        title={t('mvp.subscriptions.delete')}
+        okBtn={t('mvp.subscriptions.deleteAction')}
+        cancelBtn={t('mvp.common.cancel')}
         loading={deleting}
+        loadingIndicator={
+          <MvpProgressRing
+            size={18}
+            color="inherit"
+            segments={deleteSteps.segments}
+          />
+        }
         onClose={() => !deleting && setDeleteTarget(null)}
         onCancel={() => setDeleteTarget(null)}
         onOk={onDeleteProfile}
-        contentSx={{ width: { xs: 280, sm: 380 } }}
+        contentSx={{ width: { xs: 280, sm: 300 } }}
       >
         <Typography variant="body2">
           {deleteTarget
-            ? `确定删除“${deleteTarget.name || profileSource(deleteTarget)}”吗？`
+            ? t('mvp.subscriptions.deleteConfirm', {
+                name: deleteTarget.name || profileSource(deleteTarget),
+              })
             : ''}
         </Typography>
       </BaseDialog>

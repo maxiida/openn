@@ -1,3 +1,5 @@
+import i18n from 'i18next'
+
 import {
   findCurrentGroupMember,
   type InteractableProxyMember,
@@ -73,15 +75,15 @@ export const MVP_DELAY_TIMEOUT = 10000
 export const formatMvpDelay = (delay: number, timeout: number) => {
   switch (classifyDelay(delay, timeout)) {
     case 'testing':
-      return '测速中…'
+      return i18n.t(($) => $.mvp.common.testing)
     case 'measured':
       return `${delay} ms`
     case 'timeout':
-      return '超时'
+      return i18n.t(($) => $.mvp.delay.timeout)
     case 'error':
-      return '连接失败'
+      return i18n.t(($) => $.mvp.delay.error)
     case 'untested':
-      return '未测速'
+      return i18n.t(($) => $.mvp.delay.untested)
   }
 }
 
@@ -94,22 +96,19 @@ const MVP_DELAY_TIERS = [
     max: 500,
     range: '< 500 ms',
     color: 'success.main',
-    label: '延迟低',
-    hint: '网页和视频都很顺',
+    id: 'low',
   },
   {
     max: 1500,
     range: '500–1500 ms',
     color: 'warning.main',
-    label: '延迟中等',
-    hint: '能用，打开网页要稍等',
+    id: 'medium',
   },
   {
     max: Number.POSITIVE_INFINITY,
     range: '> 1500 ms',
     color: 'error.main',
-    label: '延迟高',
-    hint: '明显卡顿',
+    id: 'high',
   },
 ] as const
 
@@ -132,16 +131,20 @@ export const mvpDelayColor = (delay: number, timeout: number) => {
 export const mvpDelayHint = (delay: number, timeout: number) => {
   switch (classifyDelay(delay, timeout)) {
     case 'testing':
-      return '正在测速'
+      return i18n.t(($) => $.mvp.delay.testing)
     case 'untested':
-      return '还没有测速结果'
+      return i18n.t(($) => $.mvp.delay.untestedHint)
     case 'timeout':
-      return `超时：${timeout / 1000} 秒内没有响应，节点太慢或已失效`
+      return i18n.t(($) => $.mvp.delay.timeoutHint, { seconds: timeout / 1000 })
     case 'error':
-      return '连接失败：节点可能已失效'
+      return i18n.t(($) => $.mvp.delay.errorHint)
     case 'measured': {
       const tier = mvpDelayTier(delay)
-      return `${tier.label}（${tier.range}）：${tier.hint}`
+      return i18n.t(($) => $.mvp.delay.tierHint, {
+        label: i18n.t(($) => $.mvp.delay[tier.id].label),
+        range: tier.range,
+        hint: i18n.t(($) => $.mvp.delay[tier.id].hint),
+      })
     }
   }
 }
@@ -149,31 +152,47 @@ export const mvpDelayHint = (delay: number, timeout: number) => {
 export const MVP_SPEED_TIERS = [
   {
     min: 50,
-    label: '极速',
+    id: 'blazing',
     color: 'success.main',
-    hint: '4K 视频流畅，大文件下载很快',
   },
   {
     min: 25,
-    label: '流畅',
+    id: 'smooth',
     color: 'success.main',
-    hint: '4K 视频可以看，偶尔缓冲',
   },
   {
     min: 8,
-    label: '良好',
+    id: 'good',
     color: 'info.main',
-    hint: '1080p 流畅，日常浏览没问题',
   },
-  { min: 3, label: '一般', color: 'warning.main', hint: '720p 可看，网页略慢' },
-  { min: 0, label: '较差', color: 'error.main', hint: '基本只能刷文字和聊天' },
+  {
+    min: 3,
+    id: 'fair',
+    color: 'warning.main',
+  },
+  {
+    min: 0,
+    id: 'poor',
+    color: 'error.main',
+  },
 ] as const
 
-export const mvpSpeedTier = (mbps: number) =>
-  MVP_SPEED_TIERS.find((tier) => mbps >= tier.min) ?? MVP_SPEED_TIERS[4]
+export const mvpSpeedTier = (mbps: number) => {
+  const tier =
+    MVP_SPEED_TIERS.find((tier) => mbps >= tier.min) ?? MVP_SPEED_TIERS[4]
+  return {
+    ...tier,
+    label: i18n.t(($) => $.mvp.speed[tier.id].label),
+    hint: i18n.t(($) => $.mvp.speed[tier.id].hint),
+  }
+}
 
 export const mvpSpeedHint = (mbps: number) => {
   const tier = mvpSpeedTier(mbps)
   const range = tier.min > 0 ? `≥ ${tier.min} Mbps` : '< 3 Mbps'
-  return `${tier.label}（${range}）：${tier.hint}`
+  return i18n.t(($) => $.mvp.delay.tierHint, {
+    label: tier.label,
+    range,
+    hint: tier.hint,
+  })
 }

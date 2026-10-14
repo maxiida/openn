@@ -14,9 +14,23 @@
 </details>
 
 <details>
+<summary><strong> ✨ 新增功能 </strong></summary>
+
+- Add keyboard shortcuts for connecting, page navigation, node latency tests, and node selection, with shortcut hints in tooltips.
+- 新增设置页：开机自动启动、外观（跟随系统/浅色/深色）、语言（跟随系统/中文/English）、「一键修复」
+- 节点页顶部显示订阅剩余流量与到期时间，并隐藏订阅里用来展示这些信息的占位节点
+- 新增「网络检测」页（首页右上角进入）：一键体检从电脑到网站逐段查问题；测速可测经过节点、只测宽带或两者对比
+
+</details>
+
+<details>
 <summary><strong> 🚀 优化改进 </strong></summary>
 
 - Rebrand the app as Openn with a white app icon.
+- Restyle tooltips with dark rounded surfaces, white text, and soft shadows.
+- Make icon buttons gray at rest, with darker icons and a subtle background on hover.
+- 图标统一换成 Tabler 线性图标
+- Smooth the node list fade-in after latency tests with a slower, gentler transition.
 - 优化节点列表：测速后按延迟从低到高排列
 - macOS：移除窗口顶部的应用标题栏
 - 简化连接界面：只保留连接与断开，托盘不再提供出站模式、系统代理和 TUN 开关

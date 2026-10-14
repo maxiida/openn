@@ -10,6 +10,13 @@ use tauri_plugin_autostart::ManagerExt as _;
 #[cfg(target_os = "windows")]
 use tauri_plugin_clash_verge_sysinfo::is_current_app_handle_admin;
 
+/// Passed only by the login item, so a launch the user starts still opens the window.
+pub const AUTOSTART_ARG: &str = "--autostart";
+
+pub fn is_silent_launch(enable_silent_start: Option<bool>) -> bool {
+    enable_silent_start.unwrap_or(false) || std::env::args().any(|arg| arg == AUTOSTART_ARG)
+}
+
 pub async fn update_launch() -> Result<()> {
     let enable_auto_launch = { Config::verge().await.latest_arc().enable_auto_launch };
     let is_enable = enable_auto_launch.unwrap_or(false);

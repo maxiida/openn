@@ -1,9 +1,10 @@
-import { getVergeConfig } from './cmds'
+import { getSystemLanguage, getVergeConfig } from './cmds'
 import {
   cacheLanguage,
   getCachedLanguage,
   initializeLanguage,
   resolveLanguage,
+  setSystemLanguage,
 } from './i18n'
 
 let vergeConfigCache: IVergeConfig | null | undefined
@@ -80,22 +81,18 @@ const preloadLanguage = async (
     }
   }
 
-  const languageFromConfig = resolvedConfig?.language
-  if (languageFromConfig) {
-    const resolved = resolveLanguage(languageFromConfig)
-    cacheLanguage(resolved)
-    return resolved
-  }
-
-  const browserLanguage = resolveLanguage(
-    typeof navigator !== 'undefined' ? navigator.language : undefined,
-  )
-  cacheLanguage(browserLanguage)
-  return browserLanguage
+  const resolved = resolveLanguage(resolvedConfig?.language)
+  cacheLanguage(resolved)
+  return resolved
 }
 
 export const preloadAppData = async () => {
   const configPromise = preloadConfig()
+  try {
+    setSystemLanguage(await getSystemLanguage())
+  } catch (error) {
+    console.warn('[preload.ts] Failed to read the system language:', error)
+  }
   const initialLanguage = await preloadLanguage(undefined, () => configPromise)
   const [config] = await Promise.all([
     configPromise,

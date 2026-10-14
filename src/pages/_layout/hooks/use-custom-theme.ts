@@ -5,6 +5,7 @@ import {
   Shadows,
   ThemeOptions,
 } from '@mui/material'
+import { keyframes } from '@mui/material/styles'
 import {
   getCurrentWebviewWindow,
   WebviewWindow,
@@ -35,7 +36,234 @@ let cssScopeSupport: boolean | null = null
 
 // Every spinner shares the speed-test look: a divider-colored full ring under the moving arc.
 // Spinners inside filled buttons inherit the label color, where a gray ring would clash.
+const TONED_COLORS = ['error', 'warning', 'success', 'info'] as const
+
+// Global CSS strips every box-shadow, so rings and elevation below need !important.
+const focusRing = (color: string) =>
+  `0 0 0 3.5px ${alpha(color, 0.22)} !important`
+
+const dialogIn = keyframes`
+  from { opacity: 0; transform: scale(0.94) translateY(6px); }
+  to { opacity: 1; transform: none; }
+`
+
 const components: ThemeOptions['components'] = {
+  MuiButton: {
+    defaultProps: { disableElevation: true, disableRipple: true },
+    styleOverrides: {
+      root: ({ theme }) => ({
+        textTransform: 'none',
+        height: 36,
+        padding: '0 16px',
+        borderRadius: 999,
+        fontSize: 14,
+        fontWeight: 600,
+        whiteSpace: 'nowrap',
+        transition: theme.transitions.create(
+          ['background-color', 'color', 'transform'],
+          { duration: 150 },
+        ),
+        '&:active:not(.Mui-disabled)': { transform: 'scale(0.97)' },
+        '&.Mui-focusVisible': {
+          boxShadow: focusRing(theme.palette.primary.main),
+        },
+      }),
+      sizeLarge: { height: 44, padding: '0 22px', fontSize: 15 },
+      sizeSmall: { height: 28, padding: '0 12px', fontSize: 13 },
+      contained: ({ ownerState, theme }) => {
+        if (ownerState.color === 'inherit') return {}
+        const palette = theme.palette[ownerState.color ?? 'primary']
+        // Busy buttons stay disabled while a progress ring runs inside, so the label must stay legible.
+        return {
+          '&.Mui-disabled': {
+            backgroundColor: alpha(palette.main, 0.45),
+            color: alpha(palette.contrastText, 0.9),
+          },
+        }
+      },
+      // Outlined is the secondary action: a soft fill instead of a border.
+      outlined: ({ ownerState, theme }) => {
+        const tone = TONED_COLORS.find((name) => name === ownerState.color)
+        const fill = tone
+          ? alpha(theme.palette[tone].main, 0.1)
+          : theme.palette.action.hover
+        const hover = tone
+          ? alpha(theme.palette[tone].main, 0.18)
+          : theme.palette.action.selected
+        return {
+          border: 0,
+          backgroundColor: fill,
+          color: tone ? theme.palette[tone].main : theme.palette.text.primary,
+          '&:hover': { border: 0, backgroundColor: hover },
+          '&.Mui-disabled': { border: 0, backgroundColor: fill },
+        }
+      },
+      text: ({ theme }) => ({
+        '&:hover': { backgroundColor: theme.palette.action.hover },
+      }),
+    },
+  },
+  MuiOutlinedInput: {
+    styleOverrides: {
+      root: ({ ownerState, theme }) => {
+        const { primary, error } = theme.palette
+        return {
+          fontSize: 14,
+          borderRadius: ownerState.multiline ? 14 : 999,
+          backgroundColor: theme.palette.action.hover,
+          transition: theme.transitions.create(
+            ['background-color', 'box-shadow'],
+            { duration: 150 },
+          ),
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderWidth: 1,
+            borderColor: 'transparent',
+            transition: theme.transitions.create('border-color', {
+              duration: 150,
+            }),
+          },
+          '&:hover': { backgroundColor: theme.palette.action.selected },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'transparent',
+          },
+          '&.Mui-focused': {
+            backgroundColor:
+              theme.palette.mode === 'light' ? '#FFFFFF' : 'transparent',
+            boxShadow: focusRing(primary.main),
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderWidth: 1,
+            borderColor: primary.main,
+          },
+          '&.Mui-error': { boxShadow: focusRing(error.main) },
+          '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+            borderColor: error.main,
+          },
+          '&.Mui-disabled': {
+            opacity: 0.5,
+            backgroundColor: theme.palette.action.hover,
+          },
+          '&.Mui-disabled .MuiOutlinedInput-notchedOutline': {
+            borderColor: 'transparent',
+          },
+        }
+      },
+      input: ({ ownerState }) => {
+        if (ownerState.multiline) return {}
+        const inset = ownerState.size === 'small' ? 14 : 16
+        return {
+          boxSizing: 'border-box',
+          height: ownerState.size === 'small' ? 36 : 44,
+          paddingTop: 0,
+          paddingBottom: 0,
+          paddingLeft: ownerState.startAdornment ? 0 : inset,
+          paddingRight: ownerState.endAdornment ? 0 : inset,
+        }
+      },
+      adornedStart: { paddingLeft: 16 },
+      adornedEnd: { paddingRight: 6 },
+      multiline: { padding: '12px 16px' },
+    },
+  },
+  MuiDialog: {
+    styleOverrides: {
+      paper: ({ theme }) => ({
+        margin: 16,
+        borderRadius: 22,
+        backgroundImage: 'none',
+        backgroundColor: theme.palette.mode === 'light' ? '#FFFFFF' : '#393B4A',
+        boxShadow:
+          theme.palette.mode === 'light'
+            ? '0 24px 64px rgba(0, 0, 0, 0.18), 0 4px 14px rgba(0, 0, 0, 0.08) !important'
+            : '0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.1) !important',
+        animation: `${dialogIn} 340ms cubic-bezier(0.34, 1.36, 0.64, 1)`,
+        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+      }),
+      backdrop: ({ theme }) => ({
+        backgroundColor:
+          theme.palette.mode === 'light'
+            ? 'rgba(0, 0, 0, 0.26)'
+            : 'rgba(0, 0, 0, 0.45)',
+        backdropFilter: 'blur(6px)',
+      }),
+    },
+  },
+  MuiDialogTitle: {
+    styleOverrides: {
+      root: {
+        padding: '24px 24px 6px',
+        fontSize: 17,
+        fontWeight: 650,
+        lineHeight: 1.4,
+        letterSpacing: '-0.01em',
+      },
+    },
+  },
+  MuiDialogContent: { styleOverrides: { root: { padding: '0 24px' } } },
+  MuiDialogContentText: { styleOverrides: { root: { fontSize: 14 } } },
+  MuiDialogActions: {
+    styleOverrides: {
+      root: {
+        padding: '22px 20px 20px',
+        gap: 8,
+        '& > :not(style) ~ :not(style)': { marginLeft: 0 },
+        '& > .MuiButton-root': { flex: 1, height: 40 },
+      },
+    },
+  },
+  MuiIconButton: {
+    defaultProps: { disableRipple: true },
+    styleOverrides: {
+      root: ({ theme }) => ({
+        color: theme.palette.mode === 'light' ? '#8E8E93' : '#A1A1A6',
+        backgroundColor: 'transparent',
+        borderRadius: 999,
+        transition: theme.transitions.create(['color', 'background-color'], {
+          duration: 150,
+        }),
+        '&:hover, &.Mui-focusVisible': {
+          color: theme.palette.mode === 'light' ? '#191C1D' : '#F5F5F5',
+          backgroundColor: alpha(
+            theme.palette.mode === 'light' ? '#000000' : '#FFFFFF',
+            0.05,
+          ),
+        },
+        '&.Mui-disabled': {
+          color: theme.palette.action.disabled,
+          backgroundColor: 'transparent',
+        },
+      }),
+    },
+  },
+  MuiTooltip: {
+    defaultProps: {
+      arrow: false,
+      enterDelay: 500,
+      enterNextDelay: 100,
+      slotProps: { transition: { timeout: 150 } },
+    },
+    styleOverrides: {
+      tooltip: {
+        backgroundColor: '#191C1D',
+        color: '#FAFAFA',
+        border: '1px solid #303334',
+        borderRadius: 11,
+        padding: '5px 12px',
+        fontSize: 13,
+        fontWeight: 400,
+        lineHeight: '18px',
+        maxWidth: 320,
+        // Global CSS suppresses shadows, but tooltips need elevation.
+        boxShadow:
+          '0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12) !important',
+      },
+      arrow: { display: 'none' },
+      tooltipPlacementTop: { margin: '8px 0 !important' },
+      tooltipPlacementBottom: { margin: '8px 0 !important' },
+      tooltipPlacementLeft: { margin: '0 8px !important' },
+      tooltipPlacementRight: { margin: '0 8px !important' },
+    },
+  },
   MuiCircularProgress: {
     defaultProps: { enableTrackSlot: true, thickness: 4 },
     styleOverrides: {
@@ -315,11 +543,6 @@ export const useCustomTheme = () => {
         /* 修复可能的白色边框 */
         .MuiPaper-root {
           border-color: var(--window-border-color) !important;
-        }
-
-        /* 确保模态框和对话框也使用暗色主题 */
-        .MuiDialog-paper {
-          background-color: ${mode === 'light' ? '#ffffff' : '#2E303D'} !important;
         }
 
         /* 移除可能的白色点或线条 */

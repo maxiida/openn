@@ -1,0 +1,389 @@
+{
+  "common": {
+    "space": "空格",
+    "back": "返回",
+    "cancel": "取消",
+    "scanQr": "扫描二维码",
+    "testing": "测速中…",
+    "invalidLink": "配置链接无效",
+    "invalidQr": "二维码无效或暂不支持"
+  },
+  "home": {
+    "welcome": {
+      "title": "欢迎使用 Openn",
+      "subtitle": "粘贴订阅链接即可开始",
+      "linkLabel": "订阅链接",
+      "import": "导入"
+    },
+    "status": {
+      "connected": "已连接",
+      "pending": "连接待恢复",
+      "disconnected": "未连接"
+    },
+    "actions": {
+      "connect": "连接",
+      "disconnect": "断开连接",
+      "routeAllApps": "让所有应用都走代理",
+      "reconnect": "重新连接",
+      "retest": "重新检测",
+      "changeNode": "更换节点",
+      "settings": "设置"
+    },
+    "partialProxy": "目前只有浏览器等部分应用走代理",
+    "currentNode": "当前节点",
+    "noNode": "暂无可用节点",
+    "nodeUnavailable": "当前节点不可用，请更换节点",
+    "speedUntested": "未测速",
+    "speedTestPrompt": "点击右侧刷新按钮测速",
+    "sites": {
+      "baidu": "百度",
+      "domestic": "国内",
+      "checkingAll": "检测网站",
+      "details": "网站明细",
+      "allOk": "网站正常",
+      "oneDown": "{{name}} 打不开",
+      "someDown": "{{count}} 个网站打不开",
+      "foreignDownHint": "国外网站都打不开，可能是这个节点出了问题，换一个试试",
+      "status": {
+        "checking": "检测中…",
+        "ok": "正常",
+        "slow": "有点慢",
+        "down": "打不开"
+      }
+    },
+    "blockers": {
+      "foreignTunnel": "检测到 Shadowrocket 等其他 VPN 正在运行。请先退出它，再点「连接」。",
+      "foreignSystemProxy": "系统代理被其他软件占用，可能导致网页打不开。请先退出那个软件，再点「连接」。",
+      "staleProxyEnv": "电脑里残留了旧的代理设置，部分应用可能连不上。重启电脑即可清除。"
+    },
+    "setup": {
+      "title": "需要授权一次",
+      "body": "Openn 需要安装一个后台组件，系统会请你输入电脑密码。只需授权这一次，之后点连接即可。",
+      "vpnHint": "如果开着 Shadowrocket 等其他 VPN，请先退出。",
+      "confirm": "授权并连接"
+    },
+    "notices": {
+      "activateFailed": "配置应用失败，请稍后重试",
+      "speedTestFailed": "测速失败，请稍后重试",
+      "importSuccess": "订阅导入成功",
+      "importFailed": "订阅导入失败",
+      "qrImportSuccess": "二维码导入成功",
+      "disconnectFailed": "断开失败，请再试一次",
+      "setupIncomplete": "授权没有完成，请再点一次「连接」",
+      "connectFailedVpn": "连接失败。如果开着 Shadowrocket 等其他 VPN，请先退出它再试",
+      "connectFailed": "连接失败，请再试一次"
+    }
+  },
+  "nodes": {
+    "title": "节点",
+    "pin": "置顶节点",
+    "done": "完成",
+    "testAll": "全部测速",
+    "empty": "当前节点不可用，请先检查订阅",
+    "unavailable": "不可用 · {{count}}",
+    "unavailableHint": "{{seconds}} 秒内没有响应或连接失败的节点",
+    "notices": {
+      "switchFailed": "节点切换失败"
+    }
+  },
+  "usage": {
+    "total": "/ {{total}}",
+    "expiresOn": "{{date}} 到期",
+    "expiresIn": "{{count}} 天后到期 · {{date}}",
+    "expired": "已于 {{date}} 到期"
+  },
+  "subscriptions": {
+    "title": "订阅管理",
+    "subtitle": "添加、切换或删除订阅链接",
+    "placeholder": "粘贴新的订阅链接",
+    "inputLabel": "新的订阅链接",
+    "add": "添加",
+    "current": "当前",
+    "use": "使用",
+    "switching": "切换中…",
+    "update": "更新订阅",
+    "updateNamed": "更新 {{name}}",
+    "delete": "删除订阅",
+    "deleteNamed": "删除 {{name}}",
+    "deleteConfirm": "确定删除“{{name}}”吗？",
+    "deleteAction": "删除",
+    "fallbackName": "订阅",
+    "localSource": "本地配置",
+    "remoteSource": "远程订阅",
+    "updated": {
+      "never": "尚未更新",
+      "today": "今天 {{time}} 更新",
+      "yesterday": "昨天 {{time}} 更新",
+      "date": "{{date}} 更新",
+      "dateFormat": "M月D日",
+      "dateFormatWithYear": "YYYY年M月D日"
+    },
+    "notices": {
+      "added": "订阅已添加并启用",
+      "addFailed": "订阅添加失败",
+      "switched": "订阅已切换",
+      "switchFailed": "订阅切换失败",
+      "updated": "订阅已更新",
+      "updateFailed": "订阅更新失败",
+      "deleted": "订阅已删除",
+      "deleteFailed": "订阅删除失败"
+    }
+  },
+  "qr": {
+    "subtitle": "将节点二维码放入取景框",
+    "pasteImage": "粘贴图片",
+    "chooseImage": "选择图片",
+    "errors": {
+      "cameraUnsupported": "当前环境不支持摄像头",
+      "cameraUnavailable": "无法使用摄像头，请粘贴或选择二维码图片",
+      "cameraDenied": "摄像头权限未开启，请在系统设置中允许",
+      "cameraNotFound": "未检测到可用的摄像头",
+      "cameraBusy": "摄像头可能正被其他应用占用",
+      "notRecognized": "未识别到二维码，请换一张更清晰的图片",
+      "imageUnreadable": "无法读取这张图片",
+      "clipboardNoQr": "剪贴板里没有可识别的二维码图片",
+      "clipboardNoImage": "剪贴板里没有可读取的图片"
+    }
+  },
+  "delay": {
+    "testing": "正在测速",
+    "timeout": "超时",
+    "error": "连接失败",
+    "untested": "未测速",
+    "untestedHint": "还没有测速结果",
+    "timeoutHint": "超时：{{seconds}} 秒内没有响应，节点太慢或已失效",
+    "errorHint": "连接失败：节点可能已失效",
+    "tierHint": "{{label}}（{{range}}）：{{hint}}",
+    "low": {
+      "label": "延迟低",
+      "hint": "网页和视频都很顺"
+    },
+    "medium": {
+      "label": "延迟中等",
+      "hint": "能用，打开网页要稍等"
+    },
+    "high": {
+      "label": "延迟高",
+      "hint": "明显卡顿"
+    }
+  },
+  "speed": {
+    "blazing": {
+      "label": "极速",
+      "hint": "4K 视频流畅，大文件下载很快"
+    },
+    "smooth": {
+      "label": "流畅",
+      "hint": "4K 视频可以看，偶尔缓冲"
+    },
+    "good": {
+      "label": "良好",
+      "hint": "1080p 流畅，日常浏览没问题"
+    },
+    "fair": {
+      "label": "一般",
+      "hint": "720p 可看，网页略慢"
+    },
+    "poor": {
+      "label": "较差",
+      "hint": "基本只能刷文字和聊天"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "general": "通用",
+    "about": "关于",
+    "autoLaunch": {
+      "label": "开机自动启动",
+      "hint": "开机后在后台运行，不弹出窗口",
+      "failed": "开机启动设置失败，请再试一次"
+    },
+    "appearance": {
+      "label": "外观",
+      "system": "跟随系统",
+      "light": "浅色",
+      "dark": "深色"
+    },
+    "language": {
+      "label": "语言",
+      "system": "跟随系统"
+    },
+    "version": "版本",
+    "repair": {
+      "label": "一键修复",
+      "hint": "连不上时试一试",
+      "body": "将重新安装 Openn 的后台组件，并清理残留的代理设置。系统会请你输入电脑密码，修复期间会短暂断开。",
+      "confirm": "开始修复",
+      "done": "修复完成，回到首页点「连接」即可",
+      "reconnected": "修复完成，已重新连接",
+      "setupIncomplete": "修复没有完成，需要输入电脑密码授权",
+      "failed": "修复失败，请重启电脑后再试"
+    }
+  },
+  "check": {
+    "title": "网络检测",
+    "tabs": {
+      "checkup": "体检",
+      "speed": "测速"
+    },
+    "steps": {
+      "device": "这台电脑",
+      "network": "你家网络",
+      "subscription": "订阅",
+      "node": "节点",
+      "sites": "常用网站"
+    },
+    "stepStatus": {
+      "waiting": "等待检测",
+      "running": "检测中…",
+      "skipped": "没有检测"
+    },
+    "details": {
+      "deviceOk": "没有冲突",
+      "networkOk": "国内网站正常",
+      "subscriptionUsage": "剩 {{remaining}} · {{date}} 到期",
+      "subscriptionRemaining": "剩 {{remaining}}",
+      "subscriptionExpire": "{{date}} 到期",
+      "subscriptionNone": "没有流量信息",
+      "nodeOk": "{{name}} · {{delay}} ms",
+      "sitesOk": "{{sites}} 都正常",
+      "foreignTunnel": "其他 VPN 正在运行",
+      "foreignSystemProxy": "系统代理被占用",
+      "staleProxyEnv": "有残留的代理设置",
+      "offline": "国内网站也打不开",
+      "quotaUsedUp": "流量已用完",
+      "expired": "订阅已过期",
+      "disconnected": "Openn 未连接",
+      "nodeDown": "{{name}} · 没有响应",
+      "sitesDown": "{{sites}} 打不开",
+      "foreignDown": "国外网站都打不开"
+    },
+    "idle": {
+      "start": "开始体检",
+      "title": "看看网络哪里出了问题",
+      "desc": "从你的电脑一路查到网站，哪一段坏了一眼就能看到",
+      "cost": "大约 5 秒 · 几乎不用流量"
+    },
+    "running": {
+      "title": "正在检查…",
+      "desc": "正在检查「{{step}}」"
+    },
+    "verdicts": {
+      "ok": {
+        "title": "一切正常",
+        "desc": "从电脑到网站，每一段都是通的"
+      },
+      "foreignTunnel": {
+        "title": "其他 VPN 在占用网络",
+        "desc": "两个 VPN 不能同时开。退出 Shadowrocket 等其他 VPN，再重新检测"
+      },
+      "foreignSystemProxy": {
+        "title": "系统代理被其他软件占用",
+        "desc": "网页可能打不开。退出那个软件，再重新检测"
+      },
+      "staleProxyEnv": {
+        "title": "电脑里有残留的代理设置",
+        "desc": "部分应用可能连不上。重启电脑就能清除"
+      },
+      "offline": {
+        "title": "你家网络断了",
+        "desc": "国内网站也打不开，和 Openn 无关。检查一下 Wi‑Fi，或者重启路由器"
+      },
+      "quotaUsedUp": {
+        "title": "订阅流量用完了",
+        "desc": "软件没有问题。流量用完了，续费或等下月重置就能用"
+      },
+      "expired": {
+        "title": "订阅已经过期",
+        "desc": "软件没有问题。续费后更新一下订阅就能用"
+      },
+      "disconnected": {
+        "title": "Openn 还没有连接",
+        "desc": "回到首页点「连接」，再来检测"
+      },
+      "nodeDown": {
+        "title": "节点「{{name}}」连不上了",
+        "desc": "这个节点暂时坏了，不是你的问题。换一个节点就能继续用"
+      },
+      "sitesDown": {
+        "title": "这个节点用不了 {{sites}}",
+        "desc": "其他网站都正常，只有 {{sites}} 打不开。换一个能用 {{sites}} 的节点就行"
+      },
+      "foreignDown": {
+        "title": "这个节点上不了外网",
+        "desc": "节点有响应，但国外网站都打不开。换一个节点试试"
+      }
+    },
+    "actions": {
+      "open": "网络检测",
+      "recheck": "重新检测",
+      "changeNode": "更换节点",
+      "connect": "去连接",
+      "subscription": "查看订阅",
+      "speedTest": "顺便测一下网速",
+      "copyReport": "复制求助信息",
+      "copied": "已复制，可以发给客服"
+    },
+    "report": {
+      "title": "Openn 网络检测 · {{time}}",
+      "line": "{{step}}：{{detail}}",
+      "footer": "（不含订阅链接和 IP 地址）"
+    }
+  },
+  "speedTest": {
+    "modes": {
+      "node": "经过节点",
+      "direct": "只测宽带",
+      "both": "对比一下"
+    },
+    "idle": {
+      "start": "开始测速",
+      "title": "测测网速有多快"
+    },
+    "what": {
+      "node": "测的是经过「{{name}}」上网的速度",
+      "direct": "测的是你家宽带本身，不经过节点",
+      "both": "先测宽带，再测节点，看看是谁拖慢了速度"
+    },
+    "cost": {
+      "node": "大约 5 秒 · 用掉约 {{mb}} MB 流量",
+      "direct": "大约 5 秒 · 用国内测速服务器，不耗订阅流量",
+      "both": "大约 10 秒 · 用掉约 {{mb}} MB 订阅流量"
+    },
+    "running": {
+      "title": "正在测速…",
+      "latency": "正在测延迟…",
+      "download": "正在测下载速度…",
+      "directStep": "第 1 步：测你家宽带…",
+      "nodeStep": "第 2 步：测经过「{{name}}」的速度…"
+    },
+    "result": {
+      "node": "网速{{tier}}",
+      "direct": "宽带{{tier}}",
+      "beats": "大约超过全球 {{percent}}% 的用户",
+      "slow": "换个节点就能快起来"
+    },
+    "compare": {
+      "slowTitle": "速度卡在节点上",
+      "slowDesc": "你家宽带有 {{direct}} Mbps，经过「{{name}}」只剩 {{node}} Mbps。换个节点就能快起来",
+      "okTitle": "速度正常",
+      "okDesc": "你家宽带 {{direct}} Mbps，经过节点后 {{node}} Mbps。走代理比宽带慢一些是正常的",
+      "broadband": "你家宽带",
+      "viaNode": "经过「{{name}}」",
+      "ringLabel": "经过节点",
+      "latencyValue": "宽带 {{direct}} ms · 节点 {{node}} ms"
+    },
+    "metrics": {
+      "download": "下载",
+      "latency": "延迟",
+      "used": "用掉流量"
+    },
+    "actions": {
+      "stop": "停止测速",
+      "retry": "再测一次"
+    },
+    "notices": {
+      "failed": "测速失败，请稍后重试"
+    }
+  }
+}

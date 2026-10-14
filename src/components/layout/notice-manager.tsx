@@ -1,13 +1,13 @@
-import { CloseRounded } from '@mui/icons-material'
+import { Box, IconButton } from '@mui/material'
+import { keyframes } from '@mui/material/styles'
 import {
-  Snackbar,
-  Alert,
-  IconButton,
-  Box,
-  Stack,
-  type SnackbarOrigin,
-} from '@mui/material'
-import React, { useCallback, useMemo, useSyncExternalStore } from 'react'
+  IconAlertCircleFilled,
+  IconAlertTriangleFilled,
+  IconCircleCheckFilled,
+  IconInfoCircleFilled,
+  IconX,
+} from '@tabler/icons-react'
+import React, { useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -20,34 +20,23 @@ import {
 } from '@/services/notice-service'
 import type { TranslationKey } from '@/types/generated/i18n-keys'
 
-type NoticePosition = NonNullable<IVergeConfig['notice_position']>
 type NoticeItem = ReturnType<typeof getSnapshotNotices>[number]
 type TranslationFn = ReturnType<typeof useTranslation>['t']
 
 // Notices sit above every other layer, dialogs and window resize handles included.
 const NOTICE_Z_INDEX = 2147483647
 
-const VALID_POSITIONS: NoticePosition[] = [
-  'top-left',
-  'top-right',
-  'bottom-left',
-  'bottom-right',
-]
-
-const resolvePosition = (position?: NoticePosition | null): NoticePosition => {
-  if (position && VALID_POSITIONS.includes(position)) {
-    return position
-  }
-  return 'top-right'
+const ICONS = {
+  success: { Icon: IconCircleCheckFilled, color: '#4ADE80' },
+  info: { Icon: IconInfoCircleFilled, color: '#64B5FF' },
+  warning: { Icon: IconAlertTriangleFilled, color: '#FBBF24' },
+  error: { Icon: IconAlertCircleFilled, color: '#F87171' },
 }
 
-const getAnchorOrigin = (position: NoticePosition): SnackbarOrigin => {
-  const [vertical, horizontal] = position.split('-') as [
-    SnackbarOrigin['vertical'],
-    SnackbarOrigin['horizontal'],
-  ]
-  return { vertical, horizontal }
-}
+const toastIn = keyframes`
+  from { opacity: 0; transform: translateY(-14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+`
 
 /** Resolve notice text, bounding display output but not clipboard content. */
 const resolveNoticeMessage = (
@@ -151,25 +140,12 @@ const resolveNoticeCopyText = (
   )
 }
 
-interface NoticeManagerProps {
-  position?: NoticePosition | null
-}
-
-export const NoticeManager: React.FC<NoticeManagerProps> = ({ position }) => {
+export const NoticeManager = () => {
   const { t } = useTranslation()
-  const resolvedPosition = useMemo(() => resolvePosition(position), [position])
-  const anchorOrigin = useMemo(
-    () => getAnchorOrigin(resolvedPosition),
-    [resolvedPosition],
-  )
   const currentNotices = useSyncExternalStore(
     subscribeNotices,
     getSnapshotNotices,
   )
-
-  const handleClose = (id: number) => {
-    hideNotice(id)
-  }
 
   const handleNoticeCopy = useCallback(
     async (notice: NoticeItem) => {
@@ -193,61 +169,78 @@ export const NoticeManager: React.FC<NoticeManagerProps> = ({ position }) => {
     <Box
       sx={{
         position: 'fixed',
-        top: anchorOrigin.vertical === 'top' ? '20px' : 'auto',
-        bottom: anchorOrigin.vertical === 'bottom' ? '20px' : 'auto',
-        left: anchorOrigin.horizontal === 'left' ? '20px' : 'auto',
-        right: anchorOrigin.horizontal === 'right' ? '20px' : 'auto',
+        top: 16,
+        left: '50%',
+        transform: 'translateX(-50%)',
         zIndex: NOTICE_Z_INDEX,
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
-        maxWidth: '360px',
+        alignItems: 'center',
+        gap: 1,
+        width: 'max-content',
+        maxWidth: 'calc(100vw - 32px)',
+        pointerEvents: 'none',
       }}
     >
-      {currentNotices.map((notice) => (
-        <Snackbar
-          key={notice.id}
-          open={true}
-          anchorOrigin={anchorOrigin}
-          sx={{
-            position: 'relative',
-            transform: 'none',
-            top: 'auto',
-            right: 'auto',
-            bottom: 'auto',
-            left: 'auto',
-            width: '100%',
-          }}
-        >
-          <Alert
-            severity={notice.type}
-            variant="filled"
-            sx={{ width: '100%' }}
+      {currentNotices.map((notice) => {
+        const { Icon, color } = ICONS[notice.type]
+        return (
+          <Box
+            key={notice.id}
+            role={notice.type === 'error' ? 'alert' : 'status'}
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
               void handleNoticeCopy(notice)
             }}
-            action={
-              <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{ alignItems: 'center' }}
-              >
-                <IconButton
-                  size="small"
-                  color="inherit"
-                  onClick={() => handleClose(notice.id)}
-                >
-                  <CloseRounded fontSize="inherit" />
-                </IconButton>
-              </Stack>
-            }
+            sx={(theme) => ({
+              pointerEvents: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.25,
+              minHeight: 40,
+              maxWidth: 440,
+              py: 0.75,
+              pl: 1.75,
+              pr: 0.75,
+              // Fully round while the message fits one line, without clipping wrapped text.
+              borderRadius: '20px',
+              border: '1px solid',
+              borderColor:
+                theme.palette.mode === 'light' ? '#303334' : '#4A4C5A',
+              bgcolor: theme.palette.mode === 'light' ? '#191C1D' : '#3A3C4A',
+              color: '#F5F5F7',
+              fontSize: 13.5,
+              lineHeight: 1.45,
+              boxShadow:
+                '0 10px 30px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.12) !important',
+              animation: `${toastIn} 380ms cubic-bezier(0.34, 1.36, 0.64, 1) both`,
+              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+            })}
           >
-            {resolveNoticeMessage(notice, t)}
-          </Alert>
-        </Snackbar>
-      ))}
+            <Box component={Icon} size={18} sx={{ flexShrink: 0, color }} />
+            <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+              {resolveNoticeMessage(notice, t)}
+            </Box>
+            <IconButton
+              aria-label={t('shared.actions.close')}
+              onClick={() => hideNotice(notice.id)}
+              sx={{
+                width: 28,
+                height: 28,
+                flexShrink: 0,
+                color: 'rgba(255, 255, 255, 0.5)',
+                '&:hover, &.Mui-focusVisible': {
+                  color: '#FFFFFF',
+                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
+            >
+              <IconX size={14} />
+            </IconButton>
+          </Box>
+        )
+      })}
     </Box>,
     document.body,
   )
