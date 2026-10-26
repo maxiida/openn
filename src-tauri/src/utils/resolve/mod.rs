@@ -206,6 +206,8 @@ async fn init_verge_config() {
 async fn init_verge_config_before_window() -> bool {
     let result = Config::init_config_before_window().await;
     let success = result.is_ok();
+    #[cfg(target_os = "macos")]
+    crate::core::app_menu::refresh();
     logging_error!(Type::Setup, result);
     success
 }

@@ -72,6 +72,8 @@ impl Config {
         Self::ensure_default_profile_items().await?;
 
         let verge = Self::verge().await.latest_arc();
+        #[cfg(target_os = "macos")]
+        crate::core::app_menu::sync_appkit_language(verge.language.as_deref());
         clash_verge_i18n::sync_locale(verge.language.as_deref());
 
         Ok(())

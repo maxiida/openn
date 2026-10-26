@@ -68,3 +68,20 @@ tray:
     systemProxy: 系统代理
     tun: TUN
     profile: 订阅
+menu:
+  about: 关于 Openn
+  settings: 设置…
+  hide: 隐藏 Openn
+  hideOthers: 隐藏其他
+  showAll: 全部显示
+  quit: 退出 Openn
+  edit: 编辑
+  undo: 撤销
+  redo: 重做
+  cut: 剪切
+  copy: 拷贝
+  paste: 粘贴
+  selectAll: 全选
+  help: 帮助
+  exportLogs: 导出日志…
+  exportLogsFailed: 导出日志失败，请重试。

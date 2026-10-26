@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+pub mod app_menu;
 pub mod autostart;
 pub mod backup;
 pub mod handle;

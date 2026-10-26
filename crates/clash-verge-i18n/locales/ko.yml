@@ -68,3 +68,20 @@ tray:
     systemProxy: 시스템 프록시
     tun: TUN
     profile: 프로필
+menu:
+  about: About Openn
+  settings: Settings…
+  hide: Hide Openn
+  hideOthers: Hide Others
+  showAll: Show All
+  quit: Quit Openn
+  edit: Edit
+  undo: Undo
+  redo: Redo
+  cut: Cut
+  copy: Copy
+  paste: Paste
+  selectAll: Select All
+  help: Help
+  exportLogs: Export Logs…
+  exportLogsFailed: Couldn’t export the logs. Try again.

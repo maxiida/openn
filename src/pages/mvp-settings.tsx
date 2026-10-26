@@ -20,6 +20,7 @@ import {
   useAppRefreshers,
   useClashConfigData,
 } from '@/providers/app-data-context'
+import { exportLogs } from '@/services/cmds'
 import { resolveLanguage } from '@/services/i18n'
 import { type MvpMode, setMvpMode } from '@/services/mvp'
 import { MvpConnectionError, repairMvp } from '@/services/mvp-connection'
@@ -104,6 +105,7 @@ const MvpSettingsPage = () => {
   })
   const [repairOpen, setRepairOpen] = useState(false)
   const [repairing, setRepairing] = useState(false)
+  const [exporting, setExporting] = useState(false)
   // The repair's own steps, then refreshing what the app shows.
   const repairSteps = useMvpSteps(1)
   useMvpShortcuts([
@@ -190,6 +192,19 @@ const MvpSettingsPage = () => {
       ])
       if (succeeded) repairSteps.advance()
       setRepairing(false)
+    }
+  })
+
+  const onExportLogs = useLockFn(async () => {
+    setExporting(true)
+    try {
+      await exportLogs()
+      showNotice.success(t('mvp.settings.exportLogs.done'))
+    } catch (error) {
+      console.error('[Proxy MVP] Log export failed:', error)
+      showNotice.error(t('mvp.settings.exportLogs.failed'))
+    } finally {
+      setExporting(false)
     }
   })
 
@@ -305,6 +320,30 @@ const MvpSettingsPage = () => {
               size={17}
               segments={repairSteps.segments}
             >
+              <Box
+                component={IconChevronRight}
+                size={22}
+                sx={{ color: 'text.secondary' }}
+              />
+            </MvpProgressRing>
+          </Box>
+          <Box
+            component="button"
+            type="button"
+            disabled={exporting}
+            onClick={onExportLogs}
+            sx={{
+              ...rowSx,
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'action.hover' },
+              '&:disabled': { cursor: 'default' },
+            }}
+          >
+            <RowLabel
+              label={t('mvp.settings.exportLogs.label')}
+              hint={t('mvp.settings.exportLogs.hint')}
+            />
+            <MvpProgressRing busy={exporting} size={17}>
               <Box
                 component={IconChevronRight}
                 size={22}

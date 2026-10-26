@@ -323,6 +323,10 @@ export async function exitApp() {
   return invoke('exit_app')
 }
 
+export async function exportLogs() {
+  return invoke<void>('export_logs')
+}
+
 export async function exportDiagnosticInfo() {
   return invoke('export_diagnostic_info')
 }

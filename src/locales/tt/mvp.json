@@ -227,6 +227,12 @@
       "reconnected": "Repair complete. You're connected again",
       "setupIncomplete": "Repair didn't finish. Your password is needed to allow it",
       "failed": "Repair failed. Restart your computer and try again"
+    },
+    "exportLogs": {
+      "label": "Export logs",
+      "hint": "Saves a file to Downloads that you can send to the developer when something goes wrong",
+      "done": "Logs saved to Downloads",
+      "failed": "Couldn't export the logs. Try again"
     }
   },
   "check": {

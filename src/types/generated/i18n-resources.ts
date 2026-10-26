@@ -510,6 +510,12 @@ export interface TranslationResources {
           label: string
         }
         connection: string
+        exportLogs: {
+          done: string
+          failed: string
+          hint: string
+          label: string
+        }
         general: string
         language: {
           label: string

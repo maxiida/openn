@@ -217,7 +217,11 @@ async fn process_terminated_flags(update_flags: UpdateFlags, patch: &IVerge) -> 
     if update_flags.contains(UpdateFlags::LANGUAGE)
         && let Some(language) = &patch.language
     {
+        #[cfg(target_os = "macos")]
+        crate::core::app_menu::sync_appkit_language(Some(language.as_str()));
         clash_verge_i18n::sync_locale(Some(language.as_str()));
+        #[cfg(target_os = "macos")]
+        crate::core::app_menu::refresh();
     }
     if update_flags.contains(UpdateFlags::SYS_PROXY) {
         let manager = CoreManager::global();

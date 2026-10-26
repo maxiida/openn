@@ -23,6 +23,11 @@ pub async fn open_logs_dir() -> CmdResult<()> {
 }
 
 #[tauri::command]
+pub async fn export_logs(app_handle: AppHandle) -> CmdResult<()> {
+    feat::export_logs(&app_handle).await.map(|_| ()).stringify_err()
+}
+
+#[tauri::command]
 pub fn open_devtools(app_handle: AppHandle) {
     if let Some(window) = app_handle.get_webview_window("main") {
         if !window.is_devtools_open() {

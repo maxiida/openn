@@ -124,6 +124,7 @@ mod app_init {
             cmd::get_embedded_server_port,
             cmd::open_app_dir,
             cmd::open_logs_dir,
+            cmd::export_logs,
             cmd::open_core_dir,
             cmd::get_network_interfaces,
             cmd::get_system_hostname,
@@ -318,31 +319,10 @@ pub fn run() -> std::process::ExitCode {
     #[cfg(target_os = "macos")]
     let builder = builder.on_web_content_process_terminate(resolve::window::on_web_content_process_terminated);
 
-    // Replaces Tauri's default File/View/Window/Help menus. The Edit menu stays because
-    // WKWebView only receives ⌘C/⌘V/⌘Z through menu key equivalents.
     #[cfg(target_os = "macos")]
-    let builder = builder.menu(|app| {
-        use tauri::menu::{MenuBuilder, SubmenuBuilder};
-        let app_menu = SubmenuBuilder::new(app, "Openn")
-            .about_with_text("关于 Openn", None)
-            .separator()
-            .hide_with_text("隐藏 Openn")
-            .hide_others_with_text("隐藏其他")
-            .show_all_with_text("全部显示")
-            .separator()
-            .quit_with_text("退出 Openn")
-            .build()?;
-        let edit_menu = SubmenuBuilder::new(app, "编辑")
-            .undo_with_text("撤销")
-            .redo_with_text("重做")
-            .separator()
-            .cut_with_text("剪切")
-            .copy_with_text("拷贝")
-            .paste_with_text("粘贴")
-            .select_all_with_text("全选")
-            .build()?;
-        MenuBuilder::new(app).items(&[&app_menu, &edit_menu]).build()
-    });
+    let builder = builder
+        .menu(core::app_menu::build)
+        .on_menu_event(core::app_menu::on_menu_event);
 
     mod event_handlers {
         #[cfg(target_os = "macos")]
