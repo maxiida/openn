@@ -3,10 +3,12 @@ import { IconCalendar, IconRefresh } from '@tabler/icons-react'
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 
+import { mvpCommandKey } from '@/hooks/use-mvp-shortcuts'
 import { formatProfileUpdated, formatTrafficAmount } from '@/services/mvp'
 import type { MvpSegment } from '@/utils/mvp-progress'
 
 import { MvpProgressRing } from './mvp-progress-ring'
+import { MvpShortcutHint } from './mvp-shortcut-hint'
 
 const CELL_COUNT = 20
 const LOW_RATIO = 0.1
@@ -108,11 +110,19 @@ export const MvpUsageCard = ({
           <Typography color="text.secondary" noWrap sx={{ fontSize: 12.5 }}>
             {formatProfileUpdated(profile.updated)}
           </Typography>
-          <Tooltip title={t('mvp.subscriptions.update')}>
+          <Tooltip
+            title={
+              <MvpShortcutHint
+                label={t('mvp.subscriptions.update')}
+                shortcut={`${mvpCommandKey}U`}
+              />
+            }
+          >
             <span>
               <IconButton
                 size="small"
                 aria-label={t('mvp.subscriptions.update')}
+                aria-keyshortcuts={`${mvpCommandKey === '⌘' ? 'Meta' : 'Control'}+U`}
                 disabled={disabled}
                 onClick={onUpdate}
               >

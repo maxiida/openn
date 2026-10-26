@@ -463,6 +463,7 @@ const MvpNodesPage = () => {
       allowInControl: true,
       onPress: () => {
         if (pinDraft) setPinDraft(null)
+        else if (!switching) navigate('/')
       },
     },
     {
@@ -470,6 +471,15 @@ const MvpNodesPage = () => {
       command: true,
       onPress: () => {
         if (!testing && !importing && !profileAction) void onTestAll()
+      },
+    },
+    {
+      key: 'u',
+      command: true,
+      onPress: () => {
+        if (currentProfile && !importing && !profileAction) {
+          void onUpdateProfile(currentProfile)
+        }
       },
     },
     { key: 'ArrowDown', allowInControl: true, onPress: () => focusNode(1) },
@@ -624,7 +634,7 @@ const MvpNodesPage = () => {
         >
           <IconButton
             aria-label={t('mvp.common.back')}
-            aria-keyshortcuts="ArrowLeft"
+            aria-keyshortcuts="ArrowLeft Escape"
             onClick={() => navigate('/')}
           >
             <IconArrowLeft size={22} />

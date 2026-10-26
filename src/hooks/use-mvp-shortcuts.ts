@@ -71,8 +71,9 @@ export const useMvpShortcuts = (shortcuts: readonly MvpShortcut[]) => {
         inControl: Boolean(target?.closest('button, a[href], [role="button"]')),
       })
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    // Capture runs ahead of disableWebViewShortcuts, which cancels ⌘R/⌘U on document.
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [shortcuts])
 }
 
