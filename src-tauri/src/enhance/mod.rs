@@ -1421,8 +1421,14 @@ mod tests {
 
         let redir_host = use_reachable_dns(mapping(r"{dns: {enhanced-mode: redir-host, fallback: [1.1.1.1]}}"));
         let dns = redir_host["dns"].as_mapping().expect("dns stays a mapping");
-        assert!(dns.contains_key("fallback"), "redir-host hands resolved IPs to apps, so it keeps fallback");
-        assert!(dns.get("proxy-server-nameserver").is_some_and(serde_yaml_ng::Value::is_sequence));
+        assert!(
+            dns.contains_key("fallback"),
+            "redir-host hands resolved IPs to apps, so it keeps fallback"
+        );
+        assert!(
+            dns.get("proxy-server-nameserver")
+                .is_some_and(serde_yaml_ng::Value::is_sequence)
+        );
     }
 
     #[tokio::test]
