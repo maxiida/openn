@@ -1,22 +1,46 @@
 {
-  "fill": {
-    "solid": "extended-srgb:1.00000,1.00000,1.00000,1.00000"
-  },
+  "fill-specializations": [
+    {
+      "value": {
+        "solid": "extended-srgb:1.00000,1.00000,1.00000,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "solid": "extended-srgb:1.00000,1.00000,1.00000,1.00000"
+      }
+    }
+  ],
   "groups": [
     {
       "layers": [
         {
-          "image-name": "openn-logo.png",
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.00000,0.00000,0.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            }
+          ],
+          "image-name": "openn-logo.svg",
           "name": "Logo",
           "position": {
-            "scale": 1.45,
+            "scale": 0.94,
             "translation-in-points": [0, 0]
           }
         }
       ],
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.25
+        "opacity": 0.5
       },
       "translucency": {
         "enabled": false,
