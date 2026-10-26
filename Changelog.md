@@ -11,6 +11,7 @@
 
 **🍎 macOS**
 
+- macOS：修复菜单栏图标变化时应用偶发闪退的问题
 - Fix macOS connections failing to start after successful service authorization.
 - 修复 macOS 系统代理偶发设置失败、内核启动失败的问题；其他 VPN（如 Shadowrocket）接管网络时给出明确提示
 

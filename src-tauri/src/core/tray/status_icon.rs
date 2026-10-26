@@ -264,9 +264,14 @@ impl StatusIcon {
 
     fn show(&self, v: Visual) {
         *self.current.lock() = v;
-        if let Some(tray) = handle::Handle::app_handle().tray_by_id(TRAY_ID) {
-            let _ = tray.set_icon_with_as_template(Some(render(v, self.ink())), false);
-        }
+        let icon = render(v, self.ink());
+        let app_handle = handle::Handle::app_handle();
+        // A tray handle wraps a non-atomic `Rc`: cloning or dropping it off the main thread corrupts its count.
+        let _ = app_handle.run_on_main_thread(move || {
+            if let Some(tray) = app_handle.tray_by_id(TRAY_ID) {
+                let _ = tray.set_icon_with_as_template(Some(icon), false);
+            }
+        });
     }
 
     async fn fade(&self, generation: u64, from: Visual, to: Visual) -> bool {
