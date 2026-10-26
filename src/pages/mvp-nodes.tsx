@@ -12,6 +12,7 @@ import {
 import { keyframes } from '@mui/material/styles'
 import {
   IconArrowLeft,
+  IconArrowsExchange,
   IconCheck,
   IconChevronDown,
   IconGauge,
@@ -46,7 +47,7 @@ import { useAppRefreshers } from '@/providers/app-data-context'
 import { deleteProfile, updateProfile } from '@/services/cmds'
 import {
   activateMvpProfile,
-  ensureRuleMode,
+  ensureMvpMode,
   formatProfileUpdated,
   importAndActivateMvpProfile,
   importAndActivateMvpQrPayload,
@@ -319,7 +320,7 @@ const MvpNodesPage = () => {
     setProfileAction({ uid: profile.uid, kind: 'activate' })
     try {
       await activateMvpProfile(profile.uid)
-      await ensureRuleMode()
+      await ensureMvpMode()
       await fetchProfilesIntoCache()
       await refreshAll()
       showNotice.success(t('mvp.subscriptions.notices.switched'))
@@ -345,7 +346,7 @@ const MvpNodesPage = () => {
       await fetchProfilesIntoCache()
       updateSteps.report(2, total)
       if (isCurrent) {
-        await ensureRuleMode()
+        await ensureMvpMode()
         await refreshAll()
         updateSteps.report(3, total)
       }
@@ -370,7 +371,7 @@ const MvpNodesPage = () => {
       const remainingProfiles = await fetchProfilesIntoCache()
       deleteSteps.report(2, 3)
       if (remainingProfiles.current) {
-        await ensureRuleMode()
+        await ensureMvpMode()
         await refreshAll()
       }
       deleteSteps.report(3, 3)
@@ -874,15 +875,24 @@ const MvpNodesPage = () => {
                     sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}
                   >
                     {!active && (
-                      <Button
-                        size="small"
-                        disabled={profileAction !== null || importing}
-                        onClick={() => onActivateProfile(profile)}
-                      >
-                        {activating
-                          ? t('mvp.subscriptions.switching')
-                          : t('mvp.subscriptions.use')}
-                      </Button>
+                      <Tooltip title={t('mvp.subscriptions.use')}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            aria-label={t('mvp.subscriptions.useNamed', {
+                              name:
+                                profile.name ||
+                                t('mvp.subscriptions.fallbackName'),
+                            })}
+                            disabled={profileAction !== null || importing}
+                            onClick={() => onActivateProfile(profile)}
+                          >
+                            <MvpProgressRing busy={activating} size={17}>
+                              <IconArrowsExchange size={20} />
+                            </MvpProgressRing>
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     )}
                     {profile.type === 'remote' && (
                       <Tooltip title={t('mvp.subscriptions.update')}>

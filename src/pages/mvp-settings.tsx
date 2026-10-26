@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
+import type { BaseConfig } from 'tauri-plugin-mihomo-api'
 
 import { BaseDialog, Switch } from '@/components/base'
 import { MvpPage } from '@/components/mvp/mvp-page'
@@ -15,11 +16,19 @@ import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
 import { useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
 import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { useVerge } from '@/hooks/use-verge'
-import { useAppRefreshers } from '@/providers/app-data-context'
+import {
+  useAppRefreshers,
+  useClashConfigData,
+} from '@/providers/app-data-context'
 import { resolveLanguage } from '@/services/i18n'
+import { type MvpMode, setMvpMode } from '@/services/mvp'
 import { MvpConnectionError, repairMvp } from '@/services/mvp-connection'
 import { showNotice } from '@/services/notice-service'
-import { revalidateQueries, useQuery } from '@/services/query-client'
+import {
+  revalidateQueries,
+  setCacheData,
+  useQuery,
+} from '@/services/query-client'
 
 type ThemeMode = NonNullable<IVergeConfig['theme_mode']>
 
@@ -86,7 +95,9 @@ const MvpSettingsPage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { verge, mutateVerge, patchVerge } = useVerge()
-  const { refreshAll } = useAppRefreshers()
+  const { refreshAll, refreshClashConfig } = useAppRefreshers()
+  const { clashConfig } = useClashConfigData()
+  const [pendingMode, setPendingMode] = useState<MvpMode | null>(null)
   const { data: version } = useQuery({
     queryKey: ['getAppVersion'],
     queryFn: getVersion,
@@ -99,6 +110,9 @@ const MvpSettingsPage = () => {
     { key: 'Escape', allowInControl: true, onPress: () => navigate('/') },
   ])
 
+  const proxyMode: MvpMode =
+    pendingMode ??
+    (clashConfig?.mode?.toLowerCase() === 'global' ? 'global' : 'rule')
   const themeMode = verge?.theme_mode ?? 'system'
   const language = verge?.language ? resolveLanguage(verge.language) : ''
 
@@ -118,6 +132,23 @@ const MvpSettingsPage = () => {
     } catch (error) {
       console.error('[Proxy MVP] Auto-launch change failed:', error)
       showNotice.error(t('mvp.settings.autoLaunch.failed'))
+    }
+  })
+
+  const onProxyMode = useLockFn(async (mode: MvpMode) => {
+    setPendingMode(mode)
+    try {
+      await setMvpMode(mode)
+      // Write through the live cache so the control does not flash the old mode during refetch.
+      setCacheData<BaseConfig>(['getClashConfig'], (old) =>
+        old ? { ...old, mode } : old,
+      )
+      await refreshClashConfig()
+    } catch (error) {
+      console.error('[Proxy MVP] Proxy mode change failed:', error)
+      showNotice.error(t('mvp.settings.proxyMode.failed'))
+    } finally {
+      setPendingMode(null)
     }
   })
 
@@ -182,6 +213,28 @@ const MvpSettingsPage = () => {
       }
     >
       <Box sx={{ display: 'grid', gap: 5, pt: 1 }}>
+        <Section title={t('mvp.settings.connection')}>
+          <Row label={t('mvp.settings.proxyMode.label')}>
+            <MvpSegmented<MvpMode>
+              label={t('mvp.settings.proxyMode.label')}
+              value={proxyMode}
+              options={[
+                {
+                  value: 'rule',
+                  label: t('mvp.settings.proxyMode.rule'),
+                  tooltip: t('mvp.settings.proxyMode.ruleTooltip'),
+                },
+                {
+                  value: 'global',
+                  label: t('mvp.settings.proxyMode.global'),
+                  tooltip: t('mvp.settings.proxyMode.globalTooltip'),
+                },
+              ]}
+              onChange={onProxyMode}
+            />
+          </Row>
+        </Section>
+
         <Section title={t('mvp.settings.general')}>
           <Row
             label={t('mvp.settings.autoLaunch.label')}

@@ -19,7 +19,7 @@ import {
 } from './mvp-connection'
 
 vi.mock('tauri-plugin-mihomo-api', () => ({ getBaseConfig: vi.fn() }))
-vi.mock('./mvp', () => ({ ensureRuleMode: vi.fn() }))
+vi.mock('./mvp', () => ({ ensureMvpMode: vi.fn() }))
 vi.mock('@/services/cmds', () => ({
   getRuntimeConfig: vi.fn(),
   getRuntimeState: vi.fn(),

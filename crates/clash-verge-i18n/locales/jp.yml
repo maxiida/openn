@@ -61,31 +61,8 @@ launchGuard:
   move: 移動
   ok: OK
 tray:
-  dashboard: ダッシュボード
-  ruleMode: ルールモード
-  globalMode: グローバルモード
-  directMode: ダイレクトモード
-  outboundModes: アウトバウンドモード
-  rule: ルール
-  direct: ダイレクト
-  global: グローバル
-  profiles: プロファイル
-  proxies: プロキシ
-  systemProxy: システムプロキシ
-  tunMode: TUN モード
-  closeAllConnections: すべての接続を閉じる
-  lightweightMode: 軽量モード
-  copyEnv: 環境変数をコピー
-  confDir: 設定ディレクトリ
-  coreDir: コアディレクトリ
-  logsDir: ログディレクトリ
-  openDir: ディレクトリを開く
-  appLog: アプリケーションログ
-  coreLog: コアログ
-  restartClash: Clash コアを再起動
-  restartApp: アプリケーションを再起動
-  vergeVersion: Verge バージョン
-  more: その他
+  home: Home
+  nodes: Nodes
   exit: 終了
   tooltip:
     systemProxy: システムプロキシ

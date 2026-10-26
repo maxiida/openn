@@ -21,7 +21,7 @@ import {
 } from '@/providers/app-data-context'
 import { subscribeVergeEvents } from '@/services/events'
 import { resolveLanguage } from '@/services/i18n'
-import { ensureRuleMode } from '@/services/mvp'
+import { ensureMvpMode } from '@/services/mvp'
 import { useThemeMode } from '@/services/states'
 import getSystem from '@/utils/get-system'
 
@@ -92,10 +92,10 @@ const Layout = () => {
     if (!currentProfileId) return
     if (clashConfig?.mode?.toLowerCase() === 'rule') return
 
-    void ensureRuleMode()
+    void ensureMvpMode()
       .then(() => refreshClashConfig())
       .catch((error) => {
-        console.error('[Proxy MVP] Failed to enforce Rule mode:', error)
+        console.error('[Proxy MVP] Failed to enforce the proxy mode:', error)
       })
   }, [clashConfig?.mode, currentProfileId, refreshClashConfig])
 

@@ -1,10 +1,10 @@
-import { Box, type SxProps, type Theme } from '@mui/material'
+import { Box, type SxProps, type Theme, Tooltip } from '@mui/material'
 import { useLayoutEffect, useRef } from 'react'
 
 interface Props<T extends string> {
   label: string
   value: T
-  options: readonly { value: T; label: string }[]
+  options: readonly { value: T; label: string; tooltip?: string }[]
   onChange: (value: T) => void
   /** Give every option the same width, for a control that spans a fixed width. */
   equalWidth?: boolean
@@ -88,7 +88,7 @@ export const MvpSegmented = <T extends string>({
       />
       {options.map((option) => {
         const selected = option.value === value
-        return (
+        const button = (
           <Box
             key={option.value}
             ref={(node: HTMLButtonElement | null) => {
@@ -120,6 +120,13 @@ export const MvpSegmented = <T extends string>({
           >
             {option.label}
           </Box>
+        )
+        return option.tooltip ? (
+          <Tooltip key={option.value} title={option.tooltip}>
+            {button}
+          </Tooltip>
+        ) : (
+          button
         )
       })}
     </Box>

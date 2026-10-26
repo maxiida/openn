@@ -61,31 +61,8 @@ launchGuard:
   move: نقل
   ok: موافق
 tray:
-  dashboard: لوحة التحكم
-  ruleMode: وضع القواعد
-  globalMode: الوضع العام
-  directMode: الوضع المباشر
-  outboundModes: أوضاع الخروج
-  rule: قاعدة
-  direct: مباشر
-  global: عام
-  profiles: الملفات التعريفية
-  proxies: وكلاء
-  systemProxy: وكيل النظام
-  tunMode: وضع TUN
-  closeAllConnections: إغلاق كل الاتصالات
-  lightweightMode: الوضع الخفيف
-  copyEnv: نسخ متغيرات البيئة
-  confDir: دليل الإعدادات
-  coreDir: دليل النواة
-  logsDir: دليل السجلات
-  openDir: فتح الدليل
-  appLog: سجل التطبيق
-  coreLog: سجل النواة
-  restartClash: إعادة تشغيل نواة Clash
-  restartApp: إعادة تشغيل التطبيق
-  vergeVersion: إصدار Verge
-  more: المزيد
+  home: Home
+  nodes: Nodes
   exit: خروج
   tooltip:
     systemProxy: وكيل النظام

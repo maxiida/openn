@@ -61,31 +61,8 @@ launchGuard:
   move: Mover
   ok: Aceptar
 tray:
-  dashboard: Panel
-  ruleMode: Modo de reglas
-  globalMode: Modo global
-  directMode: Modo directo
-  outboundModes: Modos de salida
-  rule: Regla
-  direct: Directo
-  global: Global
-  profiles: Perfiles
-  proxies: Proxies
-  systemProxy: Proxy del sistema
-  tunMode: Modo TUN
-  closeAllConnections: Cerrar todas las conexiones
-  lightweightMode: Modo ligero
-  copyEnv: Copiar variables de entorno
-  confDir: Directorio de configuración
-  coreDir: Directorio del núcleo
-  logsDir: Directorio de registros
-  openDir: Abrir directorio
-  appLog: Registro de la aplicación
-  coreLog: Registro del núcleo
-  restartClash: Reiniciar el núcleo de Clash
-  restartApp: Reiniciar aplicación
-  vergeVersion: Versión de Verge
-  more: Más
+  home: Home
+  nodes: Nodes
   exit: Salir
   tooltip:
     systemProxy: Proxy del sistema

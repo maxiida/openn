@@ -99,8 +99,8 @@
     "inputLabel": "新的订阅链接",
     "add": "添加",
     "current": "当前",
-    "use": "使用",
-    "switching": "切换中…",
+    "use": "使用此订阅",
+    "useNamed": "使用 {{name}}",
     "update": "更新订阅",
     "updateNamed": "更新 {{name}}",
     "delete": "删除订阅",
@@ -191,8 +191,17 @@
   },
   "settings": {
     "title": "设置",
+    "connection": "连接",
     "general": "通用",
     "about": "关于",
+    "proxyMode": {
+      "label": "代理模式",
+      "rule": "规则",
+      "ruleTooltip": "国内网站直连，国外网站走代理。日常使用选这个。",
+      "global": "全局",
+      "globalTooltip": "所有网站都走代理，包括国内网站。国内网站可能变慢，也更费流量。",
+      "failed": "切换失败，请再试一次"
+    },
     "autoLaunch": {
       "label": "开机自动启动",
       "hint": "开机后在后台运行，不弹出窗口",

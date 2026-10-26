@@ -12,7 +12,7 @@ import {
   restartCore,
 } from '@/services/cmds'
 
-import { ensureRuleMode, type MvpStepReporter } from './mvp'
+import { ensureMvpMode, type MvpStepReporter } from './mvp'
 
 export class MvpConnectionError extends Error {
   constructor(
@@ -78,7 +78,7 @@ export const connectMvpTunnel = async (
     throw new Error('Privileged core is unavailable')
   }
 
-  await ensureRuleMode()
+  await ensureMvpMode()
   const runtime = await getRuntimeConfig()
   if (!runtime) throw new Error('Runtime configuration is unavailable')
   if (

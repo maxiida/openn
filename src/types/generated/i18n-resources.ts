@@ -509,10 +509,19 @@ export interface TranslationResources {
           hint: string
           label: string
         }
+        connection: string
         general: string
         language: {
           label: string
           system: string
+        }
+        proxyMode: {
+          failed: string
+          global: string
+          globalTooltip: string
+          label: string
+          rule: string
+          ruleTooltip: string
         }
         repair: {
           body: string
@@ -628,7 +637,6 @@ export interface TranslationResources {
         placeholder: string
         remoteSource: string
         subtitle: string
-        switching: string
         title: string
         update: string
         updated: {
@@ -641,6 +649,7 @@ export interface TranslationResources {
         }
         updateNamed: string
         use: string
+        useNamed: string
       }
       usage: {
         expired: string

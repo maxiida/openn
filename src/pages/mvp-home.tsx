@@ -48,7 +48,7 @@ import {
 import delayManager from '@/services/delay'
 import {
   activateMvpProfile,
-  ensureRuleMode,
+  ensureMvpMode,
   importAndActivateMvpProfile,
   importAndActivateMvpQrPayload,
   isProfileUpdatedToday,
@@ -243,7 +243,7 @@ const MvpHomePage = () => {
     void (async () => {
       try {
         await activateMvpProfile(activeProfile.uid)
-        await ensureRuleMode()
+        await ensureMvpMode()
         await fetchProfilesIntoCache()
         await refreshAll()
       } catch (error) {
@@ -272,7 +272,7 @@ const MvpHomePage = () => {
       try {
         await updateProfile(currentProfile.uid)
         await fetchProfilesIntoCache()
-        await ensureRuleMode()
+        await ensureMvpMode()
         await refreshAll()
       } catch (error) {
         console.error('[Proxy MVP] Daily subscription update failed:', error)
@@ -309,7 +309,7 @@ const MvpHomePage = () => {
     try {
       await updateProfile(currentProfile.uid)
       await fetchProfilesIntoCache()
-      await ensureRuleMode()
+      await ensureMvpMode()
       await refreshAll()
       showNotice.success(t('mvp.subscriptions.notices.updated'))
     } catch (error) {
@@ -679,7 +679,7 @@ const MvpHomePage = () => {
             >
               {indicator
                 ? t('mvp.home.status.connected')
-                : needsDisconnect
+                : needsDisconnect && !connecting
                   ? t('mvp.home.status.pending')
                   : t('mvp.home.status.disconnected')}
             </Typography>
@@ -720,16 +720,9 @@ const MvpHomePage = () => {
                   },
                 }}
               >
-                <MvpProgressRing
-                  busy={connecting}
-                  size={22}
-                  color="inherit"
-                  segments={connectSteps.segments}
-                >
-                  {needsDisconnect
-                    ? t('mvp.home.actions.disconnect')
-                    : t('mvp.home.actions.connect')}
-                </MvpProgressRing>
+                {needsDisconnect
+                  ? t('mvp.home.actions.disconnect')
+                  : t('mvp.home.actions.connect')}
               </Button>
             </Box>
           </Tooltip>
@@ -738,7 +731,7 @@ const MvpHomePage = () => {
               {t('mvp.home.partialProxy')}
             </Typography>
           )}
-          {needsDisconnect && !tunnelEnabled && (
+          {needsDisconnect && !tunnelEnabled && !connecting && (
             <Button
               disabled={connecting}
               onClick={() => changeConnection('tunnel')}

@@ -99,8 +99,8 @@
     "inputLabel": "New subscription link",
     "add": "Add",
     "current": "Current",
-    "use": "Use",
-    "switching": "Switching…",
+    "use": "Use this subscription",
+    "useNamed": "Use {{name}}",
     "update": "Update subscription",
     "updateNamed": "Update {{name}}",
     "delete": "Delete subscription",
@@ -191,8 +191,17 @@
   },
   "settings": {
     "title": "Settings",
+    "connection": "Connection",
     "general": "General",
     "about": "About",
+    "proxyMode": {
+      "label": "Proxy mode",
+      "rule": "Rule",
+      "ruleTooltip": "Sites in China connect directly, other sites go through the proxy. Best for everyday use.",
+      "global": "Global",
+      "globalTooltip": "Every site goes through the proxy, including sites in China. Those may load slower and use more data.",
+      "failed": "Couldn't switch modes. Try again"
+    },
     "autoLaunch": {
       "label": "Open at login",
       "hint": "Runs in the background after you log in, without opening a window",
