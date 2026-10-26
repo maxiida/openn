@@ -6,16 +6,21 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 use tauri::image::Image;
 
-use super::TRAY_ID;
+use super::{TRAY_ID, dock_icon};
 
 const GREEN: [f32; 3] = [52.0, 199.0, 89.0];
+const RED: [f32; 3] = [255.0, 59.0, 48.0];
 const WHITE: [f32; 3] = [255.0, 255.0, 255.0];
+const BLACK: [f32; 3] = [0.0, 0.0, 0.0];
 
 /// The menu bar scales the image to a fixed height, so every pixel of padding shrinks the logo.
 const PAD: u32 = 3;
-const DOT_RADIUS: f32 = 13.0;
-/// Clear ring cut out of the logo around the dot so the two shapes stay distinct at menu bar size.
-const DOT_GAP: f32 = 4.0;
+/// Dot centre, radius and clear ring as fractions of the logo height, matching the Dock icon
+/// (`scripts/render-dock-icons.swift`). The ring is cut out of the logo so the two shapes stay distinct.
+const DOT_X: f32 = 0.710;
+const DOT_Y: f32 = 0.879;
+const DOT_RADIUS: f32 = 0.1227;
+const DOT_GAP: f32 = 0.0704;
 const IDLE_ALPHA: f32 = 0.35;
 
 const FADE_FRAMES: u32 = 10;
@@ -25,7 +30,6 @@ const PULSE_STEPS: u32 = 16;
 
 #[derive(Clone, Copy)]
 struct Visual {
-    logo: [f32; 3],
     logo_alpha: f32,
     dot: [f32; 3],
     dot_alpha: f32,
@@ -36,11 +40,6 @@ impl Visual {
         let mix = |a: f32, b: f32| a + (b - a) * t;
         Self {
             logo_alpha: mix(self.logo_alpha, to.logo_alpha),
-            logo: [
-                mix(self.logo[0], to.logo[0]),
-                mix(self.logo[1], to.logo[1]),
-                mix(self.logo[2], to.logo[2]),
-            ],
             dot: [
                 mix(self.dot[0], to.dot[0]),
                 mix(self.dot[1], to.dot[1]),
@@ -56,9 +55,11 @@ struct Mask {
     width: u32,
     height: u32,
     dot: (f32, f32),
+    radius: f32,
+    gap: f32,
 }
 
-/// The logo cropped to its opaque bounds, with room for the status dot at its bottom-right corner.
+/// The logo cropped to its opaque bounds, with room for the status dot over its bottom-right corner.
 fn mask() -> &'static Mask {
     static MASK: OnceLock<Mask> = OnceLock::new();
     MASK.get_or_init(|| {
@@ -76,9 +77,11 @@ fn mask() -> &'static Mask {
         }
         let (logo_w, logo_h) = (x1 - x0 + 1, y1 - y0 + 1);
 
-        let height = logo_h + 2 * PAD;
-        let dot = ((PAD + logo_w) as f32 - 0.5, height as f32 - DOT_RADIUS - 1.0);
-        let width = (dot.0 + DOT_RADIUS).ceil() as u32 + 1;
+        let scale = logo_h as f32;
+        let (radius, gap) = (DOT_RADIUS * scale, DOT_GAP * scale);
+        let dot = (PAD as f32 + DOT_X * scale, PAD as f32 + DOT_Y * scale);
+        let width = (logo_w + 2 * PAD).max((dot.0 + radius).ceil() as u32 + 1);
+        let height = (logo_h + 2 * PAD).max((dot.1 + radius).ceil() as u32 + 1);
 
         let mut alpha = vec![0u8; (width * height) as usize];
         for y in 0..logo_h {
@@ -91,16 +94,21 @@ fn mask() -> &'static Mask {
             width,
             height,
             dot,
+            radius,
+            gap,
         }
     })
 }
 
-fn render(v: Visual) -> Image<'static> {
+/// `ink` is the logo colour, which has to contrast with the menu bar behind it.
+fn render(v: Visual, ink: [f32; 3]) -> Image<'static> {
     let Mask {
         alpha,
         width,
         height,
         dot,
+        radius,
+        gap,
     } = mask();
     let mut out = vec![0u8; alpha.len() * 4];
     for y in 0..*height {
@@ -109,14 +117,14 @@ fn render(v: Visual) -> Image<'static> {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
             let d = ((px - dot.0).powi(2) + (py - dot.1).powi(2)).sqrt();
             let cover = |r: f32| (r - d + 0.5).clamp(0.0, 1.0);
-            let la = f32::from(alpha[i]) / 255.0 * v.logo_alpha * (1.0 - cover(DOT_RADIUS + DOT_GAP) * v.dot_alpha);
-            let da = cover(DOT_RADIUS) * v.dot_alpha;
+            let la = f32::from(alpha[i]) / 255.0 * v.logo_alpha * (1.0 - cover(radius + gap) * v.dot_alpha);
+            let da = cover(*radius) * v.dot_alpha;
             let oa = la + da * (1.0 - la);
             if oa <= 0.0 {
                 continue;
             }
             for c in 0..3 {
-                out[i * 4 + c] = ((v.logo[c] * la + v.dot[c] * da * (1.0 - la)) / oa).round() as u8;
+                out[i * 4 + c] = ((ink[c] * la + v.dot[c] * da * (1.0 - la)) / oa).round() as u8;
             }
             out[i * 4 + 3] = (oa * 255.0).round() as u8;
         }
@@ -132,6 +140,8 @@ pub fn global() -> &'static StatusIcon {
 pub struct StatusIcon {
     generation: AtomicU64,
     connecting: AtomicBool,
+    unhealthy: AtomicBool,
+    menu_bar_dark: AtomicBool,
     current: Mutex<Visual>,
 }
 
@@ -140,13 +150,14 @@ impl StatusIcon {
         Self {
             generation: AtomicU64::new(0),
             connecting: AtomicBool::new(false),
+            unhealthy: AtomicBool::new(false),
+            menu_bar_dark: AtomicBool::new(true),
             current: Mutex::new(Self::idle()),
         }
     }
 
     const fn idle() -> Visual {
         Visual {
-            logo: WHITE,
             logo_alpha: IDLE_ALPHA,
             dot: GREEN,
             dot_alpha: 0.0,
@@ -155,30 +166,61 @@ impl StatusIcon {
 
     const fn connected_visual() -> Visual {
         Visual {
-            logo: WHITE,
             logo_alpha: 1.0,
             dot: GREEN,
             dot_alpha: 1.0,
         }
     }
 
-    const fn connecting_visual(alpha: f32) -> Visual {
+    const fn unhealthy_visual() -> Visual {
         Visual {
-            logo: WHITE,
             logo_alpha: 1.0,
-            dot: WHITE,
+            dot: RED,
+            dot_alpha: 1.0,
+        }
+    }
+
+    fn settled_visual(&self, connected: bool) -> Visual {
+        if !connected {
+            Self::idle()
+        } else if self.unhealthy.load(Ordering::SeqCst) {
+            Self::unhealthy_visual()
+        } else {
+            Self::connected_visual()
+        }
+    }
+
+    fn connecting_visual(&self, alpha: f32) -> Visual {
+        Visual {
+            logo_alpha: 1.0,
+            dot: self.ink(),
             dot_alpha: alpha,
         }
     }
 
     pub fn initial_image(&self, connected: bool) -> Image<'static> {
-        let v = if connected {
-            Self::connected_visual()
-        } else {
-            Self::idle()
-        };
+        let v = self.settled_visual(connected);
         *self.current.lock() = v;
-        render(v)
+        render(v, self.ink())
+    }
+
+    fn ink(&self) -> [f32; 3] {
+        if self.menu_bar_dark.load(Ordering::SeqCst) {
+            WHITE
+        } else {
+            BLACK
+        }
+    }
+
+    /// Redraws the icon in the colour that contrasts with the menu bar, which follows the wallpaper as well as dark mode.
+    pub fn set_menu_bar_dark(&'static self, dark: bool) {
+        if self.menu_bar_dark.swap(dark, Ordering::SeqCst) == dark {
+            return;
+        }
+        AsyncHandler::spawn(move || async move {
+            let v = *self.current.lock();
+            self.show(v);
+        });
     }
 
     pub fn set_connecting(&self, connecting: bool) {
@@ -189,24 +231,29 @@ impl StatusIcon {
         self.connecting.load(Ordering::SeqCst)
     }
 
+    /// Returns whether the mark changed.
+    pub fn set_unhealthy(&self, unhealthy: bool) -> bool {
+        self.unhealthy.swap(unhealthy, Ordering::SeqCst) != unhealthy
+    }
+
     /// Animates the tray icon towards the state implied by `connected` (or the pulsing "connecting" state).
     pub fn sync(&'static self, connected: bool) {
         let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let connecting = self.is_connecting();
+        dock_icon::set(if connected && !connecting {
+            Some(!self.unhealthy.load(Ordering::SeqCst))
+        } else {
+            None
+        });
         AsyncHandler::spawn(move || async move {
             let from = *self.current.lock();
             if connecting {
-                if !self.fade(generation, from, Self::connecting_visual(1.0)).await {
+                if !self.fade(generation, from, self.connecting_visual(1.0)).await {
                     return;
                 }
                 self.pulse(generation).await;
             } else {
-                let target = if connected {
-                    Self::connected_visual()
-                } else {
-                    Self::idle()
-                };
-                self.fade(generation, from, target).await;
+                self.fade(generation, from, self.settled_visual(connected)).await;
             }
         });
     }
@@ -218,7 +265,7 @@ impl StatusIcon {
     fn show(&self, v: Visual) {
         *self.current.lock() = v;
         if let Some(tray) = handle::Handle::app_handle().tray_by_id(TRAY_ID) {
-            let _ = tray.set_icon_with_as_template(Some(render(v)), false);
+            let _ = tray.set_icon_with_as_template(Some(render(v, self.ink())), false);
         }
     }
 
@@ -239,7 +286,7 @@ impl StatusIcon {
         while self.is_current(generation) {
             let phase = (step % (PULSE_STEPS * 2)) as f32 / PULSE_STEPS as f32;
             let wave = if phase <= 1.0 { phase } else { 2.0 - phase };
-            self.show(Self::connecting_visual(0.35 + 0.65 * wave));
+            self.show(self.connecting_visual(0.35 + 0.65 * wave));
             step += 1;
             tokio::time::sleep(PULSE_INTERVAL).await;
         }

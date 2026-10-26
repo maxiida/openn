@@ -26,6 +26,12 @@ use tauri::{
     menu::{IsMenuItem, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
+#[cfg(target_os = "macos")]
+mod appearance;
+#[cfg(target_os = "macos")]
+mod dock_icon;
+#[cfg(target_os = "macos")]
+mod health;
 mod menu_def;
 #[cfg(target_os = "macos")]
 mod speed_task;
@@ -212,7 +218,9 @@ impl Tray {
 
         #[cfg(target_os = "macos")]
         if !is_custom_icon {
-            status_icon::global().sync(Self::is_connected(verge));
+            let connected = Self::is_connected(verge);
+            health::global().update(connected);
+            status_icon::global().sync(connected);
             return Ok(());
         }
 
@@ -354,6 +362,17 @@ impl Tray {
         }
 
         let tray = builder.build(app_handle)?;
+        #[cfg(target_os = "macos")]
+        if !is_custom_icon {
+            logging_error!(
+                Type::Tray,
+                tray.with_inner_tray_icon(|inner| {
+                    if let (Some(status_item), Some(mtm)) = (inner.ns_status_item(), objc2::MainThreadMarker::new()) {
+                        appearance::observe(&status_item, mtm);
+                    }
+                })
+            );
+        }
         tray.on_tray_icon_event(on_tray_icon_event);
         tray.on_menu_event(on_menu_event);
         Ok(())

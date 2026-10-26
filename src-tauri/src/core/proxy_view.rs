@@ -167,6 +167,40 @@ pub struct ProxySubscriptionInfo {
     pub expire: i64,
 }
 
+const PRIMARY_GROUP_KEYWORDS: [&str; 8] = ["proxy", "select", "node", "节点", "代理", "手动", "auto", "自动"];
+
+impl ProxyViewV1 {
+    /// Must pick the same group as `getMainProxyGroup` in `src/utils/main-proxy-group.ts`, so the
+    /// tray probes the node the MVP pages show.
+    pub fn main_group(&self) -> Option<&ProxyGroupView> {
+        let score = |group: &ProxyGroupView| {
+            let name = group.name.to_lowercase();
+            let keyword = PRIMARY_GROUP_KEYWORDS
+                .iter()
+                .position(|keyword| name.contains(keyword))
+                .map_or(0, |index| PRIMARY_GROUP_KEYWORDS.len() - index);
+            keyword
+                + if matches!(group.proxy_type, ProxyType::Selector) {
+                    100
+                } else {
+                    0
+                }
+        };
+
+        self.groups
+            .iter()
+            .filter(|group| {
+                group.hidden != Some(true)
+                    && !group.members.is_empty()
+                    && matches!(group.proxy_type, ProxyType::Selector | ProxyType::URLTest)
+            })
+            .fold(None, |best, group| match best {
+                Some(best) if score(group) <= score(best) => Some(best),
+                _ => Some(group),
+            })
+    }
+}
+
 struct MemberResolver<'a> {
     group_names: BTreeSet<String>,
     core_node_ids: &'a BTreeMap<String, String>,

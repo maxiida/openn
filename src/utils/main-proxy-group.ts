@@ -31,7 +31,10 @@ const scoreGroup = (group: ProxyGroupView) => {
   )
 }
 
-/** Picks the single user-facing selector shared by the MVP home and node list. */
+/**
+ * Picks the single user-facing selector shared by the MVP home and node list. The tray health
+ * probe mirrors this in `ProxyViewV1::main_group`; keep the two in sync.
+ */
 export const getMainProxyGroup = (
   view: ProxyViewV1 | undefined,
 ): ProxyGroupView | null => {
