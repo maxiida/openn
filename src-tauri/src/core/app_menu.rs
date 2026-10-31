@@ -4,7 +4,8 @@ use clash_verge_logging::{Type, logging};
 use objc2_foundation::{NSArray, NSString, NSUserDefaults};
 use tauri::{
     AppHandle, Wry,
-    menu::{Menu, MenuBuilder, MenuEvent, MenuItem, SubmenuBuilder},
+    image::Image,
+    menu::{AboutMetadata, Menu, MenuBuilder, MenuEvent, MenuItem, SubmenuBuilder},
 };
 use tauri_plugin_dialog::{DialogExt as _, MessageDialogKind};
 
@@ -16,7 +17,7 @@ const EXPORT_LOGS: &str = "app_menu_export_logs";
 pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let settings = MenuItem::with_id(app, SETTINGS, t!("menu.settings"), true, Some("Cmd+,"))?;
     let app_menu = SubmenuBuilder::new(app, "Openn")
-        .about_with_text(t!("menu.about"), None)
+        .about_with_text(t!("menu.about"), Some(about_metadata()?))
         .separator()
         .item(&settings)
         .separator()
@@ -41,6 +42,14 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     MenuBuilder::new(app)
         .items(&[&app_menu, &edit_menu, &help_menu])
         .build()
+}
+
+// Left unset, AppKit shows the live Dock icon, which carries the connection status dot.
+fn about_metadata() -> tauri::Result<AboutMetadata<'static>> {
+    Ok(AboutMetadata {
+        icon: Some(Image::from_bytes(include_bytes!("../../icons/dock/plain.png"))?),
+        ..Default::default()
+    })
 }
 
 /// AppKit localizes the items it adds to the menus (Start Dictation, Emoji & Symbols) from this
