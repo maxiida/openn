@@ -98,6 +98,7 @@ const DELAY_FAILURES_TO_REPORT = 2
 
 type DelayReading = {
   node: string
+  healthEpoch: number
   samples: number[]
   failures: number
   failedDelay: number
@@ -122,7 +123,9 @@ const MvpHomePage = () => {
     systemProxyEnabled,
     isRunStateLoading,
   } = useMvpConnected()
-  const unhealthy = useConnectionUnhealthy() && indicator
+  const health = useConnectionUnhealthy()
+  const unhealthy = health.unhealthy && indicator
+  const healthEpoch = health.epoch
   const { verge } = useVerge()
   const needsDisconnect = systemProxyEnabled || Boolean(verge?.enable_tun_mode)
   const { group, members, current, delays, timeout } = useMainProxyGroup()
@@ -200,9 +203,10 @@ const MvpHomePage = () => {
       )
       if (cancelled) return
       const prev =
-        delayReadingRef.current?.node === node
+        delayReadingRef.current?.node === node &&
+        delayReadingRef.current.healthEpoch === healthEpoch
           ? delayReadingRef.current
-          : { node, samples: [], failures: 0, failedDelay: -1 }
+          : { node, healthEpoch, samples: [], failures: 0, failedDelay: -1 }
       const next =
         classifyDelay(delay, timeout) === 'measured'
           ? {
@@ -223,7 +227,15 @@ const MvpHomePage = () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [indicator, pageVisible, node, groupName, timeout, delayRound])
+  }, [
+    indicator,
+    pageVisible,
+    node,
+    groupName,
+    timeout,
+    delayRound,
+    healthEpoch,
+  ])
 
   const availableProfiles = useMemo(
     () =>
@@ -282,8 +294,8 @@ const MvpHomePage = () => {
     })()
   }, [connecting, currentProfile, indicator, refreshAll])
 
-  // A result only describes the connection and node it was measured on.
-  const speedKey = `${indicator}:${currentNode?.ref.name ?? ''}`
+  // A result only describes the connection, node and health stretch it was measured in.
+  const speedKey = `${indicator}:${currentNode?.ref.name ?? ''}:${healthEpoch}`
   const speed = speedResult?.key === speedKey ? speedResult : null
   const onSpeedTest = useLockFn(async () => {
     setSpeedTesting(true)
@@ -590,7 +602,11 @@ const MvpHomePage = () => {
     )
   }
 
-  const reading = delayReading?.node === current?.ref.name ? delayReading : null
+  const reading =
+    delayReading?.node === current?.ref.name &&
+    delayReading?.healthEpoch === healthEpoch
+      ? delayReading
+      : null
   // Until this page has its own reading, show whatever the node list measured last.
   const currentDelay = !reading
     ? current
@@ -789,7 +805,12 @@ const MvpHomePage = () => {
                     gap: 1,
                   }}
                 >
-                  {indicator && (
+                  {unhealthy && (
+                    <MvpStatusPill color="text.secondary">
+                      {t('mvp.home.awaitingRecovery')}
+                    </MvpStatusPill>
+                  )}
+                  {indicator && !unhealthy && (
                     <Tooltip
                       title={
                         <MvpShortcutHint
@@ -826,15 +847,17 @@ const MvpHomePage = () => {
                       </MvpStatusPill>
                     </Tooltip>
                   )}
-                  <Tooltip title={mvpDelayHint(currentDelay, timeout)}>
-                    <MvpStatusPill
-                      color={mvpDelayColor(currentDelay, timeout)}
-                      loading={delayState === 'testing'}
-                    >
-                      {formatMvpDelay(currentDelay, timeout)}
-                    </MvpStatusPill>
-                  </Tooltip>
-                  {indicator && (
+                  {!unhealthy && (
+                    <Tooltip title={mvpDelayHint(currentDelay, timeout)}>
+                      <MvpStatusPill
+                        color={mvpDelayColor(currentDelay, timeout)}
+                        loading={delayState === 'testing'}
+                      >
+                        {formatMvpDelay(currentDelay, timeout)}
+                      </MvpStatusPill>
+                    </Tooltip>
+                  )}
+                  {indicator && !unhealthy && (
                     <>
                       <Tooltip
                         title={
@@ -911,7 +934,7 @@ const MvpHomePage = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          {indicator && current && (
+          {indicator && current && !unhealthy && (
             <Collapse in={sitesOpen} id="mvp-site-list">
               <Box
                 sx={{

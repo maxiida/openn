@@ -35,6 +35,7 @@
     "noNode": "暂无可用节点",
     "nodeUnavailable": "当前节点不可用，请更换节点",
     "speedUntested": "未测速",
+    "awaitingRecovery": "等待恢复",
     "speedTestPrompt": "点击右侧刷新按钮测速",
     "sites": {
       "baidu": "百度",

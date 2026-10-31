@@ -180,6 +180,7 @@ export const translationKeys = [
   'mvp.home.noNode',
   'mvp.home.nodeUnavailable',
   'mvp.home.speedUntested',
+  'mvp.home.awaitingRecovery',
   'mvp.home.speedTestPrompt',
   'mvp.home.sites.baidu',
   'mvp.home.sites.domestic',

@@ -412,6 +412,7 @@ export interface TranslationResources {
           routeAllApps: string
           settings: string
         }
+        awaitingRecovery: string
         blockers: {
           foreignSystemProxy: string
           foreignTunnel: string

@@ -35,6 +35,7 @@
     "noNode": "No nodes available",
     "nodeUnavailable": "This node isn't working. Try another one",
     "speedUntested": "Not tested",
+    "awaitingRecovery": "Waiting to recover",
     "speedTestPrompt": "Click the refresh button on the right to test the speed",
     "sites": {
       "baidu": "Baidu",
