@@ -4,18 +4,22 @@ use crate::process::AsyncHandler;
 use crate::{Type, logging};
 use parking_lot::Mutex;
 use std::sync::OnceLock;
-use std::time::Duration;
+use std::time::{Duration, Instant, SystemTime};
 use tauri::async_runtime::JoinHandle;
 
 use super::{Tray, status_icon};
 
 const DEFAULT_PROBE_URL: &str = "http://cp.cloudflare.com/generate_204";
+/// Reached without the node, so a failure here points at the local network instead.
+const DIRECT_PROBE_URL: &str = "https://www.baidu.com";
 /// A node slower than this is unusable in practice, so it counts as down.
 const PROBE_TIMEOUT_MS: u32 = 5000;
 /// One dropped probe or a Wi-Fi hop must not turn the dot red.
 const FAILURE_THRESHOLD: u32 = 3;
 const HEALTHY_INTERVAL: Duration = Duration::from_secs(30);
 const RETRY_INTERVAL: Duration = Duration::from_secs(10);
+/// Tokio timers stop while the Mac sleeps, so a wall-clock gap this far past the wait marks a wake-up.
+const SLEEP_SLACK: Duration = Duration::from_secs(15);
 
 pub fn global() -> &'static HealthMonitor {
     static MONITOR: OnceLock<HealthMonitor> = OnceLock::new();
@@ -46,10 +50,28 @@ impl HealthMonitor {
 
 async fn run() {
     let mut failures = 0u32;
+    let mut last_probe: Option<(SystemTime, Duration)> = None;
     while !handle::Handle::global().is_exiting() {
+        if let Some((at, wait)) = last_probe
+            && let Ok(gap) = SystemTime::now().duration_since(at)
+            && gap > wait + SLEEP_SLACK
+        {
+            logging!(
+                info,
+                Type::Tray,
+                "health probe: resumed {}s after the last one (expected {}s), likely after sleep",
+                gap.as_secs(),
+                wait.as_secs()
+            );
+        }
         match probe().await {
             Some(false) => failures += 1,
-            Some(true) | None => failures = 0,
+            Some(true) | None => {
+                if failures > 0 {
+                    logging!(info, Type::Tray, "health probe: recovered after {failures} failure(s)");
+                }
+                failures = 0;
+            }
         }
         let unhealthy = failures >= FAILURE_THRESHOLD;
         if status_icon::global().set_unhealthy(unhealthy) {
@@ -62,6 +84,7 @@ async fn run() {
         } else {
             RETRY_INTERVAL
         };
+        last_probe = Some((SystemTime::now(), interval));
         tokio::time::sleep(interval).await;
     }
 }
@@ -72,9 +95,9 @@ async fn probe() -> Option<bool> {
         Ok(view) => view,
         Err(err) => {
             logging!(
-                debug,
+                info,
                 Type::Tray,
-                "health probe: proxy view unavailable: {}",
+                "health probe failed: proxy view unavailable: {}",
                 err.detail
             );
             return Some(false);
@@ -92,14 +115,34 @@ async fn probe() -> Option<bool> {
             .unwrap_or(DEFAULT_PROBE_URL)
             .to_owned(),
     };
-    match handle::Handle::mihomo()
+    let node = group.now.as_deref().unwrap_or("?");
+    let started = Instant::now();
+    let failure = match handle::Handle::mihomo()
         .delay_proxy_by_name(&group.name, &url, PROBE_TIMEOUT_MS)
         .await
     {
-        Ok(result) => Some(result.delay > 0),
-        Err(err) => {
-            logging!(debug, Type::Tray, "health probe: delay test failed: {err}");
-            Some(false)
-        }
+        Ok(result) if result.delay > 0 => return Some(true),
+        Ok(_) => format!("no response from {url} within {PROBE_TIMEOUT_MS}ms"),
+        Err(err) => format!("core request failed: {err}"),
+    };
+    logging!(
+        info,
+        Type::Tray,
+        "health probe failed: node {node} in {}: {failure} (after {}ms); direct: {}",
+        group.name,
+        started.elapsed().as_millis(),
+        probe_direct().await
+    );
+    Some(false)
+}
+
+async fn probe_direct() -> String {
+    match handle::Handle::mihomo()
+        .delay_proxy_by_name("DIRECT", DIRECT_PROBE_URL, PROBE_TIMEOUT_MS)
+        .await
+    {
+        Ok(result) if result.delay > 0 => format!("ok in {}ms", result.delay),
+        Ok(_) => format!("no response from {DIRECT_PROBE_URL} within {PROBE_TIMEOUT_MS}ms"),
+        Err(err) => format!("core request failed: {err}"),
     }
 }
