@@ -31,6 +31,7 @@ import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
 import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
 import { MvpStatusPill } from '@/components/mvp/mvp-status-pill'
 import { QrScannerDialog } from '@/components/mvp/qr-scanner-dialog'
+import { useConnectionUnhealthy } from '@/hooks/use-connection-unhealthy'
 import { testMainGroup, useMainProxyGroup } from '@/hooks/use-main-proxy-group'
 import { useMvpConnected } from '@/hooks/use-mvp-connected'
 import { mvpCommandKey, useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
@@ -121,6 +122,7 @@ const MvpHomePage = () => {
     systemProxyEnabled,
     isRunStateLoading,
   } = useMvpConnected()
+  const unhealthy = useConnectionUnhealthy() && indicator
   const { verge } = useVerge()
   const needsDisconnect = systemProxyEnabled || Boolean(verge?.enable_tun_mode)
   const { group, members, current, delays, timeout } = useMainProxyGroup()
@@ -670,18 +672,24 @@ const MvpHomePage = () => {
                 width: 9,
                 height: 9,
                 borderRadius: '50%',
-                bgcolor: indicator ? 'success.main' : 'text.disabled',
+                bgcolor: unhealthy
+                  ? 'error.main'
+                  : indicator
+                    ? 'success.main'
+                    : 'text.disabled',
               }}
             />
             <Typography
               color={indicator ? 'text.primary' : 'text.secondary'}
               sx={{ fontSize: 20, fontWeight: 650 }}
             >
-              {indicator
-                ? t('mvp.home.status.connected')
-                : needsDisconnect && !connecting
-                  ? t('mvp.home.status.pending')
-                  : t('mvp.home.status.disconnected')}
+              {unhealthy
+                ? t('mvp.home.status.unhealthy')
+                : indicator
+                  ? t('mvp.home.status.connected')
+                  : needsDisconnect && !connecting
+                    ? t('mvp.home.status.pending')
+                    : t('mvp.home.status.disconnected')}
             </Typography>
           </Box>
           <Tooltip
@@ -726,6 +734,11 @@ const MvpHomePage = () => {
               </Button>
             </Box>
           </Tooltip>
+          {unhealthy && (
+            <Button onClick={() => navigate('/nodes')}>
+              {t('mvp.home.actions.changeNode')}
+            </Button>
+          )}
           {systemProxyEnabled && indicator && !tunnelEnabled && (
             <Typography color="text.secondary" sx={{ fontSize: 13 }}>
               {t('mvp.home.partialProxy')}

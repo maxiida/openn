@@ -231,6 +231,10 @@ impl StatusIcon {
         self.connecting.load(Ordering::SeqCst)
     }
 
+    pub fn is_unhealthy(&self) -> bool {
+        self.unhealthy.load(Ordering::SeqCst)
+    }
+
     /// Returns whether the mark changed.
     pub fn set_unhealthy(&self, unhealthy: bool) -> bool {
         self.unhealthy.swap(unhealthy, Ordering::SeqCst) != unhealthy

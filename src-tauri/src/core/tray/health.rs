@@ -43,7 +43,9 @@ impl HealthMonitor {
             if let Some(task) = task {
                 task.abort();
             }
-            status_icon::global().set_unhealthy(false);
+            if status_icon::global().set_unhealthy(false) {
+                handle::Handle::connection_health_changed(false);
+            }
         }
     }
 }
@@ -76,6 +78,7 @@ async fn run() {
         let unhealthy = failures >= FAILURE_THRESHOLD;
         if status_icon::global().set_unhealthy(unhealthy) {
             logging!(info, Type::Tray, "connection health changed, unhealthy: {unhealthy}");
+            handle::Handle::connection_health_changed(unhealthy);
             let verge = Config::verge().await.data_arc();
             status_icon::global().sync(Tray::is_connected(&verge));
         }

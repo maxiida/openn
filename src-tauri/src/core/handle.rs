@@ -80,6 +80,10 @@ impl Handle {
         Self::send_event(FrontendEvent::Navigate { path });
     }
 
+    pub fn connection_health_changed(unhealthy: bool) {
+        Self::send_event(FrontendEvent::ConnectionHealthChanged { unhealthy });
+    }
+
     pub fn notice_message<S: AsRef<str>, M: Into<String>>(status: S, msg: M) {
         let status_str = status.as_ref();
         let msg_str = msg.into();

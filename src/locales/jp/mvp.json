@@ -17,6 +17,7 @@
     },
     "status": {
       "connected": "Connected",
+      "unhealthy": "Node not responding",
       "pending": "Not fully connected",
       "disconnected": "Not connected"
     },

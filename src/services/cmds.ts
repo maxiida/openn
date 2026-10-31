@@ -465,6 +465,10 @@ export interface RunState {
   serviceNeedsAttention: boolean
 }
 
+export const getConnectionUnhealthy = async () => {
+  return invoke<boolean>('get_connection_unhealthy')
+}
+
 export const getRuntimeState = async () => {
   return invoke<RunState>('get_runtime_state')
 }

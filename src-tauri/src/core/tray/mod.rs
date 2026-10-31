@@ -196,6 +196,14 @@ impl Tray {
         Ok(())
     }
 
+    /// Whether the selected node has stopped responding, which the status dot shows in red.
+    pub fn is_unhealthy(&self) -> bool {
+        #[cfg(target_os = "macos")]
+        return status_icon::global().is_unhealthy();
+        #[cfg(not(target_os = "macos"))]
+        false
+    }
+
     fn is_connected(verge: &IVerge) -> bool {
         let tun_mode = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
         tun_mode || verge.enable_system_proxy.unwrap_or(false)

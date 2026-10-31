@@ -460,6 +460,7 @@ export interface TranslationResources {
           connected: string
           disconnected: string
           pending: string
+          unhealthy: string
         }
         welcome: {
           import: string

@@ -15,6 +15,8 @@ interface VergeEvents {
   'verge://pending-failures-changed': null
   /** A route the backend wants the main window to show, e.g. from the tray menu. */
   'verge://navigate': string
+  /** Whether the selected node stopped responding, as the tray and Dock dots show it. */
+  'verge://connection-health-changed': boolean
   'profile-changed': string
   'profile-update-started': { uid?: string }
   'profile-update-completed': { uid?: string }

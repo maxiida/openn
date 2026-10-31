@@ -17,6 +17,7 @@
     },
     "status": {
       "connected": "已连接",
+      "unhealthy": "节点无响应",
       "pending": "连接待恢复",
       "disconnected": "未连接"
     },

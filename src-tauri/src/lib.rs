@@ -132,6 +132,7 @@ mod app_init {
             cmd::restart_core,
             cmd::upgrade_clash_core,
             cmd::get_runtime_state,
+            cmd::get_connection_unhealthy,
             cmd::get_preflight_report,
             cmd::get_pending_failures,
             cmd::entry_lightweight_mode,

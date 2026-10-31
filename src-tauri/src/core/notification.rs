@@ -38,6 +38,9 @@ pub enum FrontendEvent<'a> {
     Navigate {
         path: &'a str,
     },
+    ConnectionHealthChanged {
+        unhealthy: bool,
+    },
     #[cfg(target_os = "linux")]
     ThemeChanged {
         theme: tauri::Theme,
@@ -294,6 +297,9 @@ impl NotificationSystem {
             FrontendEvent::RunStateChanged { state } => ("verge://run-state-changed", Ok(state)),
             FrontendEvent::PendingFailuresChanged => ("verge://pending-failures-changed", Ok(serde_json::Value::Null)),
             FrontendEvent::Navigate { path } => ("verge://navigate", Ok(json!(path))),
+            FrontendEvent::ConnectionHealthChanged { unhealthy } => {
+                ("verge://connection-health-changed", Ok(json!(unhealthy)))
+            }
             #[cfg(target_os = "linux")]
             FrontendEvent::ThemeChanged { theme } => ("tauri://theme-changed", serde_json::to_value(theme)),
         }

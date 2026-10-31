@@ -165,6 +165,7 @@ export const translationKeys = [
   'mvp.home.welcome.linkLabel',
   'mvp.home.welcome.import',
   'mvp.home.status.connected',
+  'mvp.home.status.unhealthy',
   'mvp.home.status.pending',
   'mvp.home.status.disconnected',
   'mvp.home.actions.connect',
