@@ -662,7 +662,6 @@ export interface TranslationResources {
           failed: string
         }
         result: {
-          beats: string
           direct: string
           node: string
           slow: string

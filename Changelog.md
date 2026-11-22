@@ -42,6 +42,7 @@
 - Simplify website status icons and labels, and box connection advice.
 - 首页状态标签统一为「网站」「AI」「延迟」「网速」，用颜色表示好坏，悬停说明每个标签的含义
 - 文字和提示不再出现最后一行只剩一个字的情况
+- 测速更准：快网不再测低，测速最多 3 秒、最多用 4 MB 流量；去掉没有依据的「超过全球多少用户」
 - Rebrand the app as Openn with a white app icon.
 - Restyle tooltips with dark rounded surfaces, white text, and soft shadows.
 - Make icon buttons gray at rest, with darker icons and a subtle background on hover.

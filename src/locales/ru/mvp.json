@@ -421,9 +421,9 @@
       "both": "Tests broadband, then the node, to see which one is slow"
     },
     "cost": {
-      "node": "About 5 seconds · uses about {{mb}} MB of data",
+      "node": "About 5 seconds · uses up to {{mb}} MB of data",
       "direct": "About 5 seconds · uses a server in China, no subscription data",
-      "both": "About 10 seconds · uses about {{mb}} MB of subscription data"
+      "both": "About 10 seconds · uses up to {{mb}} MB of subscription data"
     },
     "running": {
       "title": "Testing…",
@@ -435,7 +435,6 @@
     "result": {
       "node": "Speed: {{tier}}",
       "direct": "Broadband: {{tier}}",
-      "beats": "Faster than about {{percent}}% of users worldwide",
       "slow": "Switching nodes should speed it up"
     },
     "compare": {

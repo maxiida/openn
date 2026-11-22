@@ -6,15 +6,20 @@ import { MVP_DELAY_TIMEOUT } from '@/utils/main-proxy-group'
 
 // Hard cap on data per test: nodes with a traffic multiplier bill it many times over.
 const SPEED_TEST_BYTES = 4_000_000
+// Broadband data is not billed against the subscription, so that test can run long enough for a
+// fast line to reach full speed.
+const DIRECT_TEST_BYTES = 25_000_000
+// A slow route stops here instead of spending its whole allowance.
+const TRANSFER_MS = 3_000
 const SPEED_TEST_URL = `https://speed.cloudflare.com/__down?bytes=${SPEED_TEST_BYTES}`
 // An immutable package on a domestic CDN: split routing sends it direct, so it measures the
 // broadband line itself. Overseas servers would mostly measure the international link instead.
 const DIRECT_TEST_URL =
-  'https://cdn.npmmirror.com/packages/typescript/5.4.5/typescript-5.4.5.tgz'
+  'https://cdn.npmmirror.com/packages/@next/swc-darwin-arm64/14.2.3/swc-darwin-arm64-14.2.3.tgz'
 // Gives up on a node that takes this long to deliver anything.
-const MAX_DURATION_MS = 10_000
+const FIRST_BYTE_TIMEOUT_MS = 10_000
 
-/** Megabytes a full test through the node spends of the subscription. */
+/** Megabytes a test through the node spends of the subscription at most. */
 export const NODE_TEST_MB = SPEED_TEST_BYTES / 1_000_000
 
 export const isAbortError = (error: unknown) =>
@@ -35,8 +40,9 @@ interface MeasureOptions {
 }
 
 /**
- * Downloads at most SPEED_TEST_BYTES, so a test spends little of a metered plan. Returns Mbps.
- * `onProgress` gets 0–1 through the download, by bytes or by the deadline, whichever is further.
+ * Downloads for TRANSFER_MS or until the route's byte cap, whichever comes first, and returns the
+ * speed with the bytes it spent. `onProgress` gets 0–1 through the test, by bytes or by time,
+ * whichever is further.
  */
 export const measureDownloadMbps = async (
   onProgress?: MeasureOptions['onProgress'],
@@ -45,12 +51,13 @@ export const measureDownloadMbps = async (
     signal,
     latencyMs = null,
   }: Omit<MeasureOptions, 'onProgress'> = {},
-): Promise<number> => {
+): Promise<{ mbps: number; bytes: number }> => {
   if (signal?.aborted) throw abortError()
+  const maxBytes = direct ? DIRECT_TEST_BYTES : SPEED_TEST_BYTES
   const controller = new AbortController()
   const stop = () => controller.abort()
   signal?.addEventListener('abort', stop)
-  const timer = setTimeout(stop, MAX_DURATION_MS)
+  let timer = setTimeout(stop, FIRST_BYTE_TIMEOUT_MS)
   const startedAt = performance.now()
   let firstByteAt = 0
   let lastByteAt = 0
@@ -75,7 +82,7 @@ export const measureDownloadMbps = async (
     const response = direct
       ? await directFetch(DIRECT_TEST_URL, {
           signal: controller.signal,
-          headers: { Range: `bytes=0-${SPEED_TEST_BYTES - 1}` },
+          headers: { Range: `bytes=0-${maxBytes - 1}` },
         })
       : await fetch(SPEED_TEST_URL, {
           cache: 'no-store',
@@ -92,21 +99,20 @@ export const measureDownloadMbps = async (
       if (!firstByteAt) {
         firstByteAt = now
         firstChunkBytes = value.length
+        clearTimeout(timer)
+        timer = setTimeout(stop, TRANSFER_MS)
       }
       lastByteAt = now
       const { bytes, ms } = timed(now)
       onProgress?.(
         Math.min(
-          Math.max(
-            total / SPEED_TEST_BYTES,
-            (now - startedAt) / MAX_DURATION_MS,
-          ),
+          Math.max(total / maxBytes, (now - firstByteAt) / TRANSFER_MS),
           1,
         ),
         toMbps(bytes, Math.max(ms, 1)),
       )
       // A server that ignores Range would otherwise send the whole file.
-      if (total >= SPEED_TEST_BYTES) break
+      if (total >= maxBytes) break
     }
   } catch (error) {
     // The deadline abort still leaves whatever was measured before it; the two fetches report an
@@ -123,27 +129,7 @@ export const measureDownloadMbps = async (
   if (!firstByteAt || bytes <= 0 || ms <= 0) {
     throw new Error('No data received')
   }
-  return toMbps(bytes, ms)
-}
-
-// Rough stand-in for a worldwide speed distribution: log-normal around a 95 Mbps median. Replace
-// with real data before quoting it as more than "about".
-const WORLD_MEDIAN_MBPS = 95
-const WORLD_LOG_SPREAD = 1.2
-
-/** Share of users worldwide, in whole percent, with a slower download than `mbps`. */
-export const worldShareBelow = (mbps: number) => {
-  const z = (Math.log(mbps) - Math.log(WORLD_MEDIAN_MBPS)) / WORLD_LOG_SPREAD
-  // Abramowitz–Stegun approximation of erf(|z| / √2).
-  const t = 1 / (1 + (0.3275911 * Math.abs(z)) / Math.SQRT2)
-  const erf =
-    1 -
-    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) *
-      t +
-      0.254829592) *
-      t *
-      Math.exp((-z * z) / 2)
-  return Math.min(99, Math.max(1, Math.round(50 * (1 + Math.sign(z) * erf))))
+  return { mbps: toMbps(bytes, ms), bytes: total }
 }
 
 /** Handshake time to the test server, through the same route the test takes. */

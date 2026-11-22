@@ -320,7 +320,7 @@ const MvpHomePage = () => {
     setSpeedTesting(true)
     setSpeedProgress(0)
     try {
-      const mbps = await measureDownloadMbps(setSpeedProgress, {
+      const { mbps } = await measureDownloadMbps(setSpeedProgress, {
         latencyMs: await measureLatencyMs(),
       })
       setSpeedProgress(1)

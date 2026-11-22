@@ -57,7 +57,6 @@ import {
   measureDownloadMbps,
   measureLatencyMs,
   NODE_TEST_MB,
-  worldShareBelow,
 } from '@/services/speed-test'
 import { classifyDelay } from '@/utils/delay'
 import { mvpSpeedTier } from '@/utils/main-proxy-group'
@@ -66,8 +65,6 @@ import type { MvpSegment } from '@/utils/mvp-progress'
 // One vertical rhythm for the whole page: the gap around the ring, its text and what follows.
 const GAP = 6
 const SPEED_SEGMENTS = 6
-// The "share of users worldwide" line only reads as encouragement above this.
-const MIN_SHARE_SHOWN = 20
 // Live numbers arrive per network chunk; repainting faster than this only costs frames.
 const LIVE_UPDATE_MS = 80
 
@@ -692,6 +689,7 @@ type SpeedMode = 'node' | 'direct' | 'both'
 
 interface SpeedReading {
   down: number
+  usedMb: number
   latency: number | null
 }
 
@@ -743,7 +741,7 @@ const useSpeedTest = () => {
 
     setStage(stepLabel ?? t('mvp.speedTest.running.download'))
     paint(from + latencyShare, null, 'Mbps')
-    const down = await measureDownloadMbps(
+    const { mbps: down, bytes } = await measureDownloadMbps(
       (fraction, mbps) =>
         paint(
           from + latencyShare + fraction * (span - latencyShare),
@@ -752,7 +750,7 @@ const useSpeedTest = () => {
         ),
       { direct, signal, latencyMs: latency },
     )
-    return { down, latency }
+    return { down, latency, usedMb: bytes / 1_000_000 }
   }
 
   const run = async (nodeName: string) => {
@@ -1029,7 +1027,6 @@ const SpeedTab = ({
   } else {
     const down = outcome?.reading.down ?? 0
     const tier = mvpSpeedTier(down)
-    const share = worldShareBelow(down)
     center = <RingNumber value={formatMbps(down)} unit="Mbps" />
     corner = (
       <RingCorner
@@ -1041,13 +1038,7 @@ const SpeedTab = ({
     title = t(`mvp.speedTest.result.${mode === 'direct' ? 'direct' : 'node'}`, {
       tier: tier.label,
     })
-    description = [
-      tier.hint,
-      ...(share >= MIN_SHARE_SHOWN
-        ? [t('mvp.speedTest.result.beats', { percent: share })]
-        : []),
-      ...(slow ? [t('mvp.speedTest.result.slow')] : []),
-    ]
+    description = [tier.hint, ...(slow ? [t('mvp.speedTest.result.slow')] : [])]
   }
 
   let panel: ReactNode = null
@@ -1118,7 +1109,7 @@ const SpeedTab = ({
         <ResultCell
           key="used"
           label={t('mvp.speedTest.metrics.used')}
-          value={String(NODE_TEST_MB)}
+          value={String(Math.max(1, Math.round(reading.usedMb)))}
           unit="MB"
         />
       ),

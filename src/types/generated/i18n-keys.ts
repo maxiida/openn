@@ -445,7 +445,6 @@ export const translationKeys = [
   'mvp.speedTest.running.nodeStep',
   'mvp.speedTest.result.node',
   'mvp.speedTest.result.direct',
-  'mvp.speedTest.result.beats',
   'mvp.speedTest.result.slow',
   'mvp.speedTest.compare.slowTitle',
   'mvp.speedTest.compare.slowDesc',
