@@ -253,6 +253,8 @@ const components: ThemeOptions['components'] = {
         fontWeight: 400,
         lineHeight: '18px',
         maxWidth: 320,
+        // Keeps a lone character from ending up on its own line.
+        textWrap: 'balance',
         // Global CSS suppresses shadows, but tooltips need elevation.
         boxShadow:
           '0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12) !important',
@@ -313,6 +315,19 @@ ${css}
 /**
  * custom theme
  */
+// The speed and purity scales step from green to red through these two. MUI derives light and
+// dark shades only for its own palette keys, and the pills colour their text with those shades.
+const SCALE_COLORS = {
+  light: {
+    lime: { main: '#65A30D', light: '#A3E635', dark: '#4D7C0F' },
+    yellow: { main: '#CA8A04', light: '#FACC15', dark: '#A16207' },
+  },
+  dark: {
+    lime: { main: '#A3E635', light: '#BEF264', dark: '#65A30D' },
+    yellow: { main: '#FACC15', light: '#FDE047', dark: '#CA8A04' },
+  },
+}
+
 export const useCustomTheme = () => {
   const appWindow: WebviewWindow = useMemo(() => getCurrentWebviewWindow(), [])
   const { verge } = useVerge()
@@ -407,6 +422,7 @@ export const useCustomTheme = () => {
           error: { main: setting.error_color || dt.error_color },
           warning: { main: setting.warning_color || dt.warning_color },
           success: { main: setting.success_color || dt.success_color },
+          ...SCALE_COLORS[mode],
           text: {
             primary: setting.primary_text || dt.primary_text,
             secondary: setting.secondary_text || dt.secondary_text,
@@ -438,6 +454,7 @@ export const useCustomTheme = () => {
           error: { main: dt.error_color },
           warning: { main: dt.warning_color },
           success: { main: dt.success_color },
+          ...SCALE_COLORS[mode],
           text: { primary: dt.primary_text, secondary: dt.secondary_text },
           background: {
             paper: dt.background_color,

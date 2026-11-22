@@ -142,6 +142,7 @@ pub async fn quit() -> clash_verge_signal::ShutdownOutcome {
 }
 
 pub async fn clean_async() -> CleanupResult {
+    crate::cmd::stop_probe();
     let stop_error = Mutex::new(None);
     let mut result = run_interactive_cleanup_transition(
         || async {
@@ -186,6 +187,7 @@ pub async fn clean_session_ending_best_effort() -> CleanupResult {
         Type::System,
         "Starting bounded session-ending best-effort cleanup"
     );
+    crate::cmd::stop_probe();
 
     let result = run_session_ending_cleanup_transition(
         || async {

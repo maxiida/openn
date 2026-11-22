@@ -203,6 +203,8 @@ mod app_init {
             cmd::get_unlock_items,
             cmd::check_media_unlock,
             cmd::check_media_unlock_item,
+            cmd::start_ai_probe,
+            cmd::stop_ai_probe,
         ]
     }
 }

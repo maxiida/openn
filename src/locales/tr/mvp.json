@@ -34,23 +34,69 @@
     "currentNode": "Current node",
     "noNode": "No nodes available",
     "nodeUnavailable": "This node isn't working. Try another one",
-    "speedUntested": "Not tested",
     "awaitingRecovery": "Waiting to recover",
     "speedTestPrompt": "Click the refresh button on the right to test the speed",
+    "checking": "Checking…",
+    "tags": {
+      "sites": "Sites",
+      "sitesIntro": "Sites: whether common sites outside China load",
+      "ai": "AI",
+      "aiIntro": "AI: how reliably Claude, ChatGPT and other AI work",
+      "delay": "Latency",
+      "delayIntro": "Latency: how long a page takes to start loading",
+      "speed": "Speed",
+      "speedIntro": "Speed: how fast downloads are"
+    },
     "sites": {
       "baidu": "Baidu",
       "domestic": "China",
-      "checkingAll": "Checking sites",
-      "details": "Site details",
-      "allOk": "Sites OK",
-      "oneDown": "{{name}} won't load",
-      "someDown": "{{count}} sites won't load",
       "foreignDownHint": "No sites outside China load, so this node may be down. Try another one.",
+      "allOkHint": "Google, YouTube and other common sites all load",
+      "partialHint": "{{list}}; the rest load",
+      "separator": ", ",
       "status": {
         "checking": "Checking…",
         "ok": "OK",
         "slow": "A bit slow",
         "down": "Won't load"
+      }
+    },
+    "ai": {
+      "calm": "Everyday browsing isn't affected. ",
+      "verdict": {
+        "good": "Good for AI",
+        "limited": "AI works but may be limited",
+        "risky": "Not recommended for AI",
+        "unsupported": "AI isn't available here",
+        "unknown": "Couldn't check right now"
+      },
+      "message": {
+        "good": "Claude and ChatGPT are unlikely to limit you. Stick with this node rather than switching often.",
+        "limited": "Claude and ChatGPT may ask you to verify more often and occasionally limit you.",
+        "risky": "Many people have used this IP, so Claude and ChatGPT are likely to limit you. Try another node.",
+        "unsupported": "Claude and ChatGPT aren't available in {{region}}, so they won't open through this node.",
+        "unknown": "The lookup service didn't answer. Press refresh to try again later."
+      },
+      "facts": {
+        "region": "Region",
+        "network": "Network",
+        "purity": "Purity"
+      },
+      "tips": {
+        "region": "Where this node's traffic exits; sites think you're there. Claude and ChatGPT aren't available in mainland China, Hong Kong and some other regions.",
+        "network": "The kind of network this IP comes from. Home broadband looks most like an ordinary user; data centers are servers and the most likely to be limited by AI services.",
+        "purity": "How many people have used this IP and whether it has a bad record; lower is better. 0–35 is safe, 35–70 may be limited, above 70 isn't recommended. Data from IPPure."
+      },
+      "region": {
+        "supported": "Supported",
+        "unsupported": "Not supported"
+      },
+      "network": {
+        "residential": "Home broadband",
+        "datacenter": "Data center",
+        "datacenterNote": "home broadband is better",
+        "good": "Good",
+        "fair": "Fair"
       }
     },
     "blockers": {
@@ -84,6 +130,18 @@
     "empty": "No nodes are working. Check your subscription",
     "unavailable": "Unavailable · {{count}}",
     "unavailableHint": "Nodes that didn't respond within {{seconds}} seconds or failed to connect",
+    "ai": {
+      "check": "Check AI",
+      "checking": "Checking which nodes suit AI",
+      "failed": "Couldn't start the AI check. Try again later.",
+      "tag": {
+        "good": "Good for AI",
+        "limited": "AI limited",
+        "risky": "Not for AI",
+        "unsupported": "No AI here",
+        "available": "AI works"
+      }
+    },
     "notices": {
       "switchFailed": "Couldn't switch nodes"
     }

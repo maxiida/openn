@@ -161,12 +161,12 @@ export const MVP_SPEED_TIERS = [
   {
     min: 25,
     id: 'smooth',
-    color: 'success.main',
+    color: 'lime.main',
   },
   {
     min: 8,
     id: 'good',
-    color: 'info.main',
+    color: 'yellow.main',
   },
   {
     min: 3,
@@ -190,12 +190,13 @@ export const mvpSpeedTier = (mbps: number) => {
   }
 }
 
+/** The pill no longer names the tier, so the hint carries the measured speed itself. */
 export const mvpSpeedHint = (mbps: number) => {
   const tier = mvpSpeedTier(mbps)
-  const range = tier.min > 0 ? `≥ ${tier.min} Mbps` : '< 3 Mbps'
+  const value = mbps >= 10 ? String(Math.round(mbps)) : mbps.toFixed(1)
   return i18n.t(($) => $.mvp.delay.tierHint, {
     label: tier.label,
-    range,
+    range: `${value} Mbps`,
     hint: tier.hint,
   })
 }

@@ -34,23 +34,69 @@
     "currentNode": "当前节点",
     "noNode": "暂无可用节点",
     "nodeUnavailable": "当前节点不可用，请更换节点",
-    "speedUntested": "未测速",
     "awaitingRecovery": "等待恢复",
     "speedTestPrompt": "点击右侧刷新按钮测速",
+    "checking": "正在检测…",
+    "tags": {
+      "sites": "网站",
+      "sitesIntro": "网站：常用的国外网站能不能打开",
+      "ai": "AI",
+      "aiIntro": "AI：用 Claude、ChatGPT 等 AI 稳不稳",
+      "delay": "延迟",
+      "delayIntro": "延迟：打开网页要等多久",
+      "speed": "网速",
+      "speedIntro": "网速：下载有多快"
+    },
     "sites": {
-      "baidu": "百度",
+      "baidu": "Baidu",
       "domestic": "国内",
-      "checkingAll": "检测网站",
-      "details": "网站明细",
-      "allOk": "网站正常",
-      "oneDown": "{{name}} 打不开",
-      "someDown": "{{count}} 个网站打不开",
       "foreignDownHint": "国外网站都打不开，可能是这个节点出了问题，换一个试试",
+      "allOkHint": "Google、YouTube 等常用网站都能打开",
+      "partialHint": "{{list}}，其他正常",
+      "separator": "，",
       "status": {
         "checking": "检测中…",
         "ok": "正常",
         "slow": "有点慢",
         "down": "打不开"
+      }
+    },
+    "ai": {
+      "calm": "平时上网不受影响。",
+      "verdict": {
+        "good": "可以放心用 AI",
+        "limited": "能用 AI，但容易被限制",
+        "risky": "不建议用 AI",
+        "unsupported": "这里用不了 AI",
+        "unknown": "暂时查不到"
+      },
+      "message": {
+        "good": "用 Claude、ChatGPT 不容易被限制。尽量一直用这个节点，别频繁换。",
+        "limited": "用 Claude、ChatGPT 时可能要多验证几次，偶尔会被限制。",
+        "risky": "这个 IP 被很多人用过，用 Claude、ChatGPT 很容易被限制，建议换一个节点。",
+        "unsupported": "Claude、ChatGPT 不支持{{region}}，用这个节点打不开。",
+        "unknown": "查询服务暂时没有回应，稍后点刷新按钮再试。"
+      },
+      "facts": {
+        "region": "地区",
+        "network": "网络",
+        "purity": "纯净度"
+      },
+      "tips": {
+        "region": "节点出口在哪里，网站就会以为你在哪里。Claude、ChatGPT 不支持中国大陆、香港等地区。",
+        "network": "这个 IP 来自哪种网络。家庭宽带最像普通用户；机房是服务器，最容易被 AI 限制。",
+        "purity": "这个 IP 被多少人用过、有没有不良记录，分数越低越好。0–35 放心用，35–70 可能受限，70 以上不建议用。数据来自 IPPure。"
+      },
+      "region": {
+        "supported": "AI 支持",
+        "unsupported": "AI 不支持"
+      },
+      "network": {
+        "residential": "家庭宽带",
+        "datacenter": "机房",
+        "datacenterNote": "家庭宽带更好",
+        "good": "好",
+        "fair": "一般"
       }
     },
     "blockers": {
@@ -84,6 +130,18 @@
     "empty": "当前节点不可用，请先检查订阅",
     "unavailable": "不可用 · {{count}}",
     "unavailableHint": "{{seconds}} 秒内没有响应或连接失败的节点",
+    "ai": {
+      "check": "AI 检测",
+      "checking": "正在检测哪些节点适合 AI",
+      "failed": "AI 检测没能启动，稍后再试",
+      "tag": {
+        "good": "适合 AI",
+        "limited": "AI 受限",
+        "risky": "不建议 AI",
+        "unsupported": "AI 不支持",
+        "available": "AI 可用"
+      }
+    },
     "notices": {
       "switchFailed": "节点切换失败"
     }

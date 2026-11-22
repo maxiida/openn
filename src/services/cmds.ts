@@ -132,6 +132,15 @@ export async function getRuntimeConfig() {
   return invoke<IConfigData | null>('get_runtime_config')
 }
 
+/** Local ports, each leaving through one node, on a core separate from the running one. */
+export async function startAiProbe(nodes: string[]) {
+  return invoke<Record<string, number>>('start_ai_probe', { nodes })
+}
+
+export async function stopAiProbe() {
+  return invoke<void>('stop_ai_probe')
+}
+
 export async function getRuntimeYaml() {
   return invoke<string | null>('get_runtime_yaml')
 }

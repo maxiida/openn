@@ -12,11 +12,14 @@ import {
 import {
   IconActivity,
   IconArrowRight,
+  IconCheck,
   IconChevronDown,
+  IconInfoCircle,
   IconRefresh,
   IconScan,
   IconSettings,
   IconShieldCheck,
+  IconX,
 } from '@tabler/icons-react'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
@@ -25,13 +28,16 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
 import { BaseDialog } from '@/components/base'
+import { MvpAiPanel } from '@/components/mvp/mvp-ai-panel'
 import { MvpBanner } from '@/components/mvp/mvp-banner'
 import { MvpPage } from '@/components/mvp/mvp-page'
 import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
 import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
+import { MvpStatusHint } from '@/components/mvp/mvp-status-hint'
 import { MvpStatusPill } from '@/components/mvp/mvp-status-pill'
 import { QrScannerDialog } from '@/components/mvp/qr-scanner-dialog'
 import { useConnectionUnhealthy } from '@/hooks/use-connection-unhealthy'
+import { useDisplayedMixedPort } from '@/hooks/use-displayed-mixed-port'
 import { testMainGroup, useMainProxyGroup } from '@/hooks/use-main-proxy-group'
 import { useMvpConnected } from '@/hooks/use-mvp-connected'
 import { mvpCommandKey, useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
@@ -40,6 +46,11 @@ import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
 import { useVerge } from '@/hooks/use-verge'
 import { useVisibility } from '@/hooks/use-visibility'
 import { useAppRefreshers } from '@/providers/app-data-context'
+import {
+  aiVerdictColor,
+  checkAi,
+  type AiCheckResult,
+} from '@/services/ai-check'
 import {
   getPreflightReport,
   getRuntimeState,
@@ -157,7 +168,15 @@ const MvpHomePage = () => {
     results: Record<MvpSiteId, MvpSiteStatus> | null
   } | null>(null)
   const [siteRound, setSiteRound] = useState(0)
-  const [sitesOpen, setSitesOpen] = useState(false)
+  const [aiCheck, setAiCheck] = useState<{
+    key: string
+    result: AiCheckResult | null
+  } | null>(null)
+  const mixedPort = useDisplayedMixedPort()
+  // The site list and the AI details open under the same row, so only one shows at a time.
+  const [openPanel, setOpenPanel] = useState<'sites' | 'ai' | null>(null)
+  const togglePanel = (panel: 'sites' | 'ai') =>
+    setOpenPanel((open) => (open === panel ? null : panel))
 
   const refreshPreflight = useCallback(async () => {
     try {
@@ -368,6 +387,18 @@ const MvpHomePage = () => {
     }
   }, [connecting, indicator, node, pageVisible, siteRound, speedKey])
 
+  // The exit IP rarely changes under one node, so it is checked once per node and on ⌘R, not polled.
+  useEffect(() => {
+    if (!indicator || connecting || unhealthy || !node) return
+    let cancelled = false
+    void checkAi(mixedPort).then((result) => {
+      if (!cancelled) setAiCheck({ key: speedKey, result })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [connecting, indicator, mixedPort, node, siteRound, speedKey, unhealthy])
+
   const onImport = useLockFn(async () => {
     const normalizedUrl = url.trim()
     if (!isValidUrl(normalizedUrl)) {
@@ -491,7 +522,14 @@ const MvpHomePage = () => {
       key: 's',
       allowInControl: true,
       onPress: () => {
-        if (indicator && current) setSitesOpen((open) => !open)
+        if (indicator && current) togglePanel('sites')
+      },
+    },
+    {
+      key: 'a',
+      allowInControl: true,
+      onPress: () => {
+        if (indicator && current) togglePanel('ai')
       },
     },
     {
@@ -626,16 +664,45 @@ const MvpHomePage = () => {
   const foreignSitesDown = MVP_SITES.every(
     (site) => 'domestic' in site !== (siteResults?.[site.id] === 'down'),
   )
-  const siteSummary = !siteResults
-    ? t('mvp.home.sites.checkingAll')
-    : sitesDown.length > 1
-      ? t('mvp.home.sites.someDown', { count: sitesDown.length })
-      : sitesDown.length === 1
-        ? t('mvp.home.sites.oneDown', {
-            name: sitesDown[0].name ?? t('mvp.home.sites.baidu'),
+  const siteName = (site: (typeof MVP_SITES)[number]) =>
+    site.name ?? t('mvp.home.sites.baidu')
+  // Red is kept for a node that reaches nothing abroad; a site or two failing is yellow.
+  const siteColor = !siteResults
+    ? 'text.secondary'
+    : MVP_SITES.every(
+          (site) => 'domestic' in site || siteResults[site.id] === 'down',
+        )
+      ? 'error.main'
+      : MVP_SITES.some((site) => siteResults[site.id] !== 'ok')
+        ? 'warning.main'
+        : 'success.main'
+  const siteHint = !siteResults
+    ? t('mvp.home.checking')
+    : siteColor === 'error.main'
+      ? t('mvp.home.sites.foreignDownHint')
+      : siteColor === 'warning.main'
+        ? t('mvp.home.sites.partialHint', {
+            list: MVP_SITES.filter((site) => siteResults[site.id] !== 'ok')
+              .map(
+                (site) =>
+                  `${siteName(site)} ${t(`mvp.home.sites.status.${siteResults[site.id]}`)}`,
+              )
+              .join(t('mvp.home.sites.separator')),
           })
-        : t('mvp.home.sites.allOk')
+        : t('mvp.home.sites.allOkHint')
+  const aiResult = aiCheck?.key === speedKey ? aiCheck.result : null
   const delayState = classifyDelay(currentDelay, timeout)
+  const chevron = (open: boolean) => (
+    <Box
+      component={IconChevronDown}
+      size={15}
+      sx={{
+        mr: -0.5,
+        transition: 'transform 200ms',
+        transform: open ? 'rotate(180deg)' : 'none',
+      }}
+    />
+  )
   // Anything the home page already sees going wrong is worth a look on the check page.
   const hasIssue =
     Boolean(blocker) ||
@@ -811,49 +878,76 @@ const MvpHomePage = () => {
                     </MvpStatusPill>
                   )}
                   {indicator && !unhealthy && (
-                    <Tooltip
-                      title={
-                        <MvpShortcutHint
-                          label={t('mvp.home.sites.details')}
-                          shortcut="S"
-                        />
-                      }
-                    >
-                      <MvpStatusPill
-                        aria-keyshortcuts="S"
-                        color={
-                          !siteResults
-                            ? 'text.secondary'
-                            : sitesDown.length
-                              ? 'error.main'
-                              : 'success.main'
-                        }
-                        aria-expanded={sitesOpen}
-                        aria-controls="mvp-site-list"
-                        onClick={() => setSitesOpen((open) => !open)}
-                        endIcon={
-                          <Box
-                            component={IconChevronDown}
-                            size={15}
-                            sx={{
-                              mr: -0.5,
-                              transition: 'transform 200ms',
-                              transform: sitesOpen ? 'rotate(180deg)' : 'none',
-                            }}
-                          />
+                    <>
+                      <Tooltip
+                        title={
+                          <MvpStatusHint
+                            title={t('mvp.home.tags.sitesIntro')}
+                            shortcut="S"
+                          >
+                            {siteHint}
+                          </MvpStatusHint>
                         }
                       >
-                        {siteSummary}
-                      </MvpStatusPill>
-                    </Tooltip>
+                        <MvpStatusPill
+                          aria-keyshortcuts="S"
+                          color={siteColor}
+                          loading={!siteResults}
+                          aria-expanded={openPanel === 'sites'}
+                          aria-controls="mvp-site-list"
+                          onClick={() => togglePanel('sites')}
+                          endIcon={chevron(openPanel === 'sites')}
+                        >
+                          {t('mvp.home.tags.sites')}
+                        </MvpStatusPill>
+                      </Tooltip>
+                      <Tooltip
+                        title={
+                          <MvpStatusHint
+                            title={t('mvp.home.tags.aiIntro')}
+                            shortcut="A"
+                          >
+                            {aiResult
+                              ? t(`mvp.home.ai.verdict.${aiResult.verdict}`)
+                              : t('mvp.home.checking')}
+                          </MvpStatusHint>
+                        }
+                      >
+                        <MvpStatusPill
+                          aria-keyshortcuts="A"
+                          color={
+                            aiResult
+                              ? aiVerdictColor(aiResult.verdict)
+                              : 'text.secondary'
+                          }
+                          loading={!aiResult}
+                          aria-expanded={openPanel === 'ai'}
+                          aria-controls="mvp-ai-panel"
+                          onClick={() => togglePanel('ai')}
+                          endIcon={chevron(openPanel === 'ai')}
+                        >
+                          {t('mvp.home.tags.ai')}
+                        </MvpStatusPill>
+                      </Tooltip>
+                    </>
                   )}
                   {!unhealthy && (
-                    <Tooltip title={mvpDelayHint(currentDelay, timeout)}>
+                    <Tooltip
+                      title={
+                        <MvpStatusHint title={t('mvp.home.tags.delayIntro')}>
+                          {delayState === 'testing'
+                            ? t('mvp.home.checking')
+                            : mvpDelayHint(currentDelay, timeout)}
+                        </MvpStatusHint>
+                      }
+                    >
                       <MvpStatusPill
                         color={mvpDelayColor(currentDelay, timeout)}
                         loading={delayState === 'testing'}
                       >
-                        {formatMvpDelay(currentDelay, timeout)}
+                        {delayState === 'testing' || delayState === 'untested'
+                          ? t('mvp.home.tags.delay')
+                          : formatMvpDelay(currentDelay, timeout)}
                       </MvpStatusPill>
                     </Tooltip>
                   )}
@@ -861,9 +955,13 @@ const MvpHomePage = () => {
                     <>
                       <Tooltip
                         title={
-                          speed
-                            ? mvpSpeedHint(speed.mbps)
-                            : t('mvp.home.speedTestPrompt')
+                          <MvpStatusHint title={t('mvp.home.tags.speedIntro')}>
+                            {speedTesting
+                              ? t('mvp.home.checking')
+                              : speed
+                                ? mvpSpeedHint(speed.mbps)
+                                : t('mvp.home.speedTestPrompt')}
+                          </MvpStatusHint>
                         }
                       >
                         <MvpStatusPill
@@ -872,12 +970,11 @@ const MvpHomePage = () => {
                               ? mvpSpeedTier(speed.mbps).color
                               : 'text.secondary'
                           }
+                          loading={speedTesting}
                         >
-                          {speedTesting
-                            ? t('mvp.common.testing')
-                            : speed
-                              ? mvpSpeedTier(speed.mbps).label
-                              : t('mvp.home.speedUntested')}
+                          {speed && !speedTesting
+                            ? mvpSpeedTier(speed.mbps).label
+                            : t('mvp.home.tags.speed')}
                         </MvpStatusPill>
                       </Tooltip>
                       <Tooltip
@@ -935,81 +1032,111 @@ const MvpHomePage = () => {
             </Tooltip>
           </Box>
           {indicator && current && !unhealthy && (
-            <Collapse in={sitesOpen} id="mvp-site-list">
-              <Box
-                sx={{
-                  mt: 2,
-                  px: 1.75,
-                  py: 0.75,
-                  borderRadius: 2.5,
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                }}
-              >
-                {MVP_SITES.map((site) => {
-                  const status = siteResults?.[site.id]
-                  const color =
-                    status === 'down'
-                      ? 'error.main'
-                      : status === 'slow'
-                        ? 'warning.main'
-                        : status === 'ok'
-                          ? 'success.main'
-                          : 'text.disabled'
-                  return (
-                    <Box
-                      key={site.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.25,
-                        py: 0.875,
-                        fontSize: 14,
-                      }}
-                    >
+            <>
+              <Collapse in={openPanel === 'sites'} id="mvp-site-list">
+                <Box
+                  sx={{
+                    mt: 2,
+                    px: 1.75,
+                    py: 0.75,
+                    borderRadius: 2.5,
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                  }}
+                >
+                  {MVP_SITES.map((site) => {
+                    const status = siteResults?.[site.id]
+                    const statusLabel = t(
+                      `mvp.home.sites.status.${status ?? 'checking'}`,
+                    )
+                    return (
                       <Box
+                        key={site.id}
                         sx={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: '50%',
-                          bgcolor: color,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        {site.name ?? t('mvp.home.sites.baidu')}
-                        {'domestic' in site && (
-                          <Typography
-                            component="span"
-                            color="text.secondary"
-                            sx={{ ml: 0.75, fontSize: 12 }}
-                          >
-                            {t('mvp.home.sites.domestic')}
-                          </Typography>
-                        )}
-                      </Box>
-                      <Typography
-                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.25,
+                          py: 0.875,
                           fontSize: 14,
-                          color: status === 'ok' ? 'text.secondary' : color,
                         }}
                       >
-                        {t(`mvp.home.sites.status.${status ?? 'checking'}`)}
-                      </Typography>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          {site.name ?? t('mvp.home.sites.baidu')}
+                        </Box>
+                        <Tooltip title={statusLabel}>
+                          <Box
+                            component="span"
+                            role="img"
+                            aria-label={statusLabel}
+                            sx={{
+                              display: 'flex',
+                              flexShrink: 0,
+                              color: !status
+                                ? 'text.disabled'
+                                : status === 'down'
+                                  ? 'error.main'
+                                  : 'success.main',
+                            }}
+                          >
+                            {!status ? (
+                              <MvpProgressRing busy size={18} />
+                            ) : status === 'down' ? (
+                              <IconX size={18} aria-hidden />
+                            ) : (
+                              <IconCheck size={18} aria-hidden />
+                            )}
+                          </Box>
+                        </Tooltip>
+                      </Box>
+                    )
+                  })}
+                  {foreignSitesDown && (
+                    <Box
+                      role="note"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1,
+                        my: 0.75,
+                        px: 1.5,
+                        py: 1,
+                        bgcolor: '#191C1D',
+                        color: '#FAFAFA',
+                        border: '1px solid #303334',
+                        borderRadius: '11px',
+                        fontSize: 13,
+                        lineHeight: '18px',
+                        boxShadow:
+                          '0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12) !important',
+                      }}
+                    >
+                      <IconInfoCircle
+                        size={18}
+                        aria-hidden
+                        style={{ flexShrink: 0 }}
+                      />
+                      <Box>{t('mvp.home.sites.foreignDownHint')}</Box>
                     </Box>
-                  )
-                })}
-                {foreignSitesDown && (
-                  <Typography
-                    color="text.secondary"
-                    sx={{ fontSize: 12, pt: 0.25, pb: 0.75 }}
-                  >
-                    {t('mvp.home.sites.foreignDownHint')}
-                  </Typography>
-                )}
-              </Box>
-            </Collapse>
+                  )}
+                </Box>
+              </Collapse>
+              <Collapse in={openPanel === 'ai'} id="mvp-ai-panel">
+                <Box
+                  sx={{
+                    mt: 2,
+                    px: 1.75,
+                    py: 1.5,
+                    borderRadius: 2.5,
+                    bgcolor: 'background.paper',
+                    border: 1,
+                    borderColor: 'divider',
+                  }}
+                >
+                  <MvpAiPanel result={aiResult} onChangeNode={openNodes} />
+                </Box>
+              </Collapse>
+            </>
           )}
         </Box>
       </Stack>

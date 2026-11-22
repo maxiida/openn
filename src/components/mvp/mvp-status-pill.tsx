@@ -5,7 +5,7 @@ import type { MvpSegment } from '@/utils/mvp-progress'
 
 import { MvpProgressRing } from './mvp-progress-ring'
 
-const TONES = ['success', 'info', 'warning', 'error'] as const
+const TONES = ['success', 'lime', 'yellow', 'info', 'warning', 'error'] as const
 
 /** Accepts the palette colours the delay and speed helpers return; anything else renders neutral. */
 const pillColors = (color: string) => (theme: Theme) => {

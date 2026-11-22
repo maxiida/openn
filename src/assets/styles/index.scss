@@ -1,10 +1,13 @@
 @use "./layout.scss";
 @use "./page.scss";
 @use "./font.scss";
+@use "./icon-motion.scss";
 
 body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
+  // No paragraph may end with a single character alone on its last line.
+  text-wrap: pretty;
 
   user-select: none;
   -webkit-user-select: none;

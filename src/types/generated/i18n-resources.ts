@@ -412,12 +412,51 @@ export interface TranslationResources {
           routeAllApps: string
           settings: string
         }
+        ai: {
+          calm: string
+          facts: {
+            network: string
+            purity: string
+            region: string
+          }
+          message: {
+            good: string
+            limited: string
+            risky: string
+            unknown: string
+            unsupported: string
+          }
+          network: {
+            datacenter: string
+            datacenterNote: string
+            fair: string
+            good: string
+            residential: string
+          }
+          region: {
+            supported: string
+            unsupported: string
+          }
+          tips: {
+            network: string
+            purity: string
+            region: string
+          }
+          verdict: {
+            good: string
+            limited: string
+            risky: string
+            unknown: string
+            unsupported: string
+          }
+        }
         awaitingRecovery: string
         blockers: {
           foreignSystemProxy: string
           foreignTunnel: string
           staleProxyEnv: string
         }
+        checking: string
         currentNode: string
         nodeUnavailable: string
         noNode: string
@@ -440,14 +479,12 @@ export interface TranslationResources {
           vpnHint: string
         }
         sites: {
-          allOk: string
+          allOkHint: string
           baidu: string
-          checkingAll: string
-          details: string
           domestic: string
           foreignDownHint: string
-          oneDown: string
-          someDown: string
+          partialHint: string
+          separator: string
           status: {
             checking: string
             down: string
@@ -456,12 +493,21 @@ export interface TranslationResources {
           }
         }
         speedTestPrompt: string
-        speedUntested: string
         status: {
           connected: string
           disconnected: string
           pending: string
           unhealthy: string
+        }
+        tags: {
+          ai: string
+          aiIntro: string
+          delay: string
+          delayIntro: string
+          sites: string
+          sitesIntro: string
+          speed: string
+          speedIntro: string
         }
         welcome: {
           import: string
@@ -471,6 +517,18 @@ export interface TranslationResources {
         }
       }
       nodes: {
+        ai: {
+          check: string
+          checking: string
+          failed: string
+          tag: {
+            available: string
+            good: string
+            limited: string
+            risky: string
+            unsupported: string
+          }
+        }
         done: string
         empty: string
         notices: {

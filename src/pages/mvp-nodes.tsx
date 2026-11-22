@@ -9,7 +9,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { keyframes } from '@mui/material/styles'
+import { alpha, keyframes, type Theme } from '@mui/material/styles'
 import {
   IconArrowLeft,
   IconArrowsExchange,
@@ -21,6 +21,7 @@ import {
   IconPlus,
   IconRefresh,
   IconScan,
+  IconSparkles,
   IconSquare,
   IconSquareCheckFilled,
   IconTrash,
@@ -44,6 +45,11 @@ import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
 import { useAppRefreshers } from '@/providers/app-data-context'
+import {
+  type AiCheckResult,
+  type AiVerdict,
+  checkAiNodes,
+} from '@/services/ai-check'
 import { deleteProfile, updateProfile } from '@/services/cmds'
 import {
   activateMvpProfile,
@@ -56,7 +62,11 @@ import { showNotice } from '@/services/notice-service'
 import type { InteractableProxyMember } from '@/types/proxy-view'
 import { classifyDelay } from '@/utils/delay'
 import { formatMvpDelay, mvpDelayColor } from '@/utils/main-proxy-group'
-import type { MvpSegment } from '@/utils/mvp-progress'
+import {
+  fractionSegments,
+  type MvpSegment,
+  RING_SEGMENTS,
+} from '@/utils/mvp-progress'
 import { isValidUrl } from '@/utils/network'
 
 const ROW_HEIGHT = 64
@@ -117,6 +127,48 @@ const readPinnedNodes = (): PinnedNodes => {
   } catch {
     return {}
   }
+}
+
+const AI_CHECKS_KEY = 'mvp-ai-checks'
+// An exit IP rarely changes within a day; older tags fade to ask for a new check.
+const AI_CHECK_FRESH_MS = 24 * 60 * 60 * 1000
+
+type AiTag = Exclude<AiVerdict, 'unknown'> | 'available'
+
+type AiChecks = Record<string, Record<string, { tag: AiTag; at: number }>>
+
+const readAiChecks = (): AiChecks => {
+  try {
+    const data = JSON.parse(localStorage.getItem(AI_CHECKS_KEY) ?? '{}')
+    return data && typeof data === 'object' ? data : {}
+  } catch {
+    return {}
+  }
+}
+
+// IPPure turns some exits away; a supported region still reaches the AI services.
+const aiTagOf = (result: AiCheckResult): AiTag | null =>
+  result.verdict !== 'unknown'
+    ? result.verdict
+    : result.region
+      ? 'available'
+      : null
+
+const AI_TAG_PALETTE = {
+  good: 'success',
+  limited: 'warning',
+  risky: 'error',
+  available: 'primary',
+} as const
+
+const aiTagSx = (tag: AiTag) => {
+  const key = tag === 'unsupported' ? null : AI_TAG_PALETTE[tag]
+  return key
+    ? {
+        color: `${key}.main`,
+        bgcolor: (theme: Theme) => alpha(theme.palette[key].main, 0.14),
+      }
+    : { color: 'text.secondary', bgcolor: 'action.hover' }
 }
 
 const MvpNodesPage = () => {
@@ -188,6 +240,18 @@ const MvpNodesPage = () => {
       localStorage.setItem(PINNED_NODES_KEY, JSON.stringify(next))
     } catch {}
   }
+
+  const [aiChecks, setAiChecks] = useState(readAiChecks)
+  const [aiProgress, setAiProgress] = useState<{
+    done: number
+    total: number
+  } | null>(null)
+  const aiScope = profiles?.current ?? ''
+  useEffect(() => {
+    try {
+      localStorage.setItem(AI_CHECKS_KEY, JSON.stringify(aiChecks))
+    } catch {}
+  }, [aiChecks])
 
   const togglePinDraft = (name: string) =>
     setPinDraft((draft) =>
@@ -430,6 +494,33 @@ const MvpNodesPage = () => {
     () => new Map(members.map((member) => [member.ref.name, member])),
     [members],
   )
+  const onAiCheck = useLockFn(async () => {
+    // Nodes the speed test already gave up on would only hold the check up.
+    const nodes = layout.visible.filter(
+      (name) => memberByName.get(name)?.kind === 'node',
+    )
+    if (nodes.length === 0) return
+    const scope = aiScope
+    let done = 0
+    setAiProgress({ done, total: nodes.length })
+    try {
+      await checkAiNodes(nodes, (node, result) => {
+        setAiProgress({ done: ++done, total: nodes.length })
+        const tag = result && aiTagOf(result)
+        if (!tag) return
+        setAiChecks((checks) => ({
+          ...checks,
+          [scope]: { ...checks[scope], [node]: { tag, at: Date.now() } },
+        }))
+      })
+    } catch (error) {
+      console.error('[Proxy MVP] AI check failed:', error)
+      showNotice.error(t('mvp.nodes.ai.failed'))
+    } finally {
+      setAiProgress(null)
+    }
+  })
+
   const toMembers = (names: string[]) =>
     names.flatMap((name) => memberByName.get(name) ?? [])
   const visibleMembers = toMembers(shownLayout.visible)
@@ -491,6 +582,7 @@ const MvpNodesPage = () => {
     const selected = group?.now === name
     const pinChecked = pinDraft?.includes(name)
     const delay = delays.of(member)
+    const aiCheck = aiChecks[aiScope]?.[name]
     const memberKey =
       member.kind === 'node'
         ? `node-${member.node.recordId}`
@@ -565,6 +657,24 @@ const MvpNodesPage = () => {
           >
             {name}
           </Typography>
+          {aiCheck && (
+            <Box
+              component="span"
+              sx={{
+                ml: 1,
+                px: 0.75,
+                borderRadius: 1,
+                flexShrink: 0,
+                fontSize: 11.5,
+                lineHeight: '20px',
+                whiteSpace: 'nowrap',
+                opacity: Date.now() - aiCheck.at < AI_CHECK_FRESH_MS ? 1 : 0.45,
+                ...aiTagSx(aiCheck.tag),
+              }}
+            >
+              {t(`mvp.nodes.ai.tag.${aiCheck.tag}`)}
+            </Box>
+          )}
         </Box>
         {switching === name ? (
           <MvpProgressRing size={17} />
@@ -657,6 +767,34 @@ const MvpNodesPage = () => {
                 ) : (
                   <IconCheck size={22} />
                 )}
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={
+              aiProgress ? t('mvp.nodes.ai.checking') : t('mvp.nodes.ai.check')
+            }
+          >
+            <span>
+              <IconButton
+                aria-label={t('mvp.nodes.ai.check')}
+                disabled={aiProgress !== null || members.length === 0}
+                onClick={onAiCheck}
+              >
+                <MvpProgressRing
+                  busy={aiProgress !== null}
+                  size={22}
+                  segments={
+                    aiProgress
+                      ? fractionSegments(
+                          aiProgress.done / aiProgress.total,
+                          RING_SEGMENTS,
+                        )
+                      : undefined
+                  }
+                >
+                  <IconSparkles size={22} />
+                </MvpProgressRing>
               </IconButton>
             </span>
           </Tooltip>
