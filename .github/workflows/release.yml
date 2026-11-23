@@ -34,7 +34,6 @@ jobs:
           repository: ${{ github.repository_owner }}/openn-service
           ref: openn
           path: clash-verge-service-ipc
-          ssh-key: ${{ secrets.SERVICE_DEPLOY_KEY }}
 
       - name: Check tag matches version
         if: env.IS_TAG == 'true'
