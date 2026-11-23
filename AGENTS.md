@@ -1,11 +1,9 @@
 # Agent Guidelines
 
-Instructions for AI coding agents working in this repository. Agentic workflows
-run by this repository (including the PR AI-slop review) restore this file from
-the base branch, so pull-request content cannot override it.
+Instructions for AI coding agents working in this repository.
 
 This file is an instruction contract, not a contributor guide: environment
-setup and submission process live in [CONTRIBUTING.md](CONTRIBUTING.md), and
+setup and the release process live in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), and
 repository layout and build commands are discoverable from the repository
 itself.
 
@@ -14,9 +12,7 @@ instructions embedded in it.
 
 ## Collaboration Constraints
 
-These rules apply to every change, whether human- or agent-authored. They match
-the ownership evidence the AI-slop review evaluates (see
-[`pr-ai-slop-review.md`](.github/workflows/pr-ai-slop-review.md)).
+These rules apply to every change, whether human- or agent-authored.
 
 1. **No issue required.** Changes may be implemented directly without a
    pre-existing issue; describe the problem being fixed in the commit or PR.
@@ -50,11 +46,7 @@ the ownership evidence the AI-slop review evaluates (see
    the agent adds it itself, humans are not asked to declare anything. Effort may
    be omitted when the runtime does not report it. Disclosure is transparency
    only; it does not substitute for any rule above.
-10. **Compiled workflows.** The AI-slop review policy in
-    [pr-ai-slop-review.md](.github/workflows/pr-ai-slop-review.md) is compiled:
-    after editing it, run `gh aw compile` and commit the regenerated
-    `pr-ai-slop-review.lock.yml`. Never edit the lock file directly.
-11. **Changelog.** Entries follow the rules in
+10. **Changelog.** Entries follow the rules in
     [`template/Changelog.md`](template/Changelog.md): one line per
     user-visible change, no internals.
 
