@@ -13,7 +13,7 @@ set -euo pipefail
 #   (default) rewrite Changelog.md in place
 #   --check   report misplaced entries without writing; exit 1 if any
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 CHANGELOG="$ROOT_DIR/Changelog.md"
 
 if [ ! -f "$CHANGELOG" ]; then

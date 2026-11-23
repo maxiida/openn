@@ -47,7 +47,7 @@ These rules apply to every change, whether human- or agent-authored.
    be omitted when the runtime does not report it. Disclosure is transparency
    only; it does not substitute for any rule above.
 10. **Changelog.** Entries follow the rules in
-    [`template/Changelog.md`](template/Changelog.md): one line per
+    [`docs/Changelog-template.md`](docs/Changelog-template.md): one line per
     user-visible change, no internals.
 
 ## Pull Request Shape

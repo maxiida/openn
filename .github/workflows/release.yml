@@ -92,7 +92,6 @@ jobs:
           releaseBody: See Changelog.md for this version.
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
-          includeUpdaterJson: true
 
       - name: Upload bundle
         if: env.IS_TAG != 'true'
