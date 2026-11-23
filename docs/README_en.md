@@ -9,6 +9,12 @@
 <p align="center">Built on <a href="https://github.com/clash-verge-rev/clash-verge-rev">Clash Verge Rev</a> · For Macs with Apple silicon (macOS 11 or later)</p>
 
 <p align="center">
+  <a href="https://github.com/maxiida/openn/releases/latest/download/Openn_aarch64.dmg"><img src="https://img.shields.io/badge/Download_Openn-for_Mac-111111?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000" alt="Download Openn for Mac" height="44"></a>
+  <br>
+  <a href="https://github.com/maxiida/openn/releases/latest"><img src="https://img.shields.io/github/v/release/maxiida/openn?label=latest&color=2F7D4F" alt="Latest release"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/maxiida/openn/releases">Releases</a> ·
   <a href="../Changelog.md">Changelog</a> ·
   <a href="https://github.com/maxiida/openn/issues">Report an issue</a> ·
@@ -23,7 +29,7 @@ I still find a lot of the settings in Clash Verge hard to understand. Most days,
 
 ## Getting started
 
-This page describes the upcoming release. The installer for Macs with Apple silicon will be available on [GitHub Releases](https://github.com/maxiida/openn/releases).
+Click **Download Openn** above, or get `Openn_aarch64.dmg` from [GitHub Releases](https://github.com/maxiida/openn/releases/latest). Open it and drag Openn to your Applications folder.
 
 On your first launch, paste the subscription link from your proxy provider and follow the prompts to grant permission. Openn tests your connections and helps you pick one that responds quickly. After that, use the same button to connect or disconnect. You can close the window and leave Openn running in the background.
 

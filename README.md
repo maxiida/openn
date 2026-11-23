@@ -9,6 +9,12 @@
 <p align="center">基于 <a href="https://github.com/clash-verge-rev/clash-verge-rev">Clash Verge Rev</a> 改造 · 适用于 Apple 芯片的 Mac（macOS 11 及以上）</p>
 
 <p align="center">
+  <a href="https://github.com/maxiida/openn/releases/latest/download/Openn_aarch64.dmg"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD_Openn-Mac_%E7%89%88-111111?style=for-the-badge&logo=apple&logoColor=white&labelColor=000000" alt="下载 Openn Mac 版" height="44"></a>
+  <br>
+  <a href="https://github.com/maxiida/openn/releases/latest"><img src="https://img.shields.io/github/v/release/maxiida/openn?label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC&color=2F7D4F" alt="最新版本"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/maxiida/openn/releases">版本发布</a> ·
   <a href="./Changelog.md">更新记录</a> ·
   <a href="https://github.com/maxiida/openn/issues">问题反馈</a> ·
@@ -23,7 +29,7 @@
 
 ## 开始使用
 
-这里介绍的是准备发布的版本。面向 Apple 芯片 Mac 的安装包发布后，可以在 [GitHub Releases](https://github.com/maxiida/openn/releases) 下载。
+点上面的「下载 Openn」按钮，或者到 [GitHub Releases](https://github.com/maxiida/openn/releases/latest) 下载 `Openn_aarch64.dmg`。打开后把 Openn 拖进「应用程序」文件夹。
 
 第一次打开 Openn，粘贴代理服务商给你的订阅链接，按提示完成一次授权。Openn 会测试线路，帮你选一个响应快的节点。之后，连接和断开都用首页的同一个按钮。关掉窗口，Openn 也会继续在后台运行。
 

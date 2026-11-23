@@ -92,6 +92,8 @@ jobs:
           releaseBody: See Changelog.md for this version.
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
+          # No version in the names, so the README's releases/latest/download link keeps working.
+          releaseAssetNamePattern: '[name]_[arch][ext]'
 
       - name: Upload bundle
         if: env.IS_TAG != 'true'
