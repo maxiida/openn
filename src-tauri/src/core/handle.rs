@@ -84,6 +84,10 @@ impl Handle {
         Self::send_event(FrontendEvent::ConnectionHealthChanged { unhealthy });
     }
 
+    pub fn ai_node_health_changed(health: serde_json::Value) {
+        Self::send_event(FrontendEvent::AiNodeHealthChanged { health });
+    }
+
     pub fn notice_message<S: AsRef<str>, M: Into<String>>(status: S, msg: M) {
         let status_str = status.as_ref();
         let msg_str = msg.into();

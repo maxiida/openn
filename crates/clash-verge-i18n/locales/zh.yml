@@ -1,5 +1,23 @@
 _version: 1
 notifications:
+  networkDown:
+    title: 网络断了
+    body: 检查一下 Wi-Fi 或网线
+  nodeDown:
+    title: 节点连不上了
+    body: 国外网站暂时打不开，换个节点试试
+  nodeRecovered:
+    title: 网络已恢复
+    body: 节点又能用了
+  aiNodeDown:
+    title: AI 节点连不上了
+    body: Claude、ChatGPT 暂时打不开
+  aiNodeMissing:
+    title: AI 节点没了
+    body: 订阅里找不到它，AI 先走主节点
+  aiNodeRecovered:
+    title: AI 节点已恢复
+    body: Claude、ChatGPT 又能用了
   dashboardToggled:
     title: 仪表板
     body: 仪表板显示状态已更新。

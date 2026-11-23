@@ -31,7 +31,7 @@ import {
   useState,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 
 import LogoSvg from '@/assets/image/logo.svg?react'
 import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
@@ -1068,8 +1068,11 @@ const MvpOnboardingPage = () => {
   const profile =
     availableProfiles.find((item) => item.uid === profiles?.current) ??
     availableProfiles[0]
-  // Reopened from Help with a subscription in place, the user can leave at any time.
-  const [returning] = useState(() => Boolean(profile))
+  // Reopened from Help, the user can leave at any time. The profile list may still be loading on
+  // the first render, so the route says where the guide was opened from.
+  const location = useLocation()
+  const returning =
+    (location.state as { fromHelp?: boolean } | null)?.fromHelp === true
 
   const [needsPermission, setNeedsPermission] = useState(true)
   useEffect(() => {

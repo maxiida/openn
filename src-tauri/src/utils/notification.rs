@@ -20,14 +20,29 @@ pub enum NotificationEvent<'a> {
     AppQuit,
     #[cfg(target_os = "macos")]
     AppHidden,
+    NodeDown {
+        node: &'a str,
+    },
+    /// The node and the direct connection both fail: the local network is down.
+    NetworkDown,
+    NodeRecovered {
+        node: &'a str,
+    },
+    AiNodeDown {
+        node: &'a str,
+    },
+    AiNodeMissing {
+        node: &'a str,
+    },
+    AiNodeRecovered {
+        node: &'a str,
+    },
 }
 
-/// Whether no app window can currently show the failure.
+/// Whether the user could miss an in-app notice: unless Openn's window is in front, they are
+/// looking at something else.
 pub const fn needs_system_notification(state: WindowState) -> bool {
-    match state {
-        WindowState::Hidden | WindowState::Minimized | WindowState::NotExist => true,
-        WindowState::VisibleFocused | WindowState::VisibleUnfocused => false,
-    }
+    !matches!(state, WindowState::VisibleFocused)
 }
 
 fn notify(title: Cow<'_, str>, body: Cow<'_, str>) {
@@ -99,6 +114,46 @@ pub async fn notify_event<'a>(event: NotificationEvent<'a>) {
         NotificationEvent::AppHidden => {
             let title = clash_verge_i18n::t!("notifications.appHidden.title");
             let body = clash_verge_i18n::t!("notifications.appHidden.body");
+            notify(title, body);
+        }
+        NotificationEvent::NodeDown { node } => {
+            let title = clash_verge_i18n::t!("notifications.nodeDown.title");
+            let body = clash_verge_i18n::t!("notifications.nodeDown.body")
+                .replace("{node}", node)
+                .into();
+            notify(title, body);
+        }
+        NotificationEvent::NetworkDown => {
+            let title = clash_verge_i18n::t!("notifications.networkDown.title");
+            let body = clash_verge_i18n::t!("notifications.networkDown.body");
+            notify(title, body);
+        }
+        NotificationEvent::NodeRecovered { node } => {
+            let title = clash_verge_i18n::t!("notifications.nodeRecovered.title");
+            let body = clash_verge_i18n::t!("notifications.nodeRecovered.body")
+                .replace("{node}", node)
+                .into();
+            notify(title, body);
+        }
+        NotificationEvent::AiNodeDown { node } => {
+            let title = clash_verge_i18n::t!("notifications.aiNodeDown.title");
+            let body = clash_verge_i18n::t!("notifications.aiNodeDown.body")
+                .replace("{node}", node)
+                .into();
+            notify(title, body);
+        }
+        NotificationEvent::AiNodeMissing { node } => {
+            let title = clash_verge_i18n::t!("notifications.aiNodeMissing.title");
+            let body = clash_verge_i18n::t!("notifications.aiNodeMissing.body")
+                .replace("{node}", node)
+                .into();
+            notify(title, body);
+        }
+        NotificationEvent::AiNodeRecovered { node } => {
+            let title = clash_verge_i18n::t!("notifications.aiNodeRecovered.title");
+            let body = clash_verge_i18n::t!("notifications.aiNodeRecovered.body")
+                .replace("{node}", node)
+                .into();
             notify(title, body);
         }
     }

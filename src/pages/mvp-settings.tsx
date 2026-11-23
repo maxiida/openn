@@ -2,6 +2,8 @@ import {
   alpha,
   Box,
   Button,
+  ButtonBase,
+  Collapse,
   Divider,
   IconButton,
   Menu,
@@ -11,27 +13,33 @@ import {
 } from '@mui/material'
 import { getVersion } from '@tauri-apps/api/app'
 import { useLockFn } from 'ahooks'
-import { ChevronLeftIcon, CircleHelpIcon } from 'lucide-react'
+import { ChevronLeftIcon, ChevronRightIcon, CircleHelpIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { BaseDialog, Switch } from '@/components/base'
+import { MvpAiNodePicker } from '@/components/mvp/mvp-ai-node-picker'
 import { MvpPage } from '@/components/mvp/mvp-page'
 import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
 import { MvpSegmented } from '@/components/mvp/mvp-segmented'
 import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
+import { useAiNode } from '@/hooks/use-ai-node'
+import { useAiNodeHealth } from '@/hooks/use-ai-node-health'
+import { useMainProxyGroup } from '@/hooks/use-main-proxy-group'
 import { useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
 import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { useVerge } from '@/hooks/use-verge'
 import { useAppRefreshers } from '@/providers/app-data-context'
 import { exitApp, exportLogs, uninstallService } from '@/services/cmds'
+import delayManager from '@/services/delay'
 import { resolveLanguage } from '@/services/i18n'
 import { MvpConnectionError, repairMvp } from '@/services/mvp-connection'
 import { showNotice } from '@/services/notice-service'
 import { revalidateQueries, useQuery } from '@/services/query-client'
 import getSystem from '@/utils/get-system'
+import { formatMvpDelay, mvpDelayColor } from '@/utils/main-proxy-group'
 
 type ThemeMode = NonNullable<IVergeConfig['theme_mode']>
 
@@ -39,15 +47,20 @@ const SUPPORTS_GLASS = getSystem() === 'macos'
 
 const Section = ({
   title,
+  badge,
   children,
 }: {
   title: string
+  badge?: ReactNode
   children: ReactNode
 }) => (
   <Box>
-    <Typography color="textSecondary" sx={{ fontSize: 13, mb: 1 }}>
-      {title}
-    </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+      <Typography color="textSecondary" sx={{ fontSize: 13 }}>
+        {title}
+      </Typography>
+      {badge}
+    </Box>
     <Box sx={{ borderTop: 1, borderColor: 'divider' }}>{children}</Box>
   </Box>
 )
@@ -111,6 +124,19 @@ const MvpSettingsPage = () => {
   const [uninstallOpen, setUninstallOpen] = useState(false)
   const [uninstalling, setUninstalling] = useState(false)
   const [helpAnchor, setHelpAnchor] = useState<HTMLElement | null>(null)
+  const aiNode = useAiNode()
+  const [aiPickerOpen, setAiPickerOpen] = useState(false)
+  const { group: mainGroup, delays, timeout } = useMainProxyGroup()
+  const aiNodeHealth = useAiNodeHealth()
+  const aiNodeDown =
+    aiNodeHealth.state === 'down' && aiNodeHealth.node === aiNode.name
+  const aiMember = aiNode.enabled ? aiNode.member : undefined
+  const aiNodeDelay = aiMember ? delays.of(aiMember) : -1
+  // The node list's last result may be old, so measure the AI node whenever this page shows it.
+  useEffect(() => {
+    if (!aiMember || !mainGroup) return
+    void delayManager.checkDelay(aiMember, mainGroup.name, timeout)
+  }, [aiMember, mainGroup, timeout])
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const menuAction = searchParams.get('help')
@@ -198,6 +224,19 @@ const MvpSettingsPage = () => {
     }
   })
 
+  // Turning on without a chosen node goes straight to the picker; leaving it empty turns it back off.
+  // Without a usable node, routing turns on only once one is picked, so the config never runs
+  // with a missing node in between.
+  const onAiNodeToggle = (checked: boolean) => {
+    if (checked && !aiNode.member) setAiPickerOpen(true)
+    else aiNode.setEnabled(checked)
+  }
+
+  const onAiPickerClose = (picked: string | null) => {
+    setAiPickerOpen(false)
+    if (picked) aiNode.choose(picked)
+  }
+
   const onExportLogs = useLockFn(async () => {
     setExporting(true)
     try {
@@ -261,7 +300,7 @@ const MvpSettingsPage = () => {
             <MenuItem
               onClick={() => {
                 setHelpAnchor(null)
-                navigate('/welcome')
+                navigate('/welcome', { state: { fromHelp: true } })
               }}
             >
               {t('mvp.settings.onboarding')}
@@ -363,6 +402,90 @@ const MvpSettingsPage = () => {
           </Row>
         </Section>
 
+        <Section
+          title={t('mvp.settings.routing')}
+          badge={
+            <Box
+              component="span"
+              sx={(theme) => ({
+                px: 0.75,
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 600,
+                lineHeight: '18px',
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.14),
+              })}
+            >
+              Beta
+            </Box>
+          }
+        >
+          <Row
+            label={t('mvp.settings.aiNode.label')}
+            hint={t('mvp.settings.aiNode.hint')}
+          >
+            <Switch
+              checked={aiNode.enabled || aiPickerOpen}
+              onChange={(_, checked) => onAiNodeToggle(checked)}
+              slotProps={{
+                input: { 'aria-label': t('mvp.settings.aiNode.label') },
+              }}
+            />
+          </Row>
+          <Collapse in={aiNode.enabled && Boolean(aiNode.name)} unmountOnExit>
+            <Row label={t('mvp.settings.aiNode.node')}>
+              <ButtonBase
+                onClick={() => setAiPickerOpen(true)}
+                sx={{
+                  maxWidth: 320,
+                  minHeight: 32,
+                  px: 1.25,
+                  gap: 0.5,
+                  borderRadius: 2,
+                  color: aiNode.member ? 'text.primary' : 'text.secondary',
+                  fontSize: 14,
+                  '&:hover, &.Mui-focusVisible': { bgcolor: 'action.hover' },
+                }}
+              >
+                <Box
+                  component="span"
+                  sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {aiNode.member?.ref.name ?? t('mvp.settings.aiNode.choose')}
+                </Box>
+                {aiNode.member && (
+                  <Box
+                    component="span"
+                    sx={{
+                      flexShrink: 0,
+                      ml: 0.5,
+                      fontSize: 13.5,
+                      fontVariantNumeric: 'tabular-nums',
+                      color: aiNodeDown
+                        ? 'error.main'
+                        : mvpDelayColor(aiNodeDelay, timeout),
+                    }}
+                  >
+                    {aiNodeDown
+                      ? t('mvp.settings.aiNode.noResponse')
+                      : formatMvpDelay(aiNodeDelay, timeout)}
+                  </Box>
+                )}
+                <Box
+                  component={ChevronRightIcon}
+                  size={16}
+                  sx={{ flexShrink: 0, color: 'text.secondary' }}
+                />
+              </ButtonBase>
+            </Row>
+          </Collapse>
+        </Section>
+
         <Section title={t('mvp.settings.appearance.label')}>
           <Row label={t('mvp.settings.appearance.theme')}>
             <MvpSegmented<ThemeMode>
@@ -395,6 +518,12 @@ const MvpSettingsPage = () => {
           )}
         </Section>
       </Box>
+
+      <MvpAiNodePicker
+        open={aiPickerOpen}
+        selected={aiNode.member ? aiNode.name : null}
+        onClose={onAiPickerClose}
+      />
 
       <BaseDialog
         open={uninstallOpen}

@@ -25,12 +25,15 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router'
 
 import { BaseDialog } from '@/components/base'
+import { MvpAiNodePicker } from '@/components/mvp/mvp-ai-node-picker'
 import { MvpAiPanel } from '@/components/mvp/mvp-ai-panel'
 import { MvpBanner } from '@/components/mvp/mvp-banner'
 import { MvpPage } from '@/components/mvp/mvp-page'
 import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
 import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
 import { MvpStatusPill } from '@/components/mvp/mvp-status-pill'
+import { useAiNode } from '@/hooks/use-ai-node'
+import { useAiNodeHealth } from '@/hooks/use-ai-node-health'
 import { useConnectionUnhealthy } from '@/hooks/use-connection-unhealthy'
 import { useDisplayedMixedPort } from '@/hooks/use-displayed-mixed-port'
 import { testMainGroup, useMainProxyGroup } from '@/hooks/use-main-proxy-group'
@@ -132,6 +135,16 @@ const MvpHomePage = () => {
   const aiEnabled = verge?.enable_ai_check !== false
   const needsDisconnect = systemProxyEnabled || Boolean(verge?.enable_tun_mode)
   const { group, members, current, delays, timeout } = useMainProxyGroup()
+  const aiNode = useAiNode()
+  const aiNodeHealth = useAiNodeHealth()
+  const [aiPickerOpen, setAiPickerOpen] = useState(false)
+  // A verdict about a node the user has since replaced or switched off no longer applies.
+  const aiNodeProblem =
+    aiNode.enabled &&
+    aiNodeHealth.node === aiNode.name &&
+    (aiNodeHealth.state === 'down' || aiNodeHealth.state === 'missing')
+      ? aiNodeHealth.state
+      : null
   const pageVisible = useVisibility()
   const [speedResult, setSpeedResult] = useState<{
     key: string
@@ -166,6 +179,13 @@ const MvpHomePage = () => {
         (listedState === 'timeout' || listedState === 'error'))
     : listedState === 'timeout' || listedState === 'error'
   const unhealthy = (health.unhealthy || nodeSilent) && indicator
+  // Until the backend has a verdict on the chosen node, the routing pill shows it is checking.
+  // While the main node is down, AI node results are not counted, so its last verdict is stale.
+  const routingState = unhealthy
+    ? 'paused'
+    : aiNodeHealth.node === aiNode.name && aiNodeHealth.state !== 'off'
+      ? aiNodeHealth.state
+      : 'checking'
   const [delayRound, setDelayRound] = useState(0)
   const [siteCheck, setSiteCheck] = useState<{
     key: string
@@ -561,6 +581,35 @@ const MvpHomePage = () => {
     </MvpBanner>
   )
 
+  const aiNodeBanner = aiNodeProblem && (
+    <MvpBanner
+      severity="warning"
+      sx={{ mt: 1 }}
+      secondaryAction={
+        aiNodeProblem === 'down'
+          ? {
+              label: t('mvp.home.aiNodeBanner.useMain'),
+              onClick: () => aiNode.setEnabled(false),
+            }
+          : undefined
+      }
+      action={{
+        label: t(
+          aiNodeProblem === 'down'
+            ? 'mvp.home.aiNodeBanner.change'
+            : 'mvp.home.aiNodeBanner.choose',
+        ),
+        onClick: () => setAiPickerOpen(true),
+      }}
+    >
+      {t(
+        aiNodeProblem === 'down'
+          ? 'mvp.home.aiNodeBanner.down'
+          : 'mvp.home.aiNodeBanner.missing',
+      )}
+    </MvpBanner>
+  )
+
   if (!hasProfile) return <Navigate to="/welcome" replace />
 
   // Until this page has its own reading, show whatever the node list measured last.
@@ -665,6 +714,15 @@ const MvpHomePage = () => {
       }
     >
       {blockerBanner}
+      {aiNodeBanner}
+      <MvpAiNodePicker
+        open={aiPickerOpen}
+        selected={aiNode.member ? aiNode.name : null}
+        onClose={(picked) => {
+          setAiPickerOpen(false)
+          if (picked) aiNode.choose(picked)
+        }}
+      />
       <Stack spacing={5} sx={{ pt: { xs: 5, sm: 8 } }}>
         <Stack spacing={2} sx={{ alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -848,6 +906,67 @@ const MvpHomePage = () => {
                         </Tooltip>
                       )}
                     </>
+                  )}
+                  {aiNode.enabled && (
+                    <Tooltip
+                      slotProps={{
+                        transition: { timeout: 120 },
+                        tooltip: { sx: { maxWidth: 'none' } },
+                      }}
+                      title={
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.25,
+                          }}
+                        >
+                          <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
+                            {routingState === 'checking'
+                              ? t('mvp.home.checking')
+                              : t(`mvp.home.routing.${routingState}`, {
+                                  name: aiNode.name ?? '',
+                                })}
+                          </Box>
+                          <Box
+                            component="button"
+                            type="button"
+                            onClick={() => navigate('/settings')}
+                            sx={{
+                              flexShrink: 0,
+                              px: 1,
+                              py: 0.25,
+                              border: 0,
+                              borderRadius: '6px',
+                              bgcolor: 'rgba(255, 255, 255, 0.16)',
+                              color: 'inherit',
+                              font: 'inherit',
+                              fontSize: 12.5,
+                              whiteSpace: 'nowrap',
+                              cursor: 'pointer',
+                              '&:hover': {
+                                bgcolor: 'rgba(255, 255, 255, 0.26)',
+                              },
+                            }}
+                          >
+                            {t('mvp.home.routing.change')}
+                          </Box>
+                        </Box>
+                      }
+                    >
+                      <MvpStatusPill
+                        color={
+                          routingState === 'ok'
+                            ? 'success.main'
+                            : routingState === 'checking' ||
+                                routingState === 'paused'
+                              ? 'text.secondary'
+                              : 'error.main'
+                        }
+                      >
+                        {t('mvp.home.tags.routing')}
+                      </MvpStatusPill>
+                    </Tooltip>
                   )}
                   {!unhealthy && (
                     <Tooltip

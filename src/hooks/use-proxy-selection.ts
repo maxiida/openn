@@ -1,31 +1,21 @@
 import { useCallback, useRef } from 'react'
-import {
-  closeConnection,
-  getConnections,
-  selectNodeForGroup,
-  unfixedProxy,
-} from 'tauri-plugin-mihomo-api'
+import { selectNodeForGroup, unfixedProxy } from 'tauri-plugin-mihomo-api'
 
 import {
   useForgetSelection,
   useRecordSelection,
 } from '@/hooks/use-record-selection'
 import { useVerge } from '@/hooks/use-verge'
-import { syncTrayProxySelection } from '@/services/cmds'
+import {
+  closeNodeConnectionsWhenIdle,
+  syncTrayProxySelection,
+} from '@/services/cmds'
 import { debugLog } from '@/utils/debug'
 
-// 缓存连接清理
+// Connections still moving data (an AI answer, a download) finish on the old node first.
 const cleanupConnections = async (previousProxy: string) => {
   try {
-    const { connections } = await getConnections()
-    const cleanupPromises = (connections ?? [])
-      .filter((conn) => conn.chains.includes(previousProxy))
-      .map((conn) => closeConnection(conn.id))
-
-    if (cleanupPromises.length > 0) {
-      await Promise.allSettled(cleanupPromises)
-      debugLog(`[ProxySelection] 清理了 ${cleanupPromises.length} 个连接`)
-    }
+    await closeNodeConnectionsWhenIdle(previousProxy)
   } catch (error) {
     console.warn('[ProxySelection] 连接清理失败:', error)
   }

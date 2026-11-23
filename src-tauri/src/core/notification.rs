@@ -41,6 +41,9 @@ pub enum FrontendEvent<'a> {
     ConnectionHealthChanged {
         unhealthy: bool,
     },
+    AiNodeHealthChanged {
+        health: serde_json::Value,
+    },
     #[cfg(target_os = "linux")]
     ThemeChanged {
         theme: tauri::Theme,
@@ -300,6 +303,7 @@ impl NotificationSystem {
             FrontendEvent::ConnectionHealthChanged { unhealthy } => {
                 ("verge://connection-health-changed", Ok(json!(unhealthy)))
             }
+            FrontendEvent::AiNodeHealthChanged { health } => ("verge://ai-node-health-changed", Ok(health)),
             #[cfg(target_os = "linux")]
             FrontendEvent::ThemeChanged { theme } => ("tauri://theme-changed", serde_json::to_value(theme)),
         }

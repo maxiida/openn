@@ -21,11 +21,19 @@ interface Props {
   children: ReactNode
   /** Right-side button; `busy` swaps its label for a spinner while it runs. */
   action?: { label: string; busy?: boolean; onClick: () => void }
+  /** A quieter alternative shown before `action`. */
+  secondaryAction?: { label: string; onClick: () => void }
   sx?: SxProps<Theme>
 }
 
 /** A state the user has to resolve, kept in the page for as long as it lasts. Always one line. */
-export const MvpBanner = ({ severity, children, action, sx }: Props) => {
+export const MvpBanner = ({
+  severity,
+  children,
+  action,
+  secondaryAction,
+  sx,
+}: Props) => {
   const Icon = ICONS[severity]
   return (
     <Box
@@ -66,6 +74,16 @@ export const MvpBanner = ({ severity, children, action, sx }: Props) => {
       >
         {children}
       </Box>
+      {secondaryAction && (
+        <Button
+          size="small"
+          variant="text"
+          onClick={secondaryAction.onClick}
+          sx={{ flexShrink: 0, color: 'text.secondary' }}
+        >
+          {secondaryAction.label}
+        </Button>
+      )}
       {action && (
         <Button
           size="small"

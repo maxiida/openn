@@ -3,6 +3,7 @@
     "space": "空格",
     "back": "返回",
     "cancel": "取消",
+    "close": "关闭",
     "scanQr": "扫描二维码",
     "testing": "测速中…",
     "invalidLink": "配置链接无效",
@@ -26,6 +27,20 @@
     },
     "partialProxy": "目前只有浏览器等部分应用走代理",
     "currentNode": "当前节点",
+    "routing": {
+      "ok": "AI 正走 {{name}}",
+      "paused": "主节点不通，暂时检测不了 AI 节点",
+      "change": "切换节点",
+      "down": "AI 节点连不上了，Claude、ChatGPT 暂时打不开",
+      "missing": "AI 节点不在订阅里，AI 暂时走主节点"
+    },
+    "aiNodeBanner": {
+      "down": "AI 节点连不上了",
+      "missing": "AI 节点没了，先走主节点",
+      "change": "换节点",
+      "choose": "重新选择",
+      "useMain": "走主节点"
+    },
     "noNode": "暂无可用节点",
     "nodeUnavailable": "当前节点不可用，请更换节点",
     "awaitingRecovery": "等待恢复",
@@ -34,6 +49,7 @@
     "tags": {
       "sites": "网站",
       "ai": "AI",
+      "routing": "分流",
       "delay": "延迟",
       "speed": "网速"
     },
@@ -257,6 +273,16 @@
     "aiCheck": {
       "label": "AI 可用性检测",
       "hint": "查看节点能不能放心用 ChatGPT、Claude"
+    },
+    "routing": "分流",
+    "aiNode": {
+      "label": "AI 单独用一个节点",
+      "hint": "Claude、ChatGPT、Gemini 固定走选好的节点，其他网站照常走主节点",
+      "node": "AI 节点",
+      "choose": "请选择节点",
+      "noResponse": "无响应",
+      "pickerTitle": "选择 AI 节点",
+      "pickerHint": "尽量选标着“适合 AI”的节点，选好后别频繁换。"
     },
     "appearance": {
       "label": "外观",

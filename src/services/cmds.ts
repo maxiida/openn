@@ -230,6 +230,19 @@ export const getConnectionUnhealthy = async () => {
   return invoke<boolean>('get_connection_unhealthy')
 }
 
+export interface AiNodeHealth {
+  state: 'off' | 'ok' | 'down' | 'missing'
+  node: string | null
+}
+
+export const closeNodeConnectionsWhenIdle = async (node: string) => {
+  return invoke<void>('close_node_connections_when_idle', { node })
+}
+
+export const getAiNodeHealth = async () => {
+  return invoke<AiNodeHealth>('get_ai_node_health')
+}
+
 export const recheckConnectionHealth = async (knownDead: boolean) => {
   return invoke<void>('recheck_connection_health', { knownDead })
 }

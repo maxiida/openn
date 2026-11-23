@@ -147,6 +147,9 @@ fn determine_update_flags(patch: &IVerge) -> UpdateFlags {
     if tun_mode.is_some() {
         update_flags.insert(UpdateFlags::CLASH_CONFIG | UpdateFlags::GROUP_SYS_TRAY);
     }
+    if patch.enable_ai_node.is_some() || patch.ai_node.is_some() {
+        update_flags.insert(UpdateFlags::CLASH_CONFIG);
+    }
     if enable_global_hotkey.is_some() || home_cards.is_some() {
         update_flags.insert(UpdateFlags::VERGE_CONFIG);
     }
@@ -210,6 +213,15 @@ async fn process_terminated_flags(update_flags: UpdateFlags, patch: &IVerge) -> 
     if update_flags.contains(UpdateFlags::CLASH_CONFIG) {
         CoreManager::global().update_config_checked().await?;
         handle::Handle::refresh_clash();
+    }
+    if patch.enable_ai_node.is_some() || patch.ai_node.is_some() {
+        // Open AI connections keep the node they started on until they reconnect. One that never
+        // goes quiet would keep the account on two IPs, so it is cut after a while regardless.
+        super::close_when_idle(
+            |connection| crate::enhance::is_ai_host(&connection.metadata.host),
+            "AI node changed",
+            Some(std::time::Duration::from_secs(600)),
+        );
     }
     if update_flags.contains(UpdateFlags::LAUNCH) {
         autostart::update_launch().await?;

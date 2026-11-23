@@ -32,6 +32,12 @@ pub struct IVerge {
     /// Checks whether the current node suits AI services such as ChatGPT and Claude.
     pub enable_ai_check: Option<bool>,
 
+    /// Routes AI services through `ai_node` instead of the main node.
+    pub enable_ai_node: Option<bool>,
+
+    /// Node name AI services use while `enable_ai_node` is on; kept when it is turned off.
+    pub ai_node: Option<String>,
+
     pub tray_event: Option<String>,
 
     pub env_type: Option<String>,
@@ -426,6 +432,8 @@ impl IVerge {
         patch!(theme_mode);
         patch!(enable_glass);
         patch!(enable_ai_check);
+        patch!(enable_ai_node);
+        patch!(ai_node);
         patch!(tray_event);
         patch!(env_type);
         patch!(start_page);

@@ -39,6 +39,7 @@ struct ConfigValues {
     enable_dns_settings: bool,
     dns_override_confirmation: Option<String>,
     enable_external_controller: bool,
+    ai_node: Option<String>,
     #[cfg(not(target_os = "windows"))]
     redir_enabled: bool,
     #[cfg(target_os = "linux")]
@@ -124,6 +125,11 @@ async fn get_config_values() -> ConfigValues {
     } = **verge_arc;
     let enable_external_controller = enable_external_controller.unwrap_or(false);
     let dns_override_confirmation = verge_arc.dns_override_confirmation.clone();
+    let ai_node = if verge_arc.enable_ai_node.unwrap_or(false) {
+        verge_arc.ai_node.clone().filter(|node| !node.is_empty())
+    } else {
+        None
+    };
 
     let (clash_core, enable_tun, enable_builtin, socks_enabled, http_enabled, enable_dns_settings) = (
         Some(verge_arc.get_valid_clash_core()),
@@ -153,6 +159,7 @@ async fn get_config_values() -> ConfigValues {
         enable_dns_settings,
         dns_override_confirmation,
         enable_external_controller,
+        ai_node,
         #[cfg(not(target_os = "windows"))]
         redir_enabled,
         #[cfg(target_os = "linux")]
@@ -327,6 +334,76 @@ fn ensure_split_rules(mut config: Mapping) -> Mapping {
     split.push(Value::from(target));
     config.insert("rules".into(), Value::Sequence(split));
     config
+}
+
+/// Domains of the AI services the AI node covers: Claude, ChatGPT and Gemini, including their
+/// desktop apps and APIs, plus the sign-in, payment and bot-check pages they send users through,
+/// so one session never shows two different IPs.
+const AI_DOMAIN_SUFFIXES: &[&str] = &[
+    "anthropic.com",
+    "claude.ai",
+    "claude.com",
+    "claudeusercontent.com",
+    "clau.de",
+    "openai.com",
+    "chatgpt.com",
+    "chat.com",
+    "oaistatic.com",
+    "oaiusercontent.com",
+    "sora.com",
+    "gemini.google.com",
+    "gemini.google",
+    "bard.google.com",
+    "aistudio.google.com",
+    "makersuite.google.com",
+    "generativelanguage.googleapis.com",
+    "alkalimakersuite-pa.clients6.google.com",
+    "proactivebackend-pa.googleapis.com",
+    "robinfrontend-pa.googleapis.com",
+    "accounts.google.com",
+    "stripe.com",
+    "stripe.network",
+    "arkoselabs.com",
+];
+
+/// Whether a connection's host belongs to a service the AI node covers.
+pub(crate) fn is_ai_host(host: &str) -> bool {
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    AI_DOMAIN_SUFFIXES
+        .iter()
+        .any(|suffix| host == *suffix || host.strip_suffix(suffix).is_some_and(|prefix| prefix.ends_with('.')))
+}
+
+/// Sends AI services straight to the chosen node, ahead of every profile rule. Rules target the
+/// node itself rather than a new group, which the app could mistake for the main selector. When
+/// the node is gone from the profile, nothing is added and AI keeps using the main node; the
+/// returned flag says whether the rules went in.
+fn use_ai_node(mut config: Mapping, node: Option<&str>) -> (Mapping, bool) {
+    // A comma would split the rule's target.
+    let Some(node) = node.filter(|node| !node.contains(',')) else {
+        return (config, false);
+    };
+    let exists = config
+        .get("proxies")
+        .and_then(Value::as_sequence)
+        .is_some_and(|proxies| {
+            proxies
+                .iter()
+                .any(|proxy| proxy.get("name").and_then(Value::as_str) == Some(node))
+        });
+    if !exists {
+        return (config, false);
+    }
+
+    let mut rules: Vec<Value> = AI_DOMAIN_SUFFIXES
+        .iter()
+        .map(|domain| Value::from(format!("DOMAIN-SUFFIX,{domain},{node}")))
+        .collect();
+    if let Some(Value::Sequence(existing)) = config.remove("rules") {
+        rules.extend(existing);
+    }
+    config.insert("rules".into(), Value::Sequence(rules));
+    (config, true)
 }
 
 /// App 权威的顶层控制面键;`dns.ipv6` 单独处理。
@@ -863,6 +940,7 @@ pub async fn enhance(
         enable_dns_settings,
         dns_override_confirmation,
         enable_external_controller,
+        ai_node,
         #[cfg(not(target_os = "windows"))]
         redir_enabled,
         #[cfg(target_os = "linux")]
@@ -927,6 +1005,8 @@ pub async fn enhance(
 
     let config = authoritative.enforce(config);
     let config = ensure_lan_bind_address(config);
+    let (config, ai_routed) = use_ai_node(config, ai_node.as_deref());
+    crate::core::tray::health::set_ai_routing(ai_node.map(|node| (node.to_string(), ai_routed)));
 
     let config = cleanup_proxy_groups(config);
     let config = use_sort(config);

@@ -3,6 +3,7 @@
     "space": "Space",
     "back": "Back",
     "cancel": "Cancel",
+    "close": "Close",
     "scanQr": "Scan QR Code",
     "testing": "Testing…",
     "invalidLink": "This link isn't valid",
@@ -26,6 +27,20 @@
     },
     "partialProxy": "Only some apps, such as browsers, use the proxy right now",
     "currentNode": "Current node",
+    "routing": {
+      "ok": "AI is using {{name}}",
+      "paused": "The main node is down, so the AI node can't be checked",
+      "change": "Change node",
+      "down": "AI node is down, so Claude and ChatGPT won't load",
+      "missing": "AI node is gone from your subscription, so AI uses the main node"
+    },
+    "aiNodeBanner": {
+      "down": "AI node is down",
+      "missing": "AI node is gone, using main node",
+      "change": "Change",
+      "choose": "Choose",
+      "useMain": "Use main node"
+    },
     "noNode": "No nodes available",
     "nodeUnavailable": "This node isn't working. Try another one",
     "awaitingRecovery": "Waiting to recover",
@@ -34,6 +49,7 @@
     "tags": {
       "sites": "Sites",
       "ai": "AI",
+      "routing": "Routing",
       "delay": "Latency",
       "speed": "Speed"
     },
@@ -257,6 +273,16 @@
     "aiCheck": {
       "label": "AI 사용 가능 여부 확인",
       "hint": "노드에서 ChatGPT와 Claude를 잘 쓸 수 있는지 확인합니다"
+    },
+    "routing": "Routing",
+    "aiNode": {
+      "label": "Separate node for AI",
+      "hint": "Claude, ChatGPT and Gemini stay on the node you pick; other sites keep using your main node",
+      "node": "AI node",
+      "choose": "Choose a node",
+      "noResponse": "No response",
+      "pickerTitle": "Choose AI Node",
+      "pickerHint": "Pick a node tagged “Good for AI” and try not to switch it often."
     },
     "appearance": {
       "label": "Appearance",

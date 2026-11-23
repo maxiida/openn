@@ -31,7 +31,7 @@ mod appearance;
 #[cfg(target_os = "macos")]
 mod dock_icon;
 #[cfg(target_os = "macos")]
-mod health;
+pub(crate) mod health;
 mod menu_def;
 #[cfg(target_os = "macos")]
 mod speed_task;

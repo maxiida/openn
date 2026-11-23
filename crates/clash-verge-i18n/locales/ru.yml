@@ -1,5 +1,23 @@
 _version: 1
 notifications:
+  networkDown:
+    title: You're offline
+    body: Check your Wi-Fi or cable.
+  nodeDown:
+    title: Node is down
+    body: Sites outside the mainland won't load. Try another node.
+  nodeRecovered:
+    title: Connection restored
+    body: Your node is working again.
+  aiNodeDown:
+    title: AI node is down
+    body: Claude and ChatGPT won't load for now.
+  aiNodeMissing:
+    title: AI node is gone
+    body: It's no longer in your subscription. AI uses the main node.
+  aiNodeRecovered:
+    title: AI node is back
+    body: Claude and ChatGPT work again.
   dashboardToggled:
     title: Панель
     body: Видимость панели обновлена.

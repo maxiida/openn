@@ -374,6 +374,7 @@ export interface TranslationResources {
       common: {
         back: string
         cancel: string
+        close: string
         invalidLink: string
         invalidQr: string
         scanQr: string
@@ -456,6 +457,13 @@ export interface TranslationResources {
             unsupported: string
           }
         }
+        aiNodeBanner: {
+          change: string
+          choose: string
+          down: string
+          missing: string
+          useMain: string
+        }
         awaitingRecovery: string
         blockers: {
           foreignSystemProxy: string
@@ -479,6 +487,13 @@ export interface TranslationResources {
           speedTestFailed: string
         }
         partialProxy: string
+        routing: {
+          change: string
+          down: string
+          missing: string
+          ok: string
+          paused: string
+        }
         setup: {
           body: string
           confirm: string
@@ -509,6 +524,7 @@ export interface TranslationResources {
         tags: {
           ai: string
           delay: string
+          routing: string
           sites: string
           speed: string
         }
@@ -605,6 +621,15 @@ export interface TranslationResources {
           hint: string
           label: string
         }
+        aiNode: {
+          choose: string
+          hint: string
+          label: string
+          node: string
+          noResponse: string
+          pickerHint: string
+          pickerTitle: string
+        }
         appearance: {
           dark: string
           label: string
@@ -642,6 +667,7 @@ export interface TranslationResources {
           reconnected: string
           setupIncomplete: string
         }
+        routing: string
         title: string
         uninstall: {
           body: string

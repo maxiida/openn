@@ -868,6 +868,8 @@ interface IVergeConfig {
   theme_mode?: 'light' | 'dark' | 'system'
   enable_glass?: boolean
   enable_ai_check?: boolean
+  enable_ai_node?: boolean
+  ai_node?: string
   traffic_graph?: boolean
   enable_memory_usage?: boolean
   enable_group_icon?: boolean

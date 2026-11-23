@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 
-import type { RunState } from './cmds'
+import type { AiNodeHealth, RunState } from './cmds'
 
 /** Centralizes frontend event names and payload types for the unchecked Rust IPC seam. */
 interface VergeEvents {
@@ -17,6 +17,8 @@ interface VergeEvents {
   'verge://navigate': string
   /** Whether the selected node stopped responding, as the tray and Dock dots show it. */
   'verge://connection-health-changed': boolean
+  /** Whether the AI node answers, or is missing from the profile, while AI routing is on. */
+  'verge://ai-node-health-changed': AiNodeHealth
   'profile-changed': string
   'profile-update-started': { uid?: string }
   'profile-update-completed': { uid?: string }
