@@ -43,15 +43,15 @@ export const isGlassMode = (enableGlass?: boolean) =>
 // near-white in dark mode) instead of a brand colour.
 export const UI_TOKENS = {
   light: {
-    bg: '#FAF9F5',
+    bg: '#FFFFFF',
     surface: '#FFFFFF',
     raised: '#FFFFFF',
-    fill: 'rgba(31, 30, 29, 0.06)',
-    fillHover: 'rgba(31, 30, 29, 0.1)',
-    line: 'rgba(31, 30, 29, 0.12)',
-    lineStrong: 'rgba(31, 30, 29, 0.22)',
+    fill: 'rgba(0, 0, 0, 0.06)',
+    fillHover: 'rgba(0, 0, 0, 0.1)',
+    line: 'rgba(0, 0, 0, 0.12)',
+    lineStrong: 'rgba(0, 0, 0, 0.22)',
     tooltip: '#141413',
-    tooltipText: '#FAF9F5',
+    tooltipText: '#FFFFFF',
   },
   dark: {
     bg: '#1F1E1D',

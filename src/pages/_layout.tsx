@@ -99,6 +99,20 @@ const Layout = () => {
       })
   }, [clashConfig?.mode, currentProfileId, refreshClashConfig])
 
+  // Listen on document so portaled dialogs and menus are covered too; editable
+  // fields and selected text keep the native cut/copy/paste menu.
+  useEffect(() => {
+    const onContextMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.isContentEditable || target?.closest('input, textarea'))
+        return
+      if (window.getSelection()?.toString()) return
+      event.preventDefault()
+    }
+    document.addEventListener('contextmenu', onContextMenu)
+    return () => document.removeEventListener('contextmenu', onContextMenu)
+  }, [])
+
   useEffect(() => {
     if (language === undefined) return
     const resolved = resolveLanguage(language)
@@ -112,7 +126,7 @@ const Layout = () => {
         style={{
           width: '100vw',
           height: '100vh',
-          background: mode === 'light' ? '#FAF9F5' : '#1F1E1D',
+          background: mode === 'light' ? '#FFFFFF' : '#1F1E1D',
           transition: 'background 0.2s',
           display: 'flex',
           alignItems: 'center',
@@ -148,17 +162,6 @@ const Layout = () => {
         style={{
           borderTopLeftRadius: '0px',
           borderTopRightRadius: '0px',
-        }}
-        onContextMenu={(e) => {
-          if (
-            OS === 'windows' &&
-            !['input', 'textarea'].includes(
-              e.currentTarget.tagName.toLowerCase(),
-            ) &&
-            !e.currentTarget.isContentEditable
-          ) {
-            e.preventDefault()
-          }
         }}
         sx={[
           ({ palette }) => ({ bgcolor: palette.background.default }),

@@ -11,7 +11,7 @@ export const defaultTheme = {
   error_color: '#B83B32',
   warning_color: '#B5650D',
   success_color: '#2F7D4F',
-  background_color: '#FAF9F5',
+  background_color: '#FFFFFF',
   font_family: `-apple-system, BlinkMacSystemFont,"Microsoft YaHei UI", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji"${
     OS === 'windows' ? ', twemoji mozilla' : ''
   }`,

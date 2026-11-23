@@ -51,7 +51,7 @@ export const Switch = styled((props: SwitchProps) => (
     borderRadius: 20 / 2,
     backgroundColor:
       theme.palette.mode === 'light'
-        ? 'rgba(31, 30, 29, 0.22)'
+        ? 'rgba(0, 0, 0, 0.22)'
         : 'rgba(236, 234, 228, 0.2)',
     opacity: 1,
     transition: theme.transitions.create(['background-color'], {

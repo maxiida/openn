@@ -9,12 +9,12 @@ use clash_verge_logging::logging;
 use clash_verge_logging::{Type, logging_error};
 
 const DARK_BACKGROUND_COLOR: Color = Color(31, 30, 29, 255); // #1F1E1D
-const LIGHT_BACKGROUND_COLOR: Color = Color(250, 249, 245, 255); // #FAF9F5
+const LIGHT_BACKGROUND_COLOR: Color = Color(255, 255, 255, 255); // #FFFFFF
 const DARK_BACKGROUND_HEX: &str = "#2E303D";
 const LIGHT_BACKGROUND_HEX: &str = "#F5F5F5";
 
-const DEFAULT_WIDTH: f64 = 940.0;
-const DEFAULT_HEIGHT: f64 = 700.0;
+const DEFAULT_WIDTH: f64 = 1016.0;
+const DEFAULT_HEIGHT: f64 = 736.0;
 
 const MINIMAL_WIDTH: f64 = 520.0;
 const MINIMAL_HEIGHT: f64 = 520.0;
