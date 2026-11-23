@@ -6,11 +6,17 @@
 
 <p align="center"><strong>A simple, beautifully designed proxy app for Mac that anyone can use.</strong></p>
 
+<p align="center">Built on <a href="https://github.com/clash-verge-rev/clash-verge-rev">Clash Verge Rev</a> · For Macs with Apple silicon (macOS 11 or later)</p>
+
 <p align="center">
   <a href="https://github.com/maxiida/openn/releases">Releases</a> ·
   <a href="../Changelog.md">Changelog</a> ·
   <a href="https://github.com/maxiida/openn/issues">Report an issue</a> ·
   <a href="../README.md">简体中文</a>
+</p>
+
+<p align="center">
+  <img src="./screenshots/home.png" alt="Openn home screen, connected, showing the current server with website, AI and latency status" width="720">
 </p>
 
 I still find a lot of the settings in Clash Verge hard to understand. Most days, I just want to open an app, click Connect, and get on with what I was doing. That’s why I built Openn.
@@ -20,6 +26,9 @@ I still find a lot of the settings in Clash Verge hard to understand. Most days,
 This page describes the upcoming release. The installer for Macs with Apple silicon will be available on [GitHub Releases](https://github.com/maxiida/openn/releases).
 
 On your first launch, paste the subscription link from your proxy provider and follow the prompts to grant permission. Openn tests your connections and helps you pick one that responds quickly. After that, use the same button to connect or disconnect. You can close the window and leave Openn running in the background.
+
+> [!NOTE]
+> Openn isn’t notarized by Apple yet, so the first time you open it, macOS says it can’t verify the developer. Click **Done**, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to Openn. After that, it opens normally.
 
 ## Check your connection at a glance
 
@@ -32,6 +41,8 @@ Openn checks your connection in the background. Its menu bar and Dock icons show
 ## Find a connection for Claude or ChatGPT
 
 A connection can work for everyday browsing and still run into region restrictions or extra verification on Claude or ChatGPT. Openn checks the region and risk score of the IP address your traffic goes out through. You can also check several connections at once before deciding which one to use.
+
+Once you’ve found a good one, you can have Claude, ChatGPT, and Gemini always use it while everything else uses your main connection. Switching your main connection then won’t change the IP address your AI accounts see.
 
 ## Find out why a page won’t load
 

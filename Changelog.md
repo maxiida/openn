@@ -3,7 +3,7 @@
 <details>
 <summary><strong> 🐞 修复问题 </strong></summary>
 
-- Fix desktop app connectivity by making whole-device routing the default, with guided setup and an explicit system-proxy fallback.
+- 修复桌面 App 连不上网的问题：默认改为接管整台电脑的网络，并引导完成设置；也可以手动改用系统代理
 - 修复单节点或无分流规则的订阅连接后国内网站也走代理的问题
 - 修复 DNS 覆写：空内容报错、初始值覆盖已有设置、已填写字段残留原配置、空字段在高级编辑器中缺失
 - 修复连接成功后因清理系统代理失败而被自动断开的问题
@@ -13,7 +13,7 @@
 **🍎 macOS**
 
 - macOS：修复菜单栏图标变化时应用偶发闪退的问题
-- Fix macOS connections failing to start after successful service authorization.
+- macOS：修复授权后台服务成功后仍然连接失败的问题
 - 修复 macOS 系统代理偶发设置失败、内核启动失败的问题；其他 VPN（如 Shadowrocket）接管网络时给出明确提示
 
 </details>
@@ -23,7 +23,7 @@
 
 - 新增新手引导：首次打开时一步步导入订阅、授权并自动连上最快的节点；之后可从设置的「帮助」里重新打开
 - 设置页新增「卸载 Openn」：先卸载后台组件再删除应用，不再留下一直运行的后台服务
-- Add keyboard shortcuts for connecting, page navigation, node latency tests, and node selection, with shortcut hints in tooltips.
+- 新增快捷键：连接、切换页面、节点测速和选择节点，悬停提示里会显示对应快捷键
 - 新增设置页：开机自动启动、外观（跟随系统/浅色/深色）、语言（跟随系统/中文/English）、「一键修复」
 - 节点页顶部显示订阅剩余流量与到期时间，并隐藏订阅里用来展示这些信息的占位节点
 - 新增「网络检测」页（首页右上角进入）：一键体检从电脑到网站逐段查问题；测速可测经过节点、只测宽带或两者对比
@@ -49,15 +49,15 @@
 - 隐私说明改写为 Openn 自己的版本，列出应用会自动访问的所有网站
 - 全新外观：白色底色、黑白主按钮，不再使用蓝色；弹窗、通知和提示条更简洁，通知和提示条始终一行显示
 - 首页提示其他 VPN 或系统代理占用时，可直接点「重新检测」，不必再点一次连接
-- Simplify website status icons and labels, and box connection advice.
+- 简化网站状态的图标和文字，连接建议放进单独的提示框
 - 首页状态标签统一为「网站」「AI」「延迟」「网速」，用颜色表示好坏，悬停说明每个标签的含义
 - 文字和提示不再出现最后一行只剩一个字的情况
 - 测速更准：快网不再测低，测速最多 3 秒、最多用 4 MB 流量；去掉没有依据的「超过全球多少用户」
-- Rebrand the app as Openn with a white app icon.
-- Restyle tooltips with dark rounded surfaces, white text, and soft shadows.
-- Make icon buttons gray at rest, with darker icons and a subtle background on hover.
+- 应用改名为 Openn，换上白色图标
+- 悬停提示改为深色圆角、白色文字、柔和阴影
+- 图标按钮平时为灰色，悬停时图标变深并出现浅色背景
 - 图标统一换成线性图标
-- Smooth the node list fade-in after latency tests with a slower, gentler transition.
+- 节点测速后列表的淡入动画更慢、更柔和
 - 优化节点列表：测速后按延迟从低到高排列
 - 切换节点不再打断正在进行的 AI 回答和下载：这些连接用完后才换到新节点
 - 窗口默认尺寸更大
