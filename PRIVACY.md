@@ -1,208 +1,74 @@
-# Privacy Policy
+# 隐私说明
 
-**Applies to:** the Clash Verge Rev desktop application for Windows, macOS and
-Linux, distributed from
-<https://github.com/clash-verge-rev/clash-verge-rev/releases>.
+**适用于：** Openn macOS 版
 
-**Last updated:** 2026-09-09
+**最后更新：** 2026-11-22
 
-Clash Verge Rev is a free and open-source graphical client for the
-[mihomo](https://github.com/MetaCubeX/mihomo) proxy core, maintained by
-volunteers. The project has no company behind it, no user accounts, and no
-server of its own that the application talks to.
+## 一句话说明
 
-## 1. Summary
+Openn 不收集你的任何信息。没有账号，没有统计，没有崩溃上报，也没有开发者自己的服务器。你的订阅和设置只保存在你自己的电脑上。
 
-- The project **collects nothing**. There is no telemetry, no analytics, no
-  crash or usage reporting, no advertising or tracking SDK, and no registration.
-  No data of any kind is sent to the maintainers or to infrastructure operated
-  by this project.
-- Your configuration, credentials and logs are stored **only on your own
-  device**, in plain files you can read, back up or delete at any time
-  (Section 3).
-- The application connects only to endpoints that you configure (proxy servers,
-  subscription URLs, backup server) or to the third-party services listed in
-  Section 4. None of them are operated by this project.
-- Two connections are enabled by default and are not part of your own proxy
-  configuration: the **application update check** (Section 4.3) and the **IP
-  information card** on the Home page (Section 4.5). Both are described below,
-  and Section 6 explains how to turn them off.
+为了告诉你网络通不通、节点好不好用，Openn 会自己访问下面列出的一些网站。这些网站不归 Openn 所有，它们会看到请求来自哪个 IP。
 
-## 2. Who is responsible
+## 保存在你电脑上的东西
 
-The Clash Verge Rev maintainers, reachable through the project's issue tracker
-at <https://github.com/clash-verge-rev/clash-verge-rev/issues>. Because the
-application performs no data collection, there is no data controller
-relationship, no processing agreement, and no data to request or erase from us.
+全部放在 `~/Library/Application Support/com.openn.app` 这个文件夹里：
 
-## 3. Data stored on your device
+- **订阅和节点**：订阅链接（通常带有你的个人密钥）、节点地址和密码。
+- **设置**：你在 Openn 里改过的选项。
+- **日志**：用来排查问题，可能记下你访问过的网站域名。日志默认保留 7 天，之后自动删除。
 
-All application data lives in a single directory:
+这些东西不会离开你的电脑，除非你自己用「导出日志」把日志发给别人。导出的日志会遮住订阅密钥，但仍可能包含节点地址和访问过的域名，发出去前请留意。
 
-| Platform | Location |
-| --- | --- |
-| Windows | `%APPDATA%\io.github.clash-verge-rev.clash-verge-rev` |
-| macOS | `~/Library/Application Support/io.github.clash-verge-rev.clash-verge-rev` |
-| Linux | `$XDG_DATA_HOME/io.github.clash-verge-rev.clash-verge-rev` (usually `~/.local/share/…`) |
+删除这个文件夹，就删掉了 Openn 保存的全部数据。
 
-It contains:
+## Openn 会自己访问的网站
 
-- `verge.yaml` — application settings. If you configure WebDAV backup, the
-  server URL, user name and password are stored here **in plain text**.
-- `config.yaml`, `profiles.yaml` and `profiles/` — your proxy configuration and
-  downloaded subscriptions. These normally contain **subscription URLs (which
-  often embed a personal token), proxy server addresses, ports, passwords and
-  UUIDs**.
-- `logs/` and `service-logs/` — application and privileged-service logs. Core
-  logs can contain requested domain names, IP addresses and connection metadata,
-  depending on the log level you select.
-- Core runtime files (for example mihomo's `cache.db` and GeoIP/GeoSite
-  databases) used by the proxy core.
+### 你的订阅
 
-None of this leaves your device unless you enable WebDAV backup (Section 4.9),
-export a backup yourself, or attach these files to a bug report.
+导入订阅、每天自动更新订阅时，Openn 会访问你的订阅链接。机场能看到你的 IP，和用浏览器打开这个链接一样。请求里带的软件名是 `clash-verge/v2.5.5`，这样机场能识别出格式。
 
-Application logs are deleted automatically after a retention period you choose
-in *Settings → Miscellaneous → Auto Log Clean* (default: 7 days; `Never Clean` keeps
-them indefinitely). Uninstalling the application and removing the directory
-above deletes everything else.
+### 连接状态检查（连接后自动进行）
 
-**When reporting a bug**, review logs and configuration before attaching them:
-they may reveal your proxy servers, subscription tokens and browsing
-destinations.
+- **节点有没有响应**：连接后每 30 秒通过当前节点访问一次 `cp.cloudflare.com`。
+- **你家网络通不通**：直接访问 `www.baidu.com`，用来分清是你家网络断了还是节点坏了。
+- **常用网站能不能打开**：通过节点轻触一下 `google.com`、`youtube.com`、`chatgpt.com`、`github.com`，并直连轻触一下 `baidu.com`。只建立连接，不加载网页。
+- **延迟测试**：访问 `cp.cloudflare.com`，测一个节点要多久才响应。
 
-## 4. Network connections the application makes
+### 测速
 
-### 4.1 Proxy traffic
+- **节点测速**：通过节点从 `speed.cloudflare.com` 下载，最多 3 秒、最多 4 MB。这部分流量算在你的订阅里。切换节点后会自动测一次。
+- **宽带测速**：直接从国内的 `cdn.npmmirror.com` 下载，最多 25 MB，不走节点，不用订阅流量。
 
-Traffic you route through the application is handled by the bundled mihomo core
-and goes to the proxy servers **you** configured. It is not inspected, recorded
-or forwarded anywhere by this project. Your proxy provider can see this traffic
-to the extent any proxy operator can; their privacy policy applies.
+### AI 可用性检查（连接后自动进行）
 
-### 4.2 Subscription (profile) updates
+- 通过节点访问 `claude.ai`，看 AI 服务认为你在哪个国家或地区。
+- 通过节点访问 IPPure（`my.ippure.com`），看当前出口 IP 像不像普通家庭用户。
 
-When you add a remote profile, the application downloads it from the URL you
-supplied, sending a `User-Agent` of `clash-verge/v<version>` unless you set a
-different one for that profile. If you enable automatic updates for a profile,
-this request repeats on the interval you choose. The subscription provider sees
-your IP address and this request; it is the same request your browser would
-make. Requests can be sent directly, through the system proxy, or through the
-application's own proxy port, as configured per profile.
+这两个服务看到的是节点的 IP，不是你家的 IP。
 
-### 4.3 Application update check — *enabled by default*
+在节点页一次检查多个节点时，Openn 会临时另开一个内核，让每个节点各走一个本机端口。这个内核要读的配置里有节点密码，所以只有你自己能读取，内核读完就删掉。检查结束后内核会关闭。
 
-On startup the application asks whether a newer release exists, in order, from:
+### DNS（把网址翻译成 IP 地址）
 
-- `https://update.hwdns.net/…` and `https://gh-proxy.org/…` (third-party GitHub
-  mirrors, used for reachability in restricted networks)
-- `https://github.com/clash-verge-rev/clash-verge-rev/releases/…`
+默认使用国内的公共 DNS：`doh.pub`（腾讯）和阿里 DNS（`dns.alidns.com`、`223.5.5.5`、`223.6.6.6`）。你的订阅也可能自带其他 DNS。DNS 服务商能看到你要访问的网址。
 
-The request carries only what any HTTP request carries: your IP address, the
-`User-Agent` and the requested file. No identifier is generated or sent, and no
-result is reported back to the project. Downloaded updates are verified against
-a Minisign public key compiled into the application.
+## 后台组件
 
-Disable it in *Settings → Miscellaneous → Auto Check Update*.
+第一次连接时，Openn 会请你输入电脑密码，安装一个后台组件。有了它，Openn 才能接管整台电脑的网络。它只在本机工作，不会把任何数据发到外面。
 
-### 4.4 Proxy core update — *user-initiated*
+不用 Openn 了的话，先在「设置 → 卸载 Openn」里卸载后台组件，再把 Openn 拖进废纸篓。
 
-Updating the mihomo core downloads it from GitHub Releases
-(`https://github.com/MetaCubeX/mihomo/releases/…`) only when you start the
-update.
+## 不会做的事
 
-### 4.5 IP information card — *enabled by default*
+- 不会检查更新，也不会自动下载任何程序。
+- 不会把你的订阅、节点或浏览记录发给开发者或任何第三方。
+- 本机的代理端口只对这台电脑开放，局域网里的其他设备连不上。
 
-The Home page shows your apparent public IP address and its geolocation. To do
-this it queries one randomly chosen service from:
-`api.ip.sb`, `ipapi.co`, `api.ipapi.is`, `ipwho.is`, `ip.api.skk.moe`,
-`get.geojs.io`. The query is refreshed about every 5 minutes while the card is
-visible and the window is shown; it is not sent while the window is hidden or
-the Home page is not in view.
+## 用到的开源软件
 
-By design these services see and return the IP address the request came from —
-that is the feature. If a proxy is active, they see the proxy's address.
-Each service is operated by an independent third party under its own privacy
-policy; the project has no agreement with any of them. Keep the Home page
-closed (or the application minimised) if you do not want these requests.
+Openn 基于开源项目 [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev) 修改而来。真正转发流量的是开源内核 [mihomo](https://github.com/MetaCubeX/mihomo)。
 
-### 4.6 Latency tests — *user-initiated*
+## 说明有变化时
 
-Testing a proxy or group sends an HTTP request through that proxy to
-`http://cp.cloudflare.com/generate_204`, or to the test URL you configure.
-
-### 4.7 Streaming availability test — *user-initiated*
-
-The unlock test sends requests through your local proxy port to the streaming
-and AI services being tested (Netflix, Disney+, YouTube, Spotify, OpenAI and
-similar). It runs only when you start it, and only through the proxy you have
-selected.
-
-### 4.8 DNS
-
-The generated core configuration uses public DoH resolvers by default
-(`doh.pub`, `dns.alidns.com`), and your proxy configuration may define others.
-Resolvers see the domain names being resolved. You can change or replace them in
-the DNS settings and in your own configuration.
-
-### 4.9 WebDAV backup — *disabled until you configure it*
-
-If you set up backup, the application uploads a ZIP archive to the WebDAV server
-you specify. The archive contains your profiles, `profiles.yaml`, `config.yaml`,
-the DNS configuration and `verge.yaml`; **WebDAV credentials are stripped from
-`verge.yaml` before upload, but proxy servers, passwords and subscription URLs
-inside your profiles are not**. Treat a backup as sensitive and use a server you
-trust. Backups are only transferred to that server.
-
-### 4.10 Local listeners
-
-The proxy ports and the internal control port bind to `127.0.0.1` only. They are
-not exposed to your network unless you deliberately configure the core to allow
-LAN access.
-
-## 5. Third-party components and services
-
-The application bundles or depends on software with its own behaviour and
-policies:
-
-- **mihomo (Clash.Meta) core** — <https://github.com/MetaCubeX/mihomo>.
-  Performs the actual proxying and DNS resolution.
-- **Tauri and the system WebView** — the user interface renders in the
-  operating system's web engine: Microsoft Edge WebView2 on Windows (subject to
-  the [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)),
-  WKWebView on macOS, WebKitGTK on Linux.
-- **External dashboards** — opening a web dashboard (metacubexd, Yacd, Zash
-  Board) loads a third-party site in your browser; it then talks to your local
-  core.
-- **GitHub** — hosts the source, releases and update metadata; it sees download
-  requests, and anything you post in issues is public.
-- **Your proxy and subscription providers**, and any WebDAV or DNS provider you
-  configure, are independent of this project and govern their own data handling.
-
-## 6. Your controls
-
-- *Settings → Miscellaneous → Auto Check Update* — turn off the update check.
-- *Settings → Miscellaneous → Auto Log Clean* — set log retention, or `Never Clean`.
-- Per-profile update interval — turn off automatic subscription refresh.
-- WebDAV backup is inactive until you enter server details, and can be cleared
-  at any time.
-- The IP information card only queries while the Home page is visible
-  (Section 4.5).
-- Everything else is a plain file on your disk: delete the application data
-  directory to remove all stored data.
-
-## 7. Children
-
-The application is a network tool with no content directed at children and no
-data collection of any kind.
-
-## 8. Changes
-
-Changes to this policy are made in the repository and are visible in its Git
-history. The date at the top reflects the most recent change.
-
-## 9. Contact
-
-Open an issue at
-<https://github.com/clash-verge-rev/clash-verge-rev/issues>. Please do not
-include logs or configuration files containing credentials in public issues.
+这份说明有改动时会更新上面的日期，修改记录保存在代码仓库里。
