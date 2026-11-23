@@ -1,23 +1,12 @@
 import { useLockFn } from 'ahooks'
 import i18n from 'i18next'
-import { getVersion } from 'tauri-plugin-mihomo-api'
 
 import {
   getClashInfo,
-  getClashMode,
   getRuntimeConfig,
   patchClashConfig,
 } from '@/services/cmds'
-import {
-  revalidateQuery,
-  setCacheData,
-  useQuery,
-} from '@/services/query-client'
-
-type MutateClashUpdater =
-  | ((old: IConfigData | undefined) => IConfigData | undefined)
-  | IConfigData
-  | undefined
+import { revalidateQuery, useQuery } from '@/services/query-client'
 
 const PORT_KEYS = [
   'port',
@@ -72,53 +61,6 @@ export const useRuntimeConfig = (shouldFetch: boolean = true) => {
     queryFn: getRuntimeConfig,
     enabled: shouldFetch,
   })
-}
-
-// Fault-tolerant fallback for the current proxy mode, read straight from the
-// saved clash config on the backend (bypasses the strict BaseConfig path).
-export const useClashMode = (shouldFetch: boolean = true) => {
-  return useQuery({
-    queryKey: ['getClashMode'],
-    queryFn: getClashMode,
-    enabled: shouldFetch,
-  })
-}
-
-export const useClash = () => {
-  const { data: clash, refetch } = useRuntimeConfig()
-
-  const { data: versionData, refetch: mutateVersion } = useQuery({
-    queryKey: ['getVersion'],
-    queryFn: getVersion,
-  })
-
-  const mutateClash = (updater?: MutateClashUpdater, revalidate?: boolean) => {
-    if (updater === undefined) {
-      return refetch()
-    }
-    void setCacheData<IConfigData>(['getRuntimeConfig'], updater)
-    if (revalidate !== false) {
-      return refetch()
-    }
-    return Promise.resolve()
-  }
-
-  const patchClash = useLockFn(async (patch: Partial<IConfigData>) => {
-    await patchClashConfig(patch)
-    mutateClash()
-  })
-
-  const version = versionData?.meta
-    ? `${versionData.version} Mihomo`
-    : versionData?.version || '-'
-
-  return {
-    clash,
-    version,
-    mutateClash,
-    mutateVersion,
-    patchClash,
-  }
 }
 
 export const useClashInfo = () => {

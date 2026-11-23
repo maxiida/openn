@@ -60,15 +60,6 @@ const useCtx = <T>(ctx: Context<T | null>, hookName: string): T => {
 export const useProxiesData = (): ProxiesContextType =>
   useCtx(ProxiesContext, 'useProxiesData')
 
-export const useRulesData = () => {
-  const { rules, ruleProviders } = useCtx(RulesContext, 'useRulesData')
-
-  return {
-    rules,
-    ruleProviders: ruleProviders as Record<string, RuleProvider>,
-  }
-}
-
 export const useClashConfigData = (): ClashConfigContextType =>
   useCtx(ClashConfigContext, 'useClashConfigData')
 
@@ -77,6 +68,3 @@ export const useSystemData = (): SystemContextType =>
 
 export const useAppRefreshers = (): RefreshersContextType =>
   useCtx(RefreshersContext, 'useAppRefreshers')
-
-export const useCoreDataStatus = (): CoreDataStatusContextType =>
-  useCtx(CoreDataStatusContext, 'useCoreDataStatus')

@@ -20,7 +20,7 @@ export type DelaySnapshot = {
 
 const hashKey = (name: string, group: string) => `${group ?? ''}::${name}`
 
-export interface DelayUpdate {
+interface DelayUpdate {
   delay: number
   elapsed?: number
   updatedAt: number

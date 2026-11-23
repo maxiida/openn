@@ -86,8 +86,7 @@ const CODED_ERROR_TRANSLATION_KEYS: Readonly<Record<string, TranslationKey>> = {
     'settings.feedback.errors.clashService.uninstallFailed',
   SYSPROXY_CORE_NOT_READY: 'settings.feedback.errors.sysproxy.coreNotReady',
   SYSPROXY_DIRECT_FALLBACK: 'settings.feedback.errors.sysproxy.directFallback',
-  SYSPROXY_OTHER_VPN_ACTIVE:
-    'settings.feedback.errors.sysproxy.otherVpnActive',
+  SYSPROXY_OTHER_VPN_ACTIVE: 'settings.feedback.errors.sysproxy.otherVpnActive',
   SYSPROXY_GUARD_STOPPED: 'settings.feedback.errors.sysproxy.guardStopped',
   SYSPROXY_SIDECAR_WHILE_SERVICE_READY:
     'settings.feedback.errors.sysproxy.sidecarWhileServiceReady',
@@ -306,7 +305,7 @@ function extractDisplayText(input: unknown): string | undefined {
   }
 }
 
-export interface CommandFailure {
+interface CommandFailure {
   code?: string
   operation?: FailedOperation
   detail: string
@@ -319,10 +318,6 @@ function isCommandFailure(input: unknown): input is CommandFailure {
     typeof candidate.detail === 'string' &&
     (candidate.code === undefined || typeof candidate.code === 'string')
   )
-}
-
-export function errorDetail(input: unknown): string {
-  return extractDisplayText(input) ?? ''
 }
 
 function parseCommandFailure(input: unknown) {

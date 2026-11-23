@@ -148,7 +148,7 @@ export const mvpDelayHint = (delay: number, timeout: number) => {
   }
 }
 
-export const MVP_SPEED_TIERS = [
+const MVP_SPEED_TIERS = [
   {
     min: 50,
     id: 'blazing',
