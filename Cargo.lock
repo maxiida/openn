@@ -1079,7 +1079,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "clash-verge"
-version = "0.1.0-alpha.1"
+version = "0.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1179,6 +1179,7 @@ dependencies = [
 name = "clash-verge-i18n"
 version = "0.1.0"
 dependencies = [
+ "objc2-foundation",
  "rust-i18n",
  "sys-locale",
 ]

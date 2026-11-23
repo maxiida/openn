@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.1",
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "bundle": {
     "active": true,
@@ -14,7 +14,7 @@
     ],
     "resources": ["resources"],
     "publisher": "Openn",
-    "externalBin": ["sidecar/verge-mihomo", "sidecar/verge-mihomo-alpha"],
+    "externalBin": ["sidecar/verge-mihomo"],
     "copyright": "GNU General Public License v3.0",
     "category": "DeveloperTool",
     "shortDescription": "Openn",
@@ -44,6 +44,7 @@
     }
   },
   "app": {
+    "macOSPrivateApi": true,
     "security": {
       "capabilities": ["desktop-capability", "migrated"],
       "assetProtocol": {

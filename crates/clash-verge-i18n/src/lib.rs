@@ -25,10 +25,30 @@ pub fn current_language(language: Option<&str>) -> Cow<'static, str> {
         .map_or_else(system_language, Cow::Borrowed)
 }
 
+// Choosing a language writes AppleLanguages into the app's own defaults, and the process-wide
+// preferred languages read through that override, so they would report the chosen language.
+#[cfg(target_os = "macos")]
+fn preferred_language() -> Option<String> {
+    use objc2_foundation::{NSArray, NSString, NSUserDefaults};
+    let global =
+        NSUserDefaults::standardUserDefaults().persistentDomainForName(&NSString::from_str("NSGlobalDomain"))?;
+    let languages = global
+        .objectForKey(&NSString::from_str("AppleLanguages"))?
+        .downcast::<NSArray>()
+        .ok()?;
+    Some(languages.firstObject()?.downcast::<NSString>().ok()?.to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn preferred_language() -> Option<String> {
+    sys_locale::get_locale()
+}
+
 #[inline]
 pub fn system_language() -> Cow<'static, str> {
     Cow::Borrowed(
-        sys_locale::get_locale()
+        preferred_language()
+            .or_else(sys_locale::get_locale)
             .as_deref()
             .and_then(resolve_supported_language)
             .unwrap_or(DEFAULT_LANGUAGE),

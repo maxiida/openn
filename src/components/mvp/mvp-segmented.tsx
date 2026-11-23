@@ -1,6 +1,8 @@
 import { Box, type SxProps, type Theme, Tooltip } from '@mui/material'
 import { useLayoutEffect, useRef } from 'react'
 
+import { UI_TOKENS } from '@/pages/_layout/hooks/use-custom-theme'
+
 interface Props<T extends string> {
   label: string
   value: T
@@ -75,8 +77,14 @@ export const MvpSegmented = <T extends string>({
           bottom: 2,
           opacity: 0,
           borderRadius: 999,
-          bgcolor: 'background.paper',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark'
+              ? UI_TOKENS.dark.raised
+              : 'background.paper',
+          boxShadow: (theme) =>
+            theme.palette.mode === 'dark'
+              ? 'none'
+              : '0 1px 2px rgba(0, 0, 0, 0.08) !important',
           '&[data-ready="true"]': {
             transition:
               'left 260ms cubic-bezier(0.3, 0.7, 0.4, 1), width 260ms cubic-bezier(0.3, 0.7, 0.4, 1)',
@@ -109,7 +117,7 @@ export const MvpSegmented = <T extends string>({
               borderRadius: 999,
               font: 'inherit',
               fontSize: 13,
-              fontWeight: selected ? 600 : 450,
+              fontWeight: 500,
               whiteSpace: 'nowrap',
               cursor: selected ? 'default' : 'pointer',
               color: selected ? 'text.primary' : 'text.secondary',

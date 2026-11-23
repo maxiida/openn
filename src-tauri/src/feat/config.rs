@@ -277,6 +277,16 @@ async fn process_terminated_flags(update_flags: UpdateFlags, patch: &IVerge) -> 
         let log_max_count = patch.app_log_max_count.unwrap_or(8);
         logger::update_log_config(log_max_size, log_max_count).await?;
     }
+    if (patch.theme_mode.is_some() || patch.enable_glass.is_some())
+        && let Some(window) = crate::utils::window_manager::WindowManager::get_main_window()
+    {
+        let verge = Config::verge().await.latest_arc();
+        crate::utils::resolve::window::apply_glass(
+            &window,
+            crate::utils::resolve::window::is_glass(verge.enable_glass),
+            verge.theme_mode.as_deref(),
+        );
+    }
     Ok(())
 }
 

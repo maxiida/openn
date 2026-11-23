@@ -18,6 +18,9 @@ const PROBE_TIMEOUT_MS: u32 = 5000;
 const FAILURE_THRESHOLD: u32 = 3;
 const HEALTHY_INTERVAL: Duration = Duration::from_secs(30);
 const RETRY_INTERVAL: Duration = Duration::from_secs(10);
+/// A node the user just picked gets the home page's quicker verdict, so the dot and the page agree.
+const SWITCH_FAILURE_THRESHOLD: u32 = 2;
+const SWITCH_RETRY_INTERVAL: Duration = Duration::from_secs(3);
 /// Tokio timers stop while the Mac sleeps, so a wall-clock gap this far past the wait marks a wake-up.
 const SLEEP_SLACK: Duration = Duration::from_secs(15);
 
@@ -36,7 +39,7 @@ impl HealthMonitor {
         if connected {
             let mut task = self.task.lock();
             if task.as_ref().is_none_or(|task| task.inner().is_finished()) {
-                *task = Some(AsyncHandler::spawn(run));
+                *task = Some(AsyncHandler::spawn(|| run(false)));
             }
         } else {
             let task = self.task.lock().take();
@@ -48,9 +51,29 @@ impl HealthMonitor {
             }
         }
     }
+
+    /// Starts over after a node switch. `known_dead` is the node list's last result for the new
+    /// node, which holds until a probe says otherwise.
+    pub async fn recheck(&self, known_dead: bool) {
+        let Some(running) = self.task.lock().take() else { return };
+        running.abort();
+        set_unhealthy(known_dead).await;
+        self.task
+            .lock()
+            .get_or_insert_with(|| AsyncHandler::spawn(|| run(true)));
+    }
 }
 
-async fn run() {
+async fn set_unhealthy(unhealthy: bool) {
+    if status_icon::global().set_unhealthy(unhealthy) {
+        logging!(info, Type::Tray, "connection health changed, unhealthy: {unhealthy}");
+        handle::Handle::connection_health_changed(unhealthy);
+        let verge = Config::verge().await.data_arc();
+        status_icon::global().sync(Tray::is_connected(&verge));
+    }
+}
+
+async fn run(mut just_switched: bool) {
     let mut failures = 0u32;
     let mut last_probe: Option<(SystemTime, Duration)> = None;
     while !handle::Handle::global().is_exiting() {
@@ -73,17 +96,22 @@ async fn run() {
                     logging!(info, Type::Tray, "health probe: recovered after {failures} failure(s)");
                 }
                 failures = 0;
+                just_switched = false;
             }
         }
-        let unhealthy = failures >= FAILURE_THRESHOLD;
-        if status_icon::global().set_unhealthy(unhealthy) {
-            logging!(info, Type::Tray, "connection health changed, unhealthy: {unhealthy}");
-            handle::Handle::connection_health_changed(unhealthy);
-            let verge = Config::verge().await.data_arc();
-            status_icon::global().sync(Tray::is_connected(&verge));
+        let threshold = if just_switched {
+            SWITCH_FAILURE_THRESHOLD
+        } else {
+            FAILURE_THRESHOLD
+        };
+        // Between the first failure and the threshold the dot keeps what it showed.
+        if failures == 0 || failures >= threshold {
+            set_unhealthy(failures > 0).await;
         }
         let interval = if failures == 0 {
             HEALTHY_INTERVAL
+        } else if just_switched {
+            SWITCH_RETRY_INTERVAL
         } else {
             RETRY_INTERVAL
         };

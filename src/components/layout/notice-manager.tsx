@@ -1,16 +1,17 @@
 import { Box, IconButton } from '@mui/material'
 import { keyframes } from '@mui/material/styles'
 import {
-  IconAlertCircleFilled,
-  IconAlertTriangleFilled,
-  IconCircleCheckFilled,
-  IconInfoCircleFilled,
-  IconX,
-} from '@tabler/icons-react'
+  CircleAlertIcon,
+  CircleCheckIcon,
+  InfoIcon,
+  TriangleAlertIcon,
+  XIcon,
+} from 'lucide-react'
 import React, { useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
+import { UI_TOKENS } from '@/pages/_layout/hooks/use-custom-theme'
 import {
   boundNoticeText,
   subscribeNotices,
@@ -27,14 +28,14 @@ type TranslationFn = ReturnType<typeof useTranslation>['t']
 const NOTICE_Z_INDEX = 2147483647
 
 const ICONS = {
-  success: { Icon: IconCircleCheckFilled, color: '#4ADE80' },
-  info: { Icon: IconInfoCircleFilled, color: '#64B5FF' },
-  warning: { Icon: IconAlertTriangleFilled, color: '#FBBF24' },
-  error: { Icon: IconAlertCircleFilled, color: '#F87171' },
+  success: CircleCheckIcon,
+  info: InfoIcon,
+  warning: TriangleAlertIcon,
+  error: CircleAlertIcon,
 }
 
 const toastIn = keyframes`
-  from { opacity: 0; transform: translateY(-14px) scale(0.96); }
+  from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: none; }
 `
 
@@ -183,60 +184,73 @@ export const NoticeManager = () => {
       }}
     >
       {currentNotices.map((notice) => {
-        const { Icon, color } = ICONS[notice.type]
+        const Icon = ICONS[notice.type]
         return (
           <Box
             key={notice.id}
             role={notice.type === 'error' ? 'alert' : 'status'}
+            title={resolveNoticeCopyText(notice, t)}
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
               void handleNoticeCopy(notice)
             }}
-            sx={(theme) => ({
-              pointerEvents: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.25,
-              minHeight: 40,
-              maxWidth: 440,
-              py: 0.75,
-              pl: 1.75,
-              pr: 0.75,
-              // Fully round while the message fits one line, without clipping wrapped text.
-              borderRadius: '20px',
-              border: '1px solid',
-              borderColor:
-                theme.palette.mode === 'light' ? '#303334' : '#4A4C5A',
-              bgcolor: theme.palette.mode === 'light' ? '#191C1D' : '#3A3C4A',
-              color: '#F5F5F7',
-              fontSize: 13.5,
-              lineHeight: 1.45,
-              boxShadow:
-                '0 10px 30px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.12) !important',
-              animation: `${toastIn} 380ms cubic-bezier(0.34, 1.36, 0.64, 1) both`,
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-            })}
+            sx={(theme) => {
+              const ui = UI_TOKENS[theme.palette.mode]
+              return {
+                pointerEvents: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                maxWidth: '100%',
+                height: 36,
+                pl: 1.5,
+                pr: 0.75,
+                borderRadius: '10px',
+                border: `0.5px solid ${ui.line}`,
+                bgcolor: ui.raised,
+                color: 'text.primary',
+                fontSize: 13.5,
+                boxShadow:
+                  theme.palette.mode === 'light'
+                    ? '0 6px 20px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06) !important'
+                    : '0 6px 20px rgba(0, 0, 0, 0.45) !important',
+                animation: `${toastIn} 160ms ease-out both`,
+                '@media (prefers-reduced-motion: reduce)': {
+                  animation: 'none',
+                },
+              }
+            }}
           >
-            <Box component={Icon} size={18} sx={{ flexShrink: 0, color }} />
-            <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+            <Box
+              component={Icon}
+              size={16}
+              sx={{ flexShrink: 0, color: `${notice.type}.main` }}
+            />
+            {/* Always one line; the full text stays in the title and the right-click copy. */}
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               {resolveNoticeMessage(notice, t)}
             </Box>
             <IconButton
               aria-label={t('shared.actions.close')}
               onClick={() => hideNotice(notice.id)}
               sx={{
-                width: 28,
-                height: 28,
+                width: 20,
+                height: 20,
+                p: 0,
                 flexShrink: 0,
-                color: 'rgba(255, 255, 255, 0.5)',
-                '&:hover, &.Mui-focusVisible': {
-                  color: '#FFFFFF',
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                },
+                borderRadius: '5px',
               }}
             >
-              <IconX size={14} />
+              <XIcon size={13} />
             </IconButton>
           </Box>
         )

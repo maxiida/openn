@@ -437,10 +437,16 @@ export interface TranslationResources {
             supported: string
             unsupported: string
           }
+          source: string
           tips: {
+            datacenter: string
             network: string
             purity: string
             region: string
+            residential: string
+            score: string
+            supported: string
+            unsupported: string
           }
           verdict: {
             good: string
@@ -454,6 +460,7 @@ export interface TranslationResources {
         blockers: {
           foreignSystemProxy: string
           foreignTunnel: string
+          recheck: string
           staleProxyEnv: string
         }
         checking: string
@@ -486,10 +493,10 @@ export interface TranslationResources {
           partialHint: string
           separator: string
           status: {
+            blocked: string
             checking: string
             down: string
             ok: string
-            slow: string
           }
         }
         speedTestPrompt: string
@@ -501,19 +508,9 @@ export interface TranslationResources {
         }
         tags: {
           ai: string
-          aiIntro: string
           delay: string
-          delayIntro: string
           sites: string
-          sitesIntro: string
           speed: string
-          speedIntro: string
-        }
-        welcome: {
-          import: string
-          linkLabel: string
-          subtitle: string
-          title: string
         }
       }
       nodes: {
@@ -540,6 +537,52 @@ export interface TranslationResources {
         unavailable: string
         unavailableHint: string
       }
+      onboarding: {
+        close: string
+        connect: {
+          done: string
+          doneSubtitle: string
+          finish: string
+          latency: string
+          later: string
+          menuBar: string
+          subtitle: string
+          title: string
+          tray: string
+        }
+        next: string
+        permission: {
+          body: string
+          checking: string
+          clear: string
+          grant: string
+          granted: string
+          incomplete: string
+          password: string
+          title: string
+          waiting: string
+        }
+        subscription: {
+          change: string
+          clipboard: string
+          import: string
+          invalid: string
+          label: string
+          nodes: string
+          subtitle: string
+          title: string
+          useClipboard: string
+        }
+        theme: {
+          dark: string
+          light: string
+        }
+        welcome: {
+          start: string
+          subtitle: string
+          title: string
+        }
+      }
       qr: {
         chooseImage: string
         errors: {
@@ -553,54 +596,59 @@ export interface TranslationResources {
           imageUnreadable: string
           notRecognized: string
         }
+        hint: string
         pasteImage: string
-        subtitle: string
+        title: string
       }
       settings: {
-        about: string
+        aiCheck: {
+          hint: string
+          label: string
+        }
         appearance: {
           dark: string
           label: string
           light: string
           system: string
+          theme: string
         }
         autoLaunch: {
           failed: string
           hint: string
           label: string
         }
-        connection: string
         exportLogs: {
           done: string
           failed: string
-          hint: string
           label: string
         }
         general: string
+        glass: {
+          hint: string
+          label: string
+        }
+        help: string
         language: {
           label: string
           system: string
         }
-        proxyMode: {
-          failed: string
-          global: string
-          globalTooltip: string
-          label: string
-          rule: string
-          ruleTooltip: string
-        }
+        onboarding: string
         repair: {
           body: string
           confirm: string
           done: string
           failed: string
-          hint: string
           label: string
           reconnected: string
           setupIncomplete: string
         }
         title: string
-        version: string
+        uninstall: {
+          body: string
+          confirm: string
+          failed: string
+          label: string
+        }
       }
       speed: {
         blazing: {
@@ -623,6 +671,7 @@ export interface TranslationResources {
           hint: string
           label: string
         }
+        valueHint: string
       }
       speedTest: {
         actions: {
@@ -681,14 +730,15 @@ export interface TranslationResources {
       }
       subscriptions: {
         add: string
-        current: string
+        collapse: string
         delete: string
         deleteAction: string
         deleteConfirm: string
-        deleteNamed: string
         fallbackName: string
         inputLabel: string
+        label: string
         localSource: string
+        manage: string
         notices: {
           added: string
           addFailed: string
@@ -701,8 +751,6 @@ export interface TranslationResources {
         }
         placeholder: string
         remoteSource: string
-        subtitle: string
-        title: string
         update: string
         updated: {
           date: string
@@ -712,9 +760,6 @@ export interface TranslationResources {
           today: string
           yesterday: string
         }
-        updateNamed: string
-        use: string
-        useNamed: string
       }
       usage: {
         expired: string

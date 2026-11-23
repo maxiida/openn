@@ -8,8 +8,8 @@ use crate::{config::Config, core::handle, utils::resolve::window_script::build_w
 use clash_verge_logging::logging;
 use clash_verge_logging::{Type, logging_error};
 
-const DARK_BACKGROUND_COLOR: Color = Color(46, 48, 61, 255); // #2E303D
-const LIGHT_BACKGROUND_COLOR: Color = Color(245, 245, 245, 255); // #F5F5F5
+const DARK_BACKGROUND_COLOR: Color = Color(31, 30, 29, 255); // #1F1E1D
+const LIGHT_BACKGROUND_COLOR: Color = Color(250, 249, 245, 255); // #FAF9F5
 const DARK_BACKGROUND_HEX: &str = "#2E303D";
 const LIGHT_BACKGROUND_HEX: &str = "#F5F5F5";
 
@@ -44,6 +44,50 @@ fn restore_default_size_if_needed(window: &WebviewWindow) {
     logging_error!(Type::Window, window.center());
 }
 
+const TRANSPARENT_COLOR: Color = Color(0, 0, 0, 0);
+
+/// Frosted glass relies on macOS vibrancy; elsewhere the window stays solid.
+pub fn is_glass(enable_glass: Option<bool>) -> bool {
+    cfg!(target_os = "macos") && enable_glass == Some(true)
+}
+
+fn window_background_color(theme_mode: Option<&str>, glass: bool) -> Color {
+    if glass {
+        return TRANSPARENT_COLOR;
+    }
+    let prefers_dark = match theme_mode {
+        Some("dark") => true,
+        Some("light") => false,
+        _ => !matches!(detect_system_theme().ok(), Some(SystemTheme::Light)),
+    };
+    if prefers_dark {
+        DARK_BACKGROUND_COLOR
+    } else {
+        LIGHT_BACKGROUND_COLOR
+    }
+}
+
+/// Switches the window between solid and vibrancy-backed backgrounds.
+pub fn apply_glass(window: &WebviewWindow, glass: bool, theme_mode: Option<&str>) {
+    #[cfg(target_os = "macos")]
+    {
+        use tauri::utils::config::WindowEffectsConfig;
+        use tauri::window::{Effect, EffectState};
+
+        let effects = glass.then(|| WindowEffectsConfig {
+            effects: vec![Effect::UnderWindowBackground],
+            state: Some(EffectState::Active),
+            radius: None,
+            color: None,
+        });
+        logging_error!(Type::Window, window.set_effects(effects));
+    }
+    logging_error!(
+        Type::Window,
+        window.set_background_color(Some(window_background_color(theme_mode, glass)))
+    );
+}
+
 /// Page the next created main window opens on, overriding the configured start page once.
 static NEXT_START_PAGE: std::sync::Mutex<Option<&'static str>> = std::sync::Mutex::new(None);
 
@@ -60,6 +104,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     let latest = config.latest_arc();
     let next_page = NEXT_START_PAGE.lock().ok().and_then(|mut next| next.take());
     let start_page = next_page.unwrap_or_else(|| latest.start_page.as_deref().unwrap_or("/"));
+    let glass = is_glass(latest.enable_glass);
     let initial_theme_mode = match latest.theme_mode.as_deref() {
         Some("dark") => "dark",
         Some("light") => "light",
@@ -72,17 +117,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         _ => None,
     };
 
-    let prefers_dark_background = match resolved_theme {
-        Some(Theme::Dark) => true,
-        Some(Theme::Light) => false,
-        _ => !matches!(detect_system_theme().ok(), Some(SystemTheme::Light)),
-    };
-
-    let background_color = if prefers_dark_background {
-        DARK_BACKGROUND_COLOR
-    } else {
-        LIGHT_BACKGROUND_COLOR
-    };
+    let background_color = window_background_color(latest.theme_mode.as_deref(), glass);
 
     let initial_script = build_window_initial_script(initial_theme_mode, DARK_BACKGROUND_HEX, LIGHT_BACKGROUND_HEX);
 
@@ -113,7 +148,9 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     {
         builder = builder
             .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .hidden_title(true);
+            .hidden_title(true)
+            // Built transparent so the glass appearance can be switched on and off at runtime.
+            .transparent(true);
     }
 
     if let Some(theme) = resolved_theme {
@@ -125,6 +162,9 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     match builder.build() {
         Ok(window) => {
             logging_error!(Type::Window, window.set_background_color(Some(background_color)));
+            if glass {
+                apply_glass(&window, true, latest.theme_mode.as_deref());
+            }
             restore_default_size_if_needed(&window);
             // A new page supersedes any reload marker left by the old window.
             #[cfg(target_os = "macos")]

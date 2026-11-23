@@ -1,10 +1,27 @@
-import { Box, Button, Dialog, Stack, Typography } from '@mui/material'
-import { IconClipboard, IconPhoto } from '@tabler/icons-react'
+import {
+  Box,
+  Button,
+  Dialog,
+  IconButton,
+  Stack,
+  Typography,
+} from '@mui/material'
 import { readImage } from '@tauri-apps/plugin-clipboard-manager'
 import i18n from 'i18next'
 import jsQR from 'jsqr'
+import {
+  CameraOffIcon,
+  ClipboardPasteIcon,
+  ImageIcon,
+  XIcon,
+} from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
+import { mvpCommandKey } from '@/hooks/use-mvp-shortcuts'
+import { showNotice } from '@/services/notice-service'
+import getSystem from '@/utils/get-system'
 
 interface QrScannerDialogProps {
   open: boolean
@@ -47,6 +64,16 @@ const getCameraErrorMessage = (error: unknown) => {
   return i18n.t(($) => $.mvp.qr.errors.cameraUnavailable)
 }
 
+const CORNERS = [
+  { top: 0, left: 0, borderWidth: '2.5px 0 0 2.5px' },
+  { top: 0, right: 0, borderWidth: '2.5px 2.5px 0 0' },
+  { bottom: 0, left: 0, borderWidth: '0 0 2.5px 2.5px' },
+  { bottom: 0, right: 0, borderWidth: '0 2.5px 2.5px 0' },
+] as const
+
+// Lets the corners flash green before the dialog closes.
+const SUCCESS_DELAY_MS = 400
+
 export const QrScannerDialog = ({
   open,
   onClose,
@@ -60,10 +87,12 @@ export const QrScannerDialog = ({
   const streamRef = useRef<MediaStream | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const detectedRef = useRef(false)
-  const [cameraError, setCameraError] = useState<string | null>(() =>
-    cameraSupported ? null : t('mvp.qr.errors.cameraUnsupported'),
-  )
-  const [scanError, setScanError] = useState<string | null>(null)
+  // Callers pass a fresh callback every render; reading it through a ref keeps the camera running.
+  const onDetectedRef = useRef(onDetected)
+  onDetectedRef.current = onDetected
+  const [cameraFailed, setCameraFailed] = useState(!cameraSupported)
+  const [cameraReady, setCameraReady] = useState(false)
+  const [detected, setDetected] = useState(false)
   const [readingClipboard, setReadingClipboard] = useState(false)
 
   const stopCamera = useCallback(() => {
@@ -79,10 +108,17 @@ export const QrScannerDialog = ({
     (payload: string) => {
       if (detectedRef.current) return
       detectedRef.current = true
-      stopCamera()
-      onDetected(payload)
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+      setDetected(true)
+      window.setTimeout(() => {
+        stopCamera()
+        onDetectedRef.current(payload)
+      }, SUCCESS_DELAY_MS)
     },
-    [onDetected, stopCamera],
+    [stopCamera],
   )
 
   useEffect(() => {
@@ -113,13 +149,18 @@ export const QrScannerDialog = ({
       }
     }
 
-    if (!cameraSupported) return stopCamera
+    if (!cameraSupported) {
+      // Deferred so StrictMode's throwaway mount doesn't show it twice.
+      queueMicrotask(() => {
+        if (!cancelled) showNotice.error(t('mvp.qr.errors.cameraUnsupported'))
+      })
+      return () => {
+        cancelled = true
+      }
+    }
 
     void navigator.mediaDevices
-      .getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      })
+      .getUserMedia({ video: true, audio: false })
       .then(async (stream) => {
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop())
@@ -129,23 +170,25 @@ export const QrScannerDialog = ({
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           await videoRef.current.play()
+          setCameraReady(true)
           scanFrame()
         }
       })
       .catch((error: unknown) => {
-        if (!cancelled) setCameraError(getCameraErrorMessage(error))
+        if (cancelled) return
+        setCameraFailed(true)
+        showNotice.error(getCameraErrorMessage(error))
       })
 
     return () => {
       cancelled = true
       stopCamera()
     }
-  }, [cameraSupported, finish, open, stopCamera])
+  }, [cameraSupported, finish, open, stopCamera, t])
 
   const onImageSelected = useCallback(
     (file: File | undefined) => {
       if (!file) return
-      setScanError(null)
 
       const image = new Image()
       const objectUrl = URL.createObjectURL(file)
@@ -156,11 +199,11 @@ export const QrScannerDialog = ({
           : null
         URL.revokeObjectURL(objectUrl)
         if (payload) finish(payload)
-        else setScanError(t('mvp.qr.errors.notRecognized'))
+        else showNotice.error(t('mvp.qr.errors.notRecognized'))
       }
       image.onerror = () => {
         URL.revokeObjectURL(objectUrl)
-        setScanError(t('mvp.qr.errors.imageUnreadable'))
+        showNotice.error(t('mvp.qr.errors.imageUnreadable'))
       }
       image.src = objectUrl
     },
@@ -168,7 +211,6 @@ export const QrScannerDialog = ({
   )
 
   const onPasteImage = useCallback(async () => {
-    setScanError(null)
     setReadingClipboard(true)
     let clipboardImage: Awaited<ReturnType<typeof readImage>> | undefined
     let payload: string | undefined
@@ -182,9 +224,9 @@ export const QrScannerDialog = ({
       payload = jsQR(new Uint8ClampedArray(rgba), width, height, {
         inversionAttempts: 'attemptBoth',
       })?.data
-      if (!payload) setScanError(t('mvp.qr.errors.clipboardNoQr'))
+      if (!payload) showNotice.error(t('mvp.qr.errors.clipboardNoQr'))
     } catch {
-      setScanError(t('mvp.qr.errors.clipboardNoImage'))
+      showNotice.error(t('mvp.qr.errors.clipboardNoImage'))
     } finally {
       await clipboardImage?.close().catch(() => undefined)
       setReadingClipboard(false)
@@ -193,25 +235,63 @@ export const QrScannerDialog = ({
     if (payload) finish(payload)
   }, [finish, t])
 
+  useEffect(() => {
+    if (!open) return
+    const isMac = getSystem() === 'macos'
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== 'v' ||
+        event.metaKey !== isMac ||
+        event.ctrlKey === isMac ||
+        event.altKey ||
+        event.shiftKey ||
+        event.repeat
+      ) {
+        return
+      }
+      event.preventDefault()
+      void onPasteImage()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onPasteImage, open])
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <Stack spacing={2.5} sx={{ p: 3 }}>
-        <Box>
-          <Typography sx={{ fontSize: 17, fontWeight: 650 }}>
-            {t('mvp.common.scanQr')}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      slotProps={{
+        paper: { sx: { width: 360, maxWidth: 'calc(100% - 32px)' } },
+      }}
+    >
+      <Box sx={{ p: '16px 20px 20px' }}>
+        <Box
+          sx={{
+            mb: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Typography sx={{ fontSize: 16, fontWeight: 600 }}>
+            {t('mvp.qr.title')}
           </Typography>
-          <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 13 }}>
-            {t('mvp.qr.subtitle')}
-          </Typography>
+          <IconButton
+            aria-label={t('shared.actions.close')}
+            onClick={onClose}
+            sx={{ mr: -1 }}
+          >
+            <XIcon size={18} />
+          </IconButton>
         </Box>
 
         <Box
           sx={{
             position: 'relative',
-            aspectRatio: '1 / 1',
+            aspectRatio: '4 / 3',
             overflow: 'hidden',
-            borderRadius: '16px',
-            bgcolor: 'action.hover',
+            borderRadius: '12px',
+            bgcolor: '#141413',
             display: 'grid',
             placeItems: 'center',
           }}
@@ -220,65 +300,104 @@ export const QrScannerDialog = ({
             ref={videoRef}
             muted
             playsInline
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              transform: 'scaleX(-1)',
+            }}
           />
-          {cameraError && (
-            <Typography
-              color="text.secondary"
-              sx={{ position: 'absolute', px: 4, textAlign: 'center' }}
-            >
-              {cameraError}
-            </Typography>
-          )}
-          {!cameraError && (
-            <Box
-              sx={{
-                position: 'absolute',
-                width: '68%',
-                height: '68%',
-                border: '2px solid',
-                borderColor: 'common.white',
-                borderRadius: '18px',
-                boxShadow: '0 0 0 999px rgba(0, 0, 0, 0.18)',
-                pointerEvents: 'none',
-              }}
-            />
+          {cameraFailed ? (
+            <CameraOffIcon size={24} color="rgba(236, 234, 228, 0.45)" />
+          ) : !cameraReady ? (
+            <Box sx={{ display: 'flex', color: 'rgba(236, 234, 228, 0.6)' }}>
+              <MvpProgressRing size={18} color="inherit" />
+            </Box>
+          ) : (
+            <>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '46%',
+                  left: '50%',
+                  width: detected ? '50%' : '56%',
+                  aspectRatio: '1 / 1',
+                  maxHeight: detected ? '66%' : '74%',
+                  transform: 'translate(-50%, -50%)',
+                  borderRadius: '14px',
+                  boxShadow: '0 0 0 999px rgba(0, 0, 0, 0.35)',
+                  transition: 'width 0.25s, max-height 0.25s',
+                  pointerEvents: 'none',
+                }}
+              >
+                {CORNERS.map((corner) => (
+                  <Box
+                    key={corner.borderWidth}
+                    sx={{
+                      position: 'absolute',
+                      width: 24,
+                      height: 24,
+                      borderStyle: 'solid',
+                      borderColor: detected ? 'success.main' : 'common.white',
+                      borderRadius: '14px',
+                      transition: 'border-color 0.2s',
+                      ...corner,
+                    }}
+                  />
+                ))}
+              </Box>
+              <Typography
+                sx={{
+                  position: 'absolute',
+                  bottom: 12,
+                  fontSize: 12,
+                  color: 'rgba(255, 255, 255, 0.75)',
+                }}
+              >
+                {t('mvp.qr.hint')}
+              </Typography>
+            </>
           )}
         </Box>
 
-        {scanError && (
-          <Typography color="error" sx={{ fontSize: 13 }}>
-            {scanError}
-          </Typography>
-        )}
-
-        <Stack direction="row" spacing={1.25}>
+        <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
           <Button
             fullWidth
             variant="outlined"
-            startIcon={<IconClipboard size={20} />}
+            startIcon={<ClipboardPasteIcon size={16} />}
             loading={readingClipboard}
+            disabled={detected}
             onClick={onPasteImage}
           >
             {t('mvp.qr.pasteImage')}
+            <Box
+              component="kbd"
+              sx={{
+                ml: 0.75,
+                px: '5px',
+                borderRadius: '4px',
+                bgcolor: 'action.hover',
+                color: 'text.secondary',
+                fontFamily: 'inherit',
+                fontSize: 11.5,
+                lineHeight: '17px',
+              }}
+            >
+              {mvpCommandKey}V
+            </Box>
           </Button>
           <Button
             fullWidth
             variant="outlined"
-            startIcon={<IconPhoto size={20} />}
+            startIcon={<ImageIcon size={16} />}
+            disabled={detected}
             onClick={() => fileInputRef.current?.click()}
           >
             {t('mvp.qr.chooseImage')}
           </Button>
         </Stack>
-        <Button
-          color="inherit"
-          size="small"
-          sx={{ alignSelf: 'center' }}
-          onClick={onClose}
-        >
-          {t('mvp.common.cancel')}
-        </Button>
 
         <input
           ref={fileInputRef}
@@ -291,7 +410,7 @@ export const QrScannerDialog = ({
           }}
         />
         <canvas ref={canvasRef} hidden />
-      </Stack>
+      </Box>
     </Dialog>
   )
 }

@@ -1,12 +1,21 @@
-import { Box, IconButton, Tooltip, Typography } from '@mui/material'
-import { IconArrowLeft, IconChevronRight, IconTool } from '@tabler/icons-react'
+import {
+  alpha,
+  Box,
+  Button,
+  Divider,
+  IconButton,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material'
 import { getVersion } from '@tauri-apps/api/app'
 import { useLockFn } from 'ahooks'
+import { ChevronLeftIcon, CircleHelpIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
-import type { BaseConfig } from 'tauri-plugin-mihomo-api'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 
 import { BaseDialog, Switch } from '@/components/base'
 import { MvpPage } from '@/components/mvp/mvp-page'
@@ -16,22 +25,17 @@ import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
 import { useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
 import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { useVerge } from '@/hooks/use-verge'
-import {
-  useAppRefreshers,
-  useClashConfigData,
-} from '@/providers/app-data-context'
-import { exportLogs } from '@/services/cmds'
+import { useAppRefreshers } from '@/providers/app-data-context'
+import { exitApp, exportLogs, uninstallService } from '@/services/cmds'
 import { resolveLanguage } from '@/services/i18n'
-import { type MvpMode, setMvpMode } from '@/services/mvp'
 import { MvpConnectionError, repairMvp } from '@/services/mvp-connection'
 import { showNotice } from '@/services/notice-service'
-import {
-  revalidateQueries,
-  setCacheData,
-  useQuery,
-} from '@/services/query-client'
+import { revalidateQueries, useQuery } from '@/services/query-client'
+import getSystem from '@/utils/get-system'
 
 type ThemeMode = NonNullable<IVergeConfig['theme_mode']>
+
+const SUPPORTS_GLASS = getSystem() === 'macos'
 
 const Section = ({
   title,
@@ -41,7 +45,7 @@ const Section = ({
   children: ReactNode
 }) => (
   <Box>
-    <Typography color="text.secondary" sx={{ fontSize: 13, mb: 1 }}>
+    <Typography color="textSecondary" sx={{ fontSize: 13, mb: 1 }}>
       {title}
     </Typography>
     <Box sx={{ borderTop: 1, borderColor: 'divider' }}>{children}</Box>
@@ -70,7 +74,7 @@ const RowLabel = ({ label, hint }: { label: string; hint?: string }) => (
   <Box sx={{ minWidth: 0 }}>
     <Typography sx={{ fontSize: 15.5, fontWeight: 500 }}>{label}</Typography>
     {hint && (
-      <Typography color="text.secondary" sx={{ fontSize: 12.5, mt: 0.25 }}>
+      <Typography color="textSecondary" sx={{ fontSize: 12.5, mt: 0.25 }}>
         {hint}
       </Typography>
     )}
@@ -96,9 +100,7 @@ const MvpSettingsPage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { verge, mutateVerge, patchVerge } = useVerge()
-  const { refreshAll, refreshClashConfig } = useAppRefreshers()
-  const { clashConfig } = useClashConfigData()
-  const [pendingMode, setPendingMode] = useState<MvpMode | null>(null)
+  const { refreshAll } = useAppRefreshers()
   const { data: version } = useQuery({
     queryKey: ['getAppVersion'],
     queryFn: getVersion,
@@ -106,16 +108,34 @@ const MvpSettingsPage = () => {
   const [repairOpen, setRepairOpen] = useState(false)
   const [repairing, setRepairing] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [uninstallOpen, setUninstallOpen] = useState(false)
+  const [uninstalling, setUninstalling] = useState(false)
+  const [helpAnchor, setHelpAnchor] = useState<HTMLElement | null>(null)
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const menuAction = searchParams.get('help')
+  // The location key tells a repeated menu click apart from a re-render of the same visit.
+  const menuActionKey = menuAction ? `${location.key}:${menuAction}` : null
+  const [handledMenuActionKey, setHandledMenuActionKey] = useState<
+    string | null
+  >(null)
   // The repair's own steps, then refreshing what the app shows.
   const repairSteps = useMvpSteps(1)
   useMvpShortcuts([
     { key: 'Escape', allowInControl: true, onPress: () => navigate('/') },
   ])
 
-  const proxyMode: MvpMode =
-    pendingMode ??
-    (clashConfig?.mode?.toLowerCase() === 'global' ? 'global' : 'rule')
-  const themeMode = verge?.theme_mode ?? 'system'
+  // The app menu's Help items land here as ?help=repair or ?help=uninstall.
+  if (menuActionKey !== handledMenuActionKey) {
+    setHandledMenuActionKey(menuActionKey)
+    if (menuAction === 'repair') setRepairOpen(true)
+    if (menuAction === 'uninstall') setUninstallOpen(true)
+  }
+
+  const themeMode: ThemeMode =
+    verge?.theme_mode === 'light' || verge?.theme_mode === 'dark'
+      ? verge.theme_mode
+      : 'system'
   const language = verge?.language ? resolveLanguage(verge.language) : ''
 
   const changeVerge = async (patch: Partial<IVergeConfig>) => {
@@ -134,23 +154,6 @@ const MvpSettingsPage = () => {
     } catch (error) {
       console.error('[Proxy MVP] Auto-launch change failed:', error)
       showNotice.error(t('mvp.settings.autoLaunch.failed'))
-    }
-  })
-
-  const onProxyMode = useLockFn(async (mode: MvpMode) => {
-    setPendingMode(mode)
-    try {
-      await setMvpMode(mode)
-      // Write through the live cache so the control does not flash the old mode during refetch.
-      setCacheData<BaseConfig>(['getClashConfig'], (old) =>
-        old ? { ...old, mode } : old,
-      )
-      await refreshClashConfig()
-    } catch (error) {
-      console.error('[Proxy MVP] Proxy mode change failed:', error)
-      showNotice.error(t('mvp.settings.proxyMode.failed'))
-    } finally {
-      setPendingMode(null)
     }
   })
 
@@ -208,9 +211,98 @@ const MvpSettingsPage = () => {
     }
   })
 
+  const onUninstall = useLockFn(async () => {
+    setUninstalling(true)
+    try {
+      await uninstallService()
+      // Quitting also restores the system proxy and DNS settings.
+      await exitApp()
+    } catch (error) {
+      console.error('[Proxy MVP] Service uninstall failed:', error)
+      showNotice.error(t('mvp.settings.uninstall.failed'))
+      setUninstalling(false)
+    }
+  })
+
   return (
     <MvpPage
       title={t('mvp.settings.title')}
+      footer={
+        <Box sx={{ display: 'grid', justifyItems: 'center', gap: 0.5 }}>
+          <Button
+            size="small"
+            color="inherit"
+            startIcon={<CircleHelpIcon size={15} />}
+            aria-haspopup="menu"
+            aria-expanded={Boolean(helpAnchor)}
+            onClick={(event) => setHelpAnchor(event.currentTarget)}
+            sx={{
+              color: 'text.secondary',
+              fontSize: 13,
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            {t('mvp.settings.help')}
+          </Button>
+          <Typography
+            color="textDisabled"
+            sx={{ fontSize: 12, fontVariantNumeric: 'tabular-nums' }}
+          >
+            {version ? `Openn ${version}` : ''}
+          </Typography>
+          <Menu
+            anchorEl={helpAnchor}
+            open={Boolean(helpAnchor)}
+            onClose={() => setHelpAnchor(null)}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            slotProps={{ paper: { sx: { mt: -1 } } }}
+          >
+            <MenuItem
+              onClick={() => {
+                setHelpAnchor(null)
+                navigate('/welcome')
+              }}
+            >
+              {t('mvp.settings.onboarding')}
+            </MenuItem>
+            <MenuItem
+              disabled={repairing}
+              onClick={() => {
+                setHelpAnchor(null)
+                setRepairOpen(true)
+              }}
+            >
+              {t('mvp.settings.repair.label')}
+            </MenuItem>
+            <MenuItem
+              disabled={exporting}
+              onClick={() => {
+                setHelpAnchor(null)
+                onExportLogs()
+              }}
+            >
+              {t('mvp.settings.exportLogs.label')}
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              disabled={uninstalling}
+              onClick={() => {
+                setHelpAnchor(null)
+                setUninstallOpen(true)
+              }}
+              sx={{
+                color: 'error.main',
+                '&:hover, &.Mui-focusVisible': {
+                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.1),
+                },
+              }}
+            >
+              {t('mvp.settings.uninstall.label')}
+            </MenuItem>
+          </Menu>
+        </Box>
+      }
       leading={
         <Tooltip
           title={
@@ -222,34 +314,12 @@ const MvpSettingsPage = () => {
             aria-keyshortcuts="Escape"
             onClick={() => navigate('/')}
           >
-            <IconArrowLeft size={22} />
+            <ChevronLeftIcon size={18} />
           </IconButton>
         </Tooltip>
       }
     >
       <Box sx={{ display: 'grid', gap: 5, pt: 1 }}>
-        <Section title={t('mvp.settings.connection')}>
-          <Row label={t('mvp.settings.proxyMode.label')}>
-            <MvpSegmented<MvpMode>
-              label={t('mvp.settings.proxyMode.label')}
-              value={proxyMode}
-              options={[
-                {
-                  value: 'rule',
-                  label: t('mvp.settings.proxyMode.rule'),
-                  tooltip: t('mvp.settings.proxyMode.ruleTooltip'),
-                },
-                {
-                  value: 'global',
-                  label: t('mvp.settings.proxyMode.global'),
-                  tooltip: t('mvp.settings.proxyMode.globalTooltip'),
-                },
-              ]}
-              onChange={onProxyMode}
-            />
-          </Row>
-        </Section>
-
         <Section title={t('mvp.settings.general')}>
           <Row
             label={t('mvp.settings.autoLaunch.label')}
@@ -264,16 +334,19 @@ const MvpSettingsPage = () => {
               }}
             />
           </Row>
-          <Row label={t('mvp.settings.appearance.label')}>
-            <MvpSegmented<ThemeMode>
-              label={t('mvp.settings.appearance.label')}
-              value={themeMode}
-              options={[
-                { value: 'system', label: t('mvp.settings.appearance.system') },
-                { value: 'light', label: t('mvp.settings.appearance.light') },
-                { value: 'dark', label: t('mvp.settings.appearance.dark') },
-              ]}
-              onChange={(value) => onPreference({ theme_mode: value })}
+          <Row
+            label={t('mvp.settings.aiCheck.label')}
+            hint={t('mvp.settings.aiCheck.hint')}
+          >
+            <Switch
+              checked={verge?.enable_ai_check !== false}
+              disabled={!verge}
+              onChange={(_, checked) =>
+                onPreference({ enable_ai_check: checked })
+              }
+              slotProps={{
+                input: { 'aria-label': t('mvp.settings.aiCheck.label') },
+              }}
             />
           </Row>
           <Row label={t('mvp.settings.language.label')}>
@@ -290,73 +363,57 @@ const MvpSettingsPage = () => {
           </Row>
         </Section>
 
-        <Section title={t('mvp.settings.about')}>
-          <Row label={t('mvp.settings.version')}>
-            <Typography
-              color="text.secondary"
-              sx={{ fontSize: 14, fontVariantNumeric: 'tabular-nums' }}
-            >
-              {version ?? ''}
-            </Typography>
+        <Section title={t('mvp.settings.appearance.label')}>
+          <Row label={t('mvp.settings.appearance.theme')}>
+            <MvpSegmented<ThemeMode>
+              label={t('mvp.settings.appearance.theme')}
+              value={themeMode}
+              options={[
+                { value: 'system', label: t('mvp.settings.appearance.system') },
+                { value: 'light', label: t('mvp.settings.appearance.light') },
+                { value: 'dark', label: t('mvp.settings.appearance.dark') },
+              ]}
+              onChange={(value) => onPreference({ theme_mode: value })}
+            />
           </Row>
-          <Box
-            component="button"
-            type="button"
-            disabled={repairing}
-            onClick={() => setRepairOpen(true)}
-            sx={{
-              ...rowSx,
-              cursor: 'pointer',
-              '&:hover': { bgcolor: 'action.hover' },
-              '&:disabled': { cursor: 'default' },
-            }}
-          >
-            <RowLabel
-              label={t('mvp.settings.repair.label')}
-              hint={t('mvp.settings.repair.hint')}
-            />
-            <MvpProgressRing
-              busy={repairing}
-              size={17}
-              segments={repairSteps.segments}
+          {SUPPORTS_GLASS && (
+            <Row
+              label={t('mvp.settings.glass.label')}
+              hint={t('mvp.settings.glass.hint')}
             >
-              <Box
-                component={IconChevronRight}
-                size={22}
-                sx={{ color: 'text.secondary' }}
+              <Switch
+                checked={verge?.enable_glass === true}
+                disabled={!verge}
+                onChange={(_, checked) =>
+                  onPreference({ enable_glass: checked })
+                }
+                slotProps={{
+                  input: { 'aria-label': t('mvp.settings.glass.label') },
+                }}
               />
-            </MvpProgressRing>
-          </Box>
-          <Box
-            component="button"
-            type="button"
-            disabled={exporting}
-            onClick={onExportLogs}
-            sx={{
-              ...rowSx,
-              cursor: 'pointer',
-              '&:hover': { bgcolor: 'action.hover' },
-              '&:disabled': { cursor: 'default' },
-            }}
-          >
-            <RowLabel
-              label={t('mvp.settings.exportLogs.label')}
-              hint={t('mvp.settings.exportLogs.hint')}
-            />
-            <MvpProgressRing busy={exporting} size={17}>
-              <Box
-                component={IconChevronRight}
-                size={22}
-                sx={{ color: 'text.secondary' }}
-              />
-            </MvpProgressRing>
-          </Box>
+            </Row>
+          )}
         </Section>
       </Box>
 
       <BaseDialog
+        open={uninstallOpen}
+        title={t('mvp.settings.uninstall.label')}
+        okBtn={t('mvp.settings.uninstall.confirm')}
+        cancelBtn={t('mvp.common.cancel')}
+        loading={uninstalling}
+        onClose={() => !uninstalling && setUninstallOpen(false)}
+        onCancel={() => !uninstalling && setUninstallOpen(false)}
+        onOk={onUninstall}
+        contentSx={{ width: { xs: 280, sm: 300 } }}
+      >
+        <Typography variant="body2">
+          {t('mvp.settings.uninstall.body')}
+        </Typography>
+      </BaseDialog>
+
+      <BaseDialog
         open={repairOpen}
-        icon={<IconTool size={22} />}
         title={t('mvp.settings.repair.label')}
         okBtn={t('mvp.settings.repair.confirm')}
         cancelBtn={t('mvp.common.cancel')}

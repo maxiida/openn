@@ -1,4 +1,4 @@
-## v0.1.0-alpha.1
+## v0.1.1
 
 <details>
 <summary><strong> 🐞 修复问题 </strong></summary>
@@ -20,6 +20,8 @@
 <details>
 <summary><strong> ✨ 新增功能 </strong></summary>
 
+- 新增新手引导：首次打开时一步步导入订阅、授权并自动连上最快的节点；之后可从设置的「帮助」里重新打开
+- 设置页新增「卸载 Openn」：先卸载后台组件再删除应用，不再留下一直运行的后台服务
 - Add keyboard shortcuts for connecting, page navigation, node latency tests, and node selection, with shortcut hints in tooltips.
 - 新增设置页：开机自动启动、外观（跟随系统/浅色/深色）、语言（跟随系统/中文/English）、「一键修复」
 - 节点页顶部显示订阅剩余流量与到期时间，并隐藏订阅里用来展示这些信息的占位节点
@@ -31,6 +33,7 @@
 
 **🍎 macOS**
 
+- 外观新增实验性的「毛玻璃」（仅 macOS）：窗口背景透出桌面并模糊，卡片半透明
 - macOS：顶部菜单栏跟随应用语言，新增「设置…」和「帮助」菜单；⌘H 可隐藏窗口
 - macOS：节点无响应时，主页和菜单栏、Dock 指示灯一起变红，并提供「更换节点」
 
@@ -39,6 +42,10 @@
 <details>
 <summary><strong> 🚀 优化改进 </strong></summary>
 
+- 安装包小了约 57 MB：只附带一个测试过的稳定版内核
+- 隐私说明改写为 Openn 自己的版本，列出应用会自动访问的所有网站
+- 全新外观：暖灰底色、黑白主按钮，不再使用蓝色；弹窗、通知和提示条更简洁，通知和提示条始终一行显示
+- 首页提示其他 VPN 或系统代理占用时，可直接点「重新检测」，不必再点一次连接
 - Simplify website status icons and labels, and box connection advice.
 - 首页状态标签统一为「网站」「AI」「延迟」「网速」，用颜色表示好坏，悬停说明每个标签的含义
 - 文字和提示不再出现最后一行只剩一个字的情况

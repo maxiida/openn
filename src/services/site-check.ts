@@ -1,3 +1,5 @@
+import { fetch as directFetch } from '@tauri-apps/plugin-http'
+
 import { cmdTestDelay } from '@/services/cmds'
 import { classifyDelay } from '@/utils/delay'
 import { MVP_DELAY_TIMEOUT } from '@/utils/main-proxy-group'
@@ -12,10 +14,7 @@ export const MVP_SITES = [
 ] as const
 
 export type MvpSiteId = (typeof MVP_SITES)[number]['id']
-export type MvpSiteStatus = 'ok' | 'slow' | 'down'
-
-// A handshake this slow through the proxy means pages visibly hang before they start loading.
-const SLOW_SITE_MS = 1500
+export type MvpSiteStatus = 'ok' | 'down' | 'blocked'
 
 const probe = (url: string) => cmdTestDelay(url).catch(() => 0)
 
@@ -25,18 +24,45 @@ export const checkSite = async (url: string): Promise<MvpSiteStatus> => {
   if (classifyDelay(delay, MVP_DELAY_TIMEOUT) !== 'measured') {
     delay = await probe(url)
   }
-  if (classifyDelay(delay, MVP_DELAY_TIMEOUT) !== 'measured') return 'down'
-  return delay >= SLOW_SITE_MS ? 'slow' : 'ok'
+  return classifyDelay(delay, MVP_DELAY_TIMEOUT) === 'measured' ? 'ok' : 'down'
+}
+
+// ChatGPT completes the handshake from regions it refuses and only turns them away inside the
+// app, where this endpoint answers unsupported_country.
+const CHATGPT_REGION_URL =
+  'https://api.openai.com/compliance/cookie_requirements'
+const REGION_TIMEOUT_MS = 10_000
+
+const chatGptRefusesRegion = async (mixedPort: number) => {
+  try {
+    const response = await directFetch(CHATGPT_REGION_URL, {
+      headers: { authorization: 'Bearer null' },
+      proxy: { all: `http://127.0.0.1:${mixedPort}` },
+      connectTimeout: REGION_TIMEOUT_MS,
+      signal: AbortSignal.timeout(REGION_TIMEOUT_MS),
+    })
+    return (await response.text()).includes('unsupported_country')
+  } catch {
+    return false
+  }
 }
 
 /** Goes through the local proxy port, so each result reflects the active rules and node. */
 export const checkMvpSites = async (
+  mixedPort: number,
   onResult?: (id: MvpSiteId, status: MvpSiteStatus) => void,
 ) =>
   Object.fromEntries(
     await Promise.all(
       MVP_SITES.map(async (site) => {
-        const status = await checkSite(site.url)
+        let status = await checkSite(site.url)
+        if (
+          site.id === 'chatgpt' &&
+          status !== 'down' &&
+          (await chatGptRefusesRegion(mixedPort))
+        ) {
+          status = 'blocked'
+        }
         onResult?.(site.id, status)
         return [site.id, status]
       }),

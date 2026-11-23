@@ -9,12 +9,6 @@
     "invalidQr": "This QR code isn't valid or isn't supported"
   },
   "home": {
-    "welcome": {
-      "title": "Welcome to Openn",
-      "subtitle": "Paste your subscription link to get started",
-      "linkLabel": "Subscription link",
-      "import": "Import"
-    },
     "status": {
       "connected": "Connected",
       "unhealthy": "Node not responding",
@@ -35,30 +29,26 @@
     "noNode": "No nodes available",
     "nodeUnavailable": "This node isn't working. Try another one",
     "awaitingRecovery": "Waiting to recover",
-    "speedTestPrompt": "Click the refresh button on the right to test the speed",
+    "speedTestPrompt": "Not tested yet. Click refresh on the right",
     "checking": "Checking…",
     "tags": {
       "sites": "Sites",
-      "sitesIntro": "Sites: whether common sites outside China load",
       "ai": "AI",
-      "aiIntro": "AI: how reliably Claude, ChatGPT and other AI work",
       "delay": "Latency",
-      "delayIntro": "Latency: how long a page takes to start loading",
-      "speed": "Speed",
-      "speedIntro": "Speed: how fast downloads are"
+      "speed": "Speed"
     },
     "sites": {
       "baidu": "Baidu",
       "domestic": "China",
-      "foreignDownHint": "No sites outside China load, so this node may be down. Try another one.",
+      "foreignDownHint": "No sites outside China load. Try another node.",
       "allOkHint": "Google, YouTube and other common sites all load",
       "partialHint": "{{list}}; the rest load",
       "separator": ", ",
       "status": {
         "checking": "Checking…",
         "ok": "OK",
-        "slow": "A bit slow",
-        "down": "Won't load"
+        "down": "Won't load",
+        "blocked": "Not available here"
       }
     },
     "ai": {
@@ -83,10 +73,16 @@
         "purity": "Purity"
       },
       "tips": {
-        "region": "Where this node's traffic exits; sites think you're there. Claude and ChatGPT aren't available in mainland China, Hong Kong and some other regions.",
-        "network": "The kind of network this IP comes from. Home broadband looks most like an ordinary user; data centers are servers and the most likely to be limited by AI services.",
-        "purity": "How many people have used this IP and whether it has a bad record; lower is better. 0–35 is safe, 35–70 may be limited, above 70 isn't recommended. Data from IPPure."
+        "region": "Where this node's traffic exits; sites think you're here",
+        "network": "The kind of network this IP comes from",
+        "purity": "How many people have used this IP and whether it has a bad record",
+        "supported": "Claude and ChatGPT work in this region",
+        "unsupported": "Claude and ChatGPT aren't available in this region",
+        "residential": "Home internet, the least likely to be limited by AI services",
+        "datacenter": "Server networks, the most likely to be limited by AI services",
+        "score": "Lower is better: under 35 is safe, above 70 isn't recommended"
       },
+      "source": "Data from IPPure",
       "region": {
         "supported": "Supported",
         "unsupported": "Not supported"
@@ -100,9 +96,10 @@
       }
     },
     "blockers": {
-      "foreignTunnel": "Another VPN, such as Shadowrocket, is running. Quit it, then click Connect.",
-      "foreignSystemProxy": "Another app is using the system proxy, so websites may not load. Quit that app, then click Connect.",
-      "staleProxyEnv": "Old proxy settings are left on this computer, so some apps may not connect. Restart your computer to clear them."
+      "foreignTunnel": "Another VPN is running. Quit it, then connect.",
+      "foreignSystemProxy": "Another app is using the system proxy. Quit it.",
+      "staleProxyEnv": "Old proxy settings remain. Restart to clear them.",
+      "recheck": "Check again"
     },
     "setup": {
       "title": "One-time permission needed",
@@ -118,7 +115,7 @@
       "qrImportSuccess": "QR code imported",
       "disconnectFailed": "Couldn't disconnect. Try again",
       "setupIncomplete": "Permission wasn't granted. Click Connect again",
-      "connectFailedVpn": "Couldn't connect. If another VPN such as Shadowrocket is running, quit it and try again",
+      "connectFailedVpn": "Couldn't connect. Quit other VPNs and try again",
       "connectFailed": "Couldn't connect. Try again"
     }
   },
@@ -153,18 +150,14 @@
     "expired": "Expired {{date}}"
   },
   "subscriptions": {
-    "title": "Subscriptions",
-    "subtitle": "Add, switch or remove subscription links",
+    "label": "Subscription",
+    "manage": "Manage",
+    "collapse": "Hide",
     "placeholder": "Paste a new subscription link",
     "inputLabel": "New subscription link",
     "add": "Add",
-    "current": "Current",
-    "use": "Use this subscription",
-    "useNamed": "Use {{name}}",
     "update": "Update subscription",
-    "updateNamed": "Update {{name}}",
     "delete": "Delete subscription",
-    "deleteNamed": "Delete {{name}}",
     "deleteConfirm": "Delete “{{name}}”?",
     "deleteAction": "Delete",
     "fallbackName": "subscription",
@@ -190,7 +183,8 @@
     }
   },
   "qr": {
-    "subtitle": "Place the node's QR code inside the frame",
+    "title": "QR-код белән язылу өстәү",
+    "hint": "QR-кодны камерага күрсәтегез",
     "pasteImage": "Paste Image",
     "chooseImage": "Choose Image",
     "errors": {
@@ -211,9 +205,9 @@
     "error": "Failed",
     "untested": "Not tested",
     "untestedHint": "No test result yet",
-    "timeoutHint": "Timed out: no response within {{seconds}} seconds. The node is too slow or no longer works",
-    "errorHint": "Failed: the node may no longer work",
-    "tierHint": "{{label}} ({{range}}): {{hint}}",
+    "timeoutHint": "No response in {{seconds}} seconds. The node may no longer work",
+    "errorHint": "Can't connect. The node may no longer work",
+    "tierHint": "{{label}}: {{hint}}",
     "low": {
       "label": "Low latency",
       "hint": "Web pages and videos run smoothly"
@@ -247,40 +241,40 @@
     "poor": {
       "label": "Slow",
       "hint": "Fine for text and chat only"
-    }
+    },
+    "valueHint": "Speed {{value}} Mbps: {{hint}}"
   },
   "settings": {
     "title": "Settings",
-    "connection": "Connection",
     "general": "General",
-    "about": "About",
-    "proxyMode": {
-      "label": "Proxy mode",
-      "rule": "Rule",
-      "ruleTooltip": "Sites in China connect directly, other sites go through the proxy. Best for everyday use.",
-      "global": "Global",
-      "globalTooltip": "Every site goes through the proxy, including sites in China. Those may load slower and use more data.",
-      "failed": "Couldn't switch modes. Try again"
-    },
+    "help": "Ярдәм",
+    "onboarding": "Getting Started Guide",
     "autoLaunch": {
       "label": "Open at login",
       "hint": "Runs in the background after you log in, without opening a window",
       "failed": "Couldn't change this setting. Try again"
     },
+    "aiCheck": {
+      "label": "ЯИ кулланылышын тикшерү",
+      "hint": "Төен ChatGPT һәм Claude белән яхшы эшлиме икәнен күрсәтә"
+    },
     "appearance": {
       "label": "Appearance",
+      "theme": "Тема",
       "system": "System",
       "light": "Light",
       "dark": "Dark"
+    },
+    "glass": {
+      "label": "Томан пыяла",
+      "hint": "Эш өстәле тәрәзә аша җиңелчә күренә"
     },
     "language": {
       "label": "Language",
       "system": "System"
     },
-    "version": "Version",
     "repair": {
       "label": "Repair",
-      "hint": "Try this if Openn can't connect",
       "body": "This reinstalls Openn's background component and clears leftover proxy settings. Your computer will ask for your password, and you'll be briefly disconnected.",
       "confirm": "Repair",
       "done": "Repair complete. Go back and click Connect",
@@ -290,9 +284,14 @@
     },
     "exportLogs": {
       "label": "Export logs",
-      "hint": "Saves a file to Downloads that you can send to the developer when something goes wrong",
       "done": "Logs saved to Downloads",
       "failed": "Couldn't export the logs. Try again"
+    },
+    "uninstall": {
+      "label": "Uninstall Openn",
+      "body": "Openn will remove its background component and quit. macOS will ask for your password. Then drag Openn from Applications to the Trash.",
+      "confirm": "Uninstall and quit",
+      "failed": "Uninstall did not finish. Please try again."
     }
   },
   "check": {
@@ -458,6 +457,52 @@
     },
     "notices": {
       "failed": "Speed test failed. Try again later"
+    }
+  },
+  "onboarding": {
+    "next": "Continue",
+    "close": "Close guide",
+    "theme": {
+      "dark": "Switch to dark",
+      "light": "Switch to light"
+    },
+    "welcome": {
+      "title": "Welcome to Openn",
+      "subtitle": "Making proxies a little simpler",
+      "start": "Get Started"
+    },
+    "subscription": {
+      "title": "Add a Subscription",
+      "subtitle": "Paste the link your provider gave you. Servers are imported automatically.",
+      "label": "Subscription link",
+      "import": "Import",
+      "invalid": "This doesn’t look like a subscription link. Check that it was copied in full.",
+      "clipboard": "Subscription link found on your clipboard",
+      "useClipboard": "Use",
+      "change": "Use a different link",
+      "nodes": "{{count}} servers"
+    },
+    "permission": {
+      "title": "One-Time Permission",
+      "body": "Openn needs to install a background helper.",
+      "password": "Your computer will ask for your password once.",
+      "checking": "Checking for other VPNs…",
+      "clear": "No conflicts found",
+      "grant": "Allow and Continue",
+      "waiting": "Waiting",
+      "granted": "Allowed",
+      "incomplete": "Permission wasn’t given. Please try again."
+    },
+    "connect": {
+      "title": "Connecting…",
+      "subtitle": "Checking each part of the connection",
+      "done": "You’re All Set",
+      "doneSubtitle": "Google, YouTube and ChatGPT are ready to go",
+      "latency": "{{delay}} ms latency",
+      "menuBar": "Openn stays in the menu bar, even after you close this window",
+      "tray": "Openn stays in the system tray, even after you close this window",
+      "finish": "Start Using Openn",
+      "later": "Go to Home"
     }
   }
 }

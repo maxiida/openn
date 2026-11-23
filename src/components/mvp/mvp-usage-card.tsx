@@ -1,6 +1,7 @@
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
-import { IconCalendar, IconRefresh } from '@tabler/icons-react'
+import { ReloadIcon } from '@radix-ui/react-icons'
 import dayjs from 'dayjs'
+import { CalendarIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { mvpCommandKey } from '@/hooks/use-mvp-shortcuts'
@@ -97,7 +98,7 @@ export const MvpUsageCard = ({
             >
               {formatTrafficAmount(remaining, i18n.language)}
             </Typography>
-            <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+            <Typography color="textSecondary" sx={{ fontSize: 13 }}>
               {t('mvp.usage.total', {
                 total: formatTrafficAmount(total, i18n.language),
               })}
@@ -107,7 +108,7 @@ export const MvpUsageCard = ({
           <span />
         )}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-          <Typography color="text.secondary" noWrap sx={{ fontSize: 12.5 }}>
+          <Typography color="textSecondary" noWrap sx={{ fontSize: 12.5 }}>
             {formatProfileUpdated(profile.updated)}
           </Typography>
           <Tooltip
@@ -127,7 +128,7 @@ export const MvpUsageCard = ({
                 onClick={onUpdate}
               >
                 <MvpProgressRing busy={updating} size={17} segments={progress}>
-                  <IconRefresh size={17} />
+                  <ReloadIcon width={15} height={15} />
                 </MvpProgressRing>
               </IconButton>
             </span>
@@ -186,7 +187,7 @@ export const MvpUsageCard = ({
             color: expireColor,
           }}
         >
-          <IconCalendar size={13} />
+          <CalendarIcon size={13} />
           <Typography sx={{ fontSize: 12.5 }}>{expireText}</Typography>
         </Box>
       )}

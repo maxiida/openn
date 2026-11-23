@@ -1,3 +1,5 @@
+import { Activity01Icon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Badge,
   Box,
@@ -5,27 +7,22 @@ import {
   Collapse,
   IconButton,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
-import {
-  IconActivity,
-  IconArrowRight,
-  IconCheck,
-  IconChevronDown,
-  IconInfoCircle,
-  IconRefresh,
-  IconScan,
-  IconSettings,
-  IconShieldCheck,
-  IconX,
-} from '@tabler/icons-react'
+import { GearIcon, ReloadIcon } from '@radix-ui/react-icons'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  MinusIcon,
+  XIcon,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
+import { Navigate, useNavigate } from 'react-router'
 
 import { BaseDialog } from '@/components/base'
 import { MvpAiPanel } from '@/components/mvp/mvp-ai-panel'
@@ -33,9 +30,7 @@ import { MvpBanner } from '@/components/mvp/mvp-banner'
 import { MvpPage } from '@/components/mvp/mvp-page'
 import { MvpProgressRing } from '@/components/mvp/mvp-progress-ring'
 import { MvpShortcutHint } from '@/components/mvp/mvp-shortcut-hint'
-import { MvpStatusHint } from '@/components/mvp/mvp-status-hint'
 import { MvpStatusPill } from '@/components/mvp/mvp-status-pill'
-import { QrScannerDialog } from '@/components/mvp/qr-scanner-dialog'
 import { useConnectionUnhealthy } from '@/hooks/use-connection-unhealthy'
 import { useDisplayedMixedPort } from '@/hooks/use-displayed-mixed-port'
 import { testMainGroup, useMainProxyGroup } from '@/hooks/use-main-proxy-group'
@@ -61,8 +56,6 @@ import delayManager from '@/services/delay'
 import {
   activateMvpProfile,
   ensureMvpMode,
-  importAndActivateMvpProfile,
-  importAndActivateMvpQrPayload,
   isProfileUpdatedToday,
 } from '@/services/mvp'
 import {
@@ -88,7 +81,6 @@ import {
   mvpSpeedTier,
 } from '@/utils/main-proxy-group'
 import { fractionSegments } from '@/utils/mvp-progress'
-import { isValidUrl } from '@/utils/network'
 
 const HomeLoading = () => (
   <Box sx={{ minHeight: 420, display: 'grid', placeItems: 'center' }}>
@@ -135,9 +127,9 @@ const MvpHomePage = () => {
     isRunStateLoading,
   } = useMvpConnected()
   const health = useConnectionUnhealthy()
-  const unhealthy = health.unhealthy && indicator
   const healthEpoch = health.epoch
   const { verge } = useVerge()
+  const aiEnabled = verge?.enable_ai_check !== false
   const needsDisconnect = systemProxyEnabled || Boolean(verge?.enable_tun_mode)
   const { group, members, current, delays, timeout } = useMainProxyGroup()
   const pageVisible = useVisibility()
@@ -148,11 +140,6 @@ const MvpHomePage = () => {
   } | null>(null)
   const [speedTesting, setSpeedTesting] = useState(false)
   const [speedProgress, setSpeedProgress] = useState(0)
-  const [url, setUrl] = useState('')
-  const [importing, setImporting] = useState(false)
-  // Download and activate, then this page's own refresh.
-  const importSteps = useMvpSteps(1)
-  const [qrScannerOpen, setQrScannerOpen] = useState(false)
   const [connecting, setConnecting] = useState(false)
   // The connection's own steps, then refreshing what the page shows.
   const connectSteps = useMvpSteps(1)
@@ -162,6 +149,23 @@ const MvpHomePage = () => {
   const dailyUpdateAttemptRef = useRef<string | null>(null)
   const delayReadingRef = useRef<DelayReading | null>(null)
   const [delayReading, setDelayReading] = useState<DelayReading | null>(null)
+  const reading =
+    delayReading?.node === current?.ref.name &&
+    delayReading?.healthEpoch === healthEpoch
+      ? delayReading
+      : null
+  // The tray takes about a minute to call a node dead. A node picked from the list right after it
+  // timed out would read as connected all that while, so this page's own probes decide sooner,
+  // and until the first of them lands, the list's last result does.
+  const listedState = current
+    ? classifyDelay(delays.of(current), timeout)
+    : null
+  const nodeSilent = reading
+    ? reading.failures >= DELAY_FAILURES_TO_REPORT ||
+      (reading.samples.length === 0 &&
+        (listedState === 'timeout' || listedState === 'error'))
+    : listedState === 'timeout' || listedState === 'error'
+  const unhealthy = (health.unhealthy || nodeSilent) && indicator
   const [delayRound, setDelayRound] = useState(0)
   const [siteCheck, setSiteCheck] = useState<{
     key: string
@@ -190,6 +194,16 @@ const MvpHomePage = () => {
   useEffect(() => {
     void refreshPreflight()
   }, [refreshPreflight])
+
+  const [recheckingBlocker, setRecheckingBlocker] = useState(false)
+  const recheckBlocker = useLockFn(async () => {
+    setRecheckingBlocker(true)
+    try {
+      await refreshPreflight()
+    } finally {
+      setRecheckingBlocker(false)
+    }
+  })
 
   // Each of these reads as "connected, but nothing works", so it has to be said out loud. Only the
   // first applies: another VPN also owns the system proxy, and one fix clears both.
@@ -375,7 +389,7 @@ const MvpHomePage = () => {
       setSiteCheck((prev) =>
         prev?.key === speedKey ? prev : { key: speedKey, results: null },
       )
-      const results = await checkMvpSites()
+      const results = await checkMvpSites(mixedPort)
       if (cancelled) return
       setSiteCheck({ key: speedKey, results })
       timer = setTimeout(() => void check(), SITE_REFRESH_MS)
@@ -385,11 +399,11 @@ const MvpHomePage = () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [connecting, indicator, node, pageVisible, siteRound, speedKey])
+  }, [connecting, indicator, mixedPort, node, pageVisible, siteRound, speedKey])
 
   // The exit IP rarely changes under one node, so it is checked once per node and on ⌘R, not polled.
   useEffect(() => {
-    if (!indicator || connecting || unhealthy || !node) return
+    if (!aiEnabled || !indicator || connecting || unhealthy || !node) return
     let cancelled = false
     void checkAi(mixedPort).then((result) => {
       if (!cancelled) setAiCheck({ key: speedKey, result })
@@ -397,51 +411,16 @@ const MvpHomePage = () => {
     return () => {
       cancelled = true
     }
-  }, [connecting, indicator, mixedPort, node, siteRound, speedKey, unhealthy])
-
-  const onImport = useLockFn(async () => {
-    const normalizedUrl = url.trim()
-    if (!isValidUrl(normalizedUrl)) {
-      showNotice.error(t('mvp.common.invalidLink'))
-      return
-    }
-
-    setImporting(true)
-    importSteps.reset()
-    try {
-      await importAndActivateMvpProfile(normalizedUrl, importSteps.report)
-      await fetchProfilesIntoCache()
-      await refreshAll()
-      importSteps.advance()
-      setUrl('')
-      showNotice.success(t('mvp.home.notices.importSuccess'))
-    } catch (error) {
-      importSteps.fail()
-      console.error('[Proxy MVP] Subscription import failed:', error)
-      showNotice.error(t('mvp.home.notices.importFailed'))
-    } finally {
-      setImporting(false)
-    }
-  })
-
-  const onQrDetected = useLockFn(async (payload: string) => {
-    setQrScannerOpen(false)
-    setImporting(true)
-    importSteps.reset()
-    try {
-      await importAndActivateMvpQrPayload(payload, importSteps.report)
-      await fetchProfilesIntoCache()
-      await refreshAll()
-      importSteps.advance()
-      showNotice.success(t('mvp.home.notices.qrImportSuccess'))
-    } catch (error) {
-      importSteps.fail()
-      console.error('[Proxy MVP] QR import failed:', error)
-      showNotice.error(t('mvp.common.invalidQr'))
-    } finally {
-      setImporting(false)
-    }
-  })
+  }, [
+    aiEnabled,
+    connecting,
+    indicator,
+    mixedPort,
+    node,
+    siteRound,
+    speedKey,
+    unhealthy,
+  ])
 
   const changeConnection = useLockFn(
     async (target: 'tunnel' | 'off', setupService = false) => {
@@ -499,7 +478,7 @@ const MvpHomePage = () => {
     {
       key: ' ',
       onPress: () => {
-        if (hasProfile && !connecting && !isRunStateLoading && !importing) {
+        if (hasProfile && !connecting && !isRunStateLoading) {
           void changeConnection(needsDisconnect ? 'off' : 'tunnel')
         }
       },
@@ -508,7 +487,7 @@ const MvpHomePage = () => {
       key: 'ArrowRight',
       allowInControl: true,
       onPress: () => {
-        if (hasProfile && !connecting && !importing) openNodes()
+        if (hasProfile && !connecting) openNodes()
       },
     },
     {
@@ -529,14 +508,14 @@ const MvpHomePage = () => {
       key: 'a',
       allowInControl: true,
       onPress: () => {
-        if (indicator && current) togglePanel('ai')
+        if (aiEnabled && indicator && current) togglePanel('ai')
       },
     },
     {
       key: 'u',
       command: true,
       onPress: () => {
-        if (!connecting && !importing) void onUpdateSubscription()
+        if (!connecting) void onUpdateSubscription()
       },
     },
   ])
@@ -557,94 +536,33 @@ const MvpHomePage = () => {
         aria-keyshortcuts={`${mvpCommandKey === '⌘' ? 'Meta' : 'Control'}+,`}
         onClick={() => navigate('/settings')}
       >
-        <IconSettings size={22} />
+        <GearIcon width={16} height={16} />
       </IconButton>
     </Tooltip>
   )
 
+  // Quitting the other app clears the first two right away; stale settings need a restart, which
+  // checks again on its own.
   const blockerBanner = blocker && (
-    <MvpBanner severity="warning" sx={{ mt: 1 }}>
+    <MvpBanner
+      severity="warning"
+      sx={{ mt: 1 }}
+      action={
+        preflight?.foreignTunnel || preflight?.foreignSystemProxy
+          ? {
+              label: t('mvp.home.blockers.recheck'),
+              busy: recheckingBlocker,
+              onClick: recheckBlocker,
+            }
+          : undefined
+      }
+    >
       {blocker}
     </MvpBanner>
   )
 
-  if (!hasProfile) {
-    return (
-      <MvpPage title="Openn" trailing={settingsButton}>
-        {blockerBanner}
-        <Stack
-          spacing={3}
-          sx={{
-            minHeight: 430,
-            justifyContent: 'center',
-            maxWidth: 460,
-            mx: 'auto',
-          }}
-        >
-          <Box>
-            <Typography sx={{ fontSize: 30, fontWeight: 650, mb: 1 }}>
-              {t('mvp.home.welcome.title')}
-            </Typography>
-            <Typography color="text.secondary">
-              {t('mvp.home.welcome.subtitle')}
-            </Typography>
-          </Box>
-          <TextField
-            fullWidth
-            autoFocus
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void onImport()
-            }}
-            placeholder="https://example.com/subscription"
-            type="url"
-            slotProps={{
-              htmlInput: { 'aria-label': t('mvp.home.welcome.linkLabel') },
-            }}
-          />
-          <Button
-            size="large"
-            variant="contained"
-            disabled={importing || !url.trim()}
-            onClick={onImport}
-          >
-            <MvpProgressRing
-              busy={importing}
-              size={22}
-              color="inherit"
-              segments={importSteps.segments}
-            >
-              {t('mvp.home.welcome.import')}
-            </MvpProgressRing>
-          </Button>
-          <Button
-            size="large"
-            variant="text"
-            startIcon={<IconScan size={20} />}
-            disabled={importing}
-            onClick={() => setQrScannerOpen(true)}
-            sx={{ alignSelf: 'center', color: 'text.secondary' }}
-          >
-            {t('mvp.common.scanQr')}
-          </Button>
-          {qrScannerOpen && (
-            <QrScannerDialog
-              open
-              onClose={() => setQrScannerOpen(false)}
-              onDetected={onQrDetected}
-            />
-          )}
-        </Stack>
-      </MvpPage>
-    )
-  }
+  if (!hasProfile) return <Navigate to="/welcome" replace />
 
-  const reading =
-    delayReading?.node === current?.ref.name &&
-    delayReading?.healthEpoch === healthEpoch
-      ? delayReading
-      : null
   // Until this page has its own reading, show whatever the node list measured last.
   const currentDelay = !reading
     ? current
@@ -694,7 +612,7 @@ const MvpHomePage = () => {
   const delayState = classifyDelay(currentDelay, timeout)
   const chevron = (open: boolean) => (
     <Box
-      component={IconChevronDown}
+      component={ChevronDownIcon}
       size={15}
       sx={{
         mr: -0.5,
@@ -731,7 +649,7 @@ const MvpHomePage = () => {
           invisible={!hasIssue}
           overlap="circular"
         >
-          <IconActivity size={22} />
+          <HugeiconsIcon icon={Activity01Icon} size={18} strokeWidth={1.5} />
         </Badge>
       </IconButton>
     </Tooltip>
@@ -763,8 +681,8 @@ const MvpHomePage = () => {
               }}
             />
             <Typography
-              color={indicator ? 'text.primary' : 'text.secondary'}
-              sx={{ fontSize: 20, fontWeight: 650 }}
+              color={indicator ? 'textPrimary' : 'textSecondary'}
+              sx={{ fontSize: 20, fontWeight: 600 }}
             >
               {unhealthy
                 ? t('mvp.home.status.unhealthy')
@@ -799,13 +717,16 @@ const MvpHomePage = () => {
                 }
                 sx={{
                   minWidth: 138,
-                  height: 42,
-                  borderRadius: 999,
+                  height: 40,
                   fontSize: 15,
-                  fontWeight: 600,
                   boxShadow: indicator ? 'none' : undefined,
                   bgcolor: indicator ? 'text.primary' : undefined,
-                  color: indicator ? 'background.paper' : undefined,
+                  color: indicator
+                    ? (theme) =>
+                        theme.palette.getContrastText(
+                          theme.palette.text.primary,
+                        )
+                    : undefined,
                   '&:hover': {
                     bgcolor: indicator ? 'text.secondary' : undefined,
                   },
@@ -823,7 +744,7 @@ const MvpHomePage = () => {
             </Button>
           )}
           {systemProxyEnabled && indicator && !tunnelEnabled && (
-            <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+            <Typography color="textSecondary" sx={{ fontSize: 13 }}>
               {t('mvp.home.partialProxy')}
             </Typography>
           )}
@@ -847,7 +768,7 @@ const MvpHomePage = () => {
             borderColor: 'divider',
           }}
         >
-          <Typography color="text.secondary" sx={{ fontSize: 13, mb: 1 }}>
+          <Typography color="textSecondary" sx={{ fontSize: 13, mb: 1 }}>
             {t('mvp.home.currentNode')}
           </Typography>
           <Box
@@ -881,12 +802,7 @@ const MvpHomePage = () => {
                     <>
                       <Tooltip
                         title={
-                          <MvpStatusHint
-                            title={t('mvp.home.tags.sitesIntro')}
-                            shortcut="S"
-                          >
-                            {siteHint}
-                          </MvpStatusHint>
+                          <MvpShortcutHint label={siteHint} shortcut="S" />
                         }
                       >
                         <MvpStatusPill
@@ -901,44 +817,44 @@ const MvpHomePage = () => {
                           {t('mvp.home.tags.sites')}
                         </MvpStatusPill>
                       </Tooltip>
-                      <Tooltip
-                        title={
-                          <MvpStatusHint
-                            title={t('mvp.home.tags.aiIntro')}
-                            shortcut="A"
-                          >
-                            {aiResult
-                              ? t(`mvp.home.ai.verdict.${aiResult.verdict}`)
-                              : t('mvp.home.checking')}
-                          </MvpStatusHint>
-                        }
-                      >
-                        <MvpStatusPill
-                          aria-keyshortcuts="A"
-                          color={
-                            aiResult
-                              ? aiVerdictColor(aiResult.verdict)
-                              : 'text.secondary'
+                      {aiEnabled && (
+                        <Tooltip
+                          title={
+                            <MvpShortcutHint
+                              label={
+                                aiResult
+                                  ? t(`mvp.home.ai.verdict.${aiResult.verdict}`)
+                                  : t('mvp.home.checking')
+                              }
+                              shortcut="A"
+                            />
                           }
-                          loading={!aiResult}
-                          aria-expanded={openPanel === 'ai'}
-                          aria-controls="mvp-ai-panel"
-                          onClick={() => togglePanel('ai')}
-                          endIcon={chevron(openPanel === 'ai')}
                         >
-                          {t('mvp.home.tags.ai')}
-                        </MvpStatusPill>
-                      </Tooltip>
+                          <MvpStatusPill
+                            aria-keyshortcuts="A"
+                            color={
+                              aiResult
+                                ? aiVerdictColor(aiResult.verdict)
+                                : 'text.secondary'
+                            }
+                            loading={!aiResult}
+                            aria-expanded={openPanel === 'ai'}
+                            aria-controls="mvp-ai-panel"
+                            onClick={() => togglePanel('ai')}
+                            endIcon={chevron(openPanel === 'ai')}
+                          >
+                            {t('mvp.home.tags.ai')}
+                          </MvpStatusPill>
+                        </Tooltip>
+                      )}
                     </>
                   )}
                   {!unhealthy && (
                     <Tooltip
                       title={
-                        <MvpStatusHint title={t('mvp.home.tags.delayIntro')}>
-                          {delayState === 'testing'
-                            ? t('mvp.home.checking')
-                            : mvpDelayHint(currentDelay, timeout)}
-                        </MvpStatusHint>
+                        delayState === 'testing'
+                          ? t('mvp.home.checking')
+                          : mvpDelayHint(currentDelay, timeout)
                       }
                     >
                       <MvpStatusPill
@@ -955,13 +871,11 @@ const MvpHomePage = () => {
                     <>
                       <Tooltip
                         title={
-                          <MvpStatusHint title={t('mvp.home.tags.speedIntro')}>
-                            {speedTesting
-                              ? t('mvp.home.checking')
-                              : speed
-                                ? mvpSpeedHint(speed.mbps)
-                                : t('mvp.home.speedTestPrompt')}
-                          </MvpStatusHint>
+                          speedTesting
+                            ? t('mvp.home.checking')
+                            : speed
+                              ? mvpSpeedHint(speed.mbps)
+                              : t('mvp.home.speedTestPrompt')
                         }
                       >
                         <MvpStatusPill
@@ -997,7 +911,7 @@ const MvpHomePage = () => {
                             size={17}
                             segments={fractionSegments(speedProgress, 3)}
                           >
-                            <IconRefresh size={17} />
+                            <ReloadIcon width={15} height={15} />
                           </MvpProgressRing>
                         </IconButton>
                       </Tooltip>
@@ -1006,7 +920,7 @@ const MvpHomePage = () => {
                 </Box>
               ) : (
                 <Typography
-                  color="text.secondary"
+                  color="textSecondary"
                   sx={{ mt: 0.5, fontSize: 14 }}
                 >
                   {t('mvp.home.nodeUnavailable')}
@@ -1027,7 +941,7 @@ const MvpHomePage = () => {
                 onClick={openNodes}
                 sx={{ flexShrink: 0 }}
               >
-                <IconArrowRight size={22} />
+                <ChevronRightIcon size={18} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -1072,19 +986,20 @@ const MvpHomePage = () => {
                             sx={{
                               display: 'flex',
                               flexShrink: 0,
+                              cursor: 'help',
                               color: !status
                                 ? 'text.disabled'
-                                : status === 'down'
+                                : status === 'down' || status === 'blocked'
                                   ? 'error.main'
                                   : 'success.main',
                             }}
                           >
                             {!status ? (
-                              <MvpProgressRing busy size={18} />
-                            ) : status === 'down' ? (
-                              <IconX size={18} aria-hidden />
+                              <MinusIcon size={18} aria-hidden />
+                            ) : status === 'down' || status === 'blocked' ? (
+                              <XIcon size={18} aria-hidden />
                             ) : (
-                              <IconCheck size={18} aria-hidden />
+                              <CheckIcon size={18} aria-hidden />
                             )}
                           </Box>
                         </Tooltip>
@@ -1092,36 +1007,13 @@ const MvpHomePage = () => {
                     )
                   })}
                   {foreignSitesDown && (
-                    <Box
-                      role="note"
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1,
-                        my: 0.75,
-                        px: 1.5,
-                        py: 1,
-                        bgcolor: '#191C1D',
-                        color: '#FAFAFA',
-                        border: '1px solid #303334',
-                        borderRadius: '11px',
-                        fontSize: 13,
-                        lineHeight: '18px',
-                        boxShadow:
-                          '0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.12) !important',
-                      }}
-                    >
-                      <IconInfoCircle
-                        size={18}
-                        aria-hidden
-                        style={{ flexShrink: 0 }}
-                      />
-                      <Box>{t('mvp.home.sites.foreignDownHint')}</Box>
-                    </Box>
+                    <MvpBanner severity="info" sx={{ my: 0.75 }}>
+                      {t('mvp.home.sites.foreignDownHint')}
+                    </MvpBanner>
                   )}
                 </Box>
               </Collapse>
-              <Collapse in={openPanel === 'ai'} id="mvp-ai-panel">
+              <Collapse in={aiEnabled && openPanel === 'ai'} id="mvp-ai-panel">
                 <Box
                   sx={{
                     mt: 2,
@@ -1142,7 +1034,6 @@ const MvpHomePage = () => {
       </Stack>
       <BaseDialog
         open={setupOpen}
-        icon={<IconShieldCheck size={24} />}
         title={t('mvp.home.setup.title')}
         okBtn={t('mvp.home.setup.confirm')}
         cancelBtn={t('mvp.common.cancel')}

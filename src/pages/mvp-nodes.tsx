@@ -1,34 +1,29 @@
 import {
   Box,
-  Button,
   Collapse,
-  Divider,
   IconButton,
+  InputBase,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
 import { alpha, keyframes, type Theme } from '@mui/material/styles'
-import {
-  IconArrowLeft,
-  IconArrowsExchange,
-  IconCheck,
-  IconChevronDown,
-  IconGauge,
-  IconPin,
-  IconPinFilled,
-  IconPlus,
-  IconRefresh,
-  IconScan,
-  IconSparkles,
-  IconSquare,
-  IconSquareCheckFilled,
-  IconTrash,
-  IconX,
-} from '@tabler/icons-react'
+import { BookmarkIcon, TimerIcon } from '@radix-ui/react-icons'
 import { useLockFn } from 'ahooks'
 import i18n from 'i18next'
+import {
+  BotIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  CornerDownLeftIcon,
+  RefreshCwIcon,
+  ScanLineIcon,
+  SquareCheckIcon,
+  SquareIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react'
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router'
@@ -44,13 +39,18 @@ import { mvpCommandKey, useMvpShortcuts } from '@/hooks/use-mvp-shortcuts'
 import { useMvpSteps } from '@/hooks/use-mvp-steps'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
+import { useVerge } from '@/hooks/use-verge'
 import { useAppRefreshers } from '@/providers/app-data-context'
 import {
   type AiCheckResult,
   type AiVerdict,
   checkAiNodes,
 } from '@/services/ai-check'
-import { deleteProfile, updateProfile } from '@/services/cmds'
+import {
+  deleteProfile,
+  recheckConnectionHealth,
+  updateProfile,
+} from '@/services/cmds'
 import {
   activateMvpProfile,
   ensureMvpMode,
@@ -173,6 +173,8 @@ const aiTagSx = (tag: AiTag) => {
 
 const MvpNodesPage = () => {
   const { t } = useTranslation()
+  const { verge } = useVerge()
+  const aiEnabled = verge?.enable_ai_check !== false
   const navigate = useNavigate()
   const { profiles } = useProfiles()
   const { refreshAll, refreshProxy } = useAppRefreshers()
@@ -210,6 +212,7 @@ const MvpNodesPage = () => {
     kind: 'activate' | 'update'
   } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<IProfileItem | null>(null)
+  const [subscriptionsOpen, setSubscriptionsOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const deleteSteps = useMvpSteps()
   const updateSteps = useMvpSteps()
@@ -297,9 +300,14 @@ const MvpNodesPage = () => {
     [delays, members, pinned, timeout],
   )
 
+  // The list's last result for the node being picked, handed to the tray's recheck.
+  const switchingDeadRef = useRef(false)
   const { changeProxy } = useProxySelection({
     onSuccess: () => {
       setSwitching(null)
+      recheckConnectionHealth(switchingDeadRef.current).catch((error) => {
+        console.warn('[Proxy MVP] Health recheck failed:', error)
+      })
       void refreshProxy()
       navigate('/')
     },
@@ -602,6 +610,8 @@ const MvpNodesPage = () => {
             return
           }
           setSwitching(name)
+          const state = classifyDelay(delay, timeout)
+          switchingDeadRef.current = state === 'timeout' || state === 'error'
           if (group) changeProxy(group.name, name, group.now, group.fixed)
         }}
         sx={{
@@ -630,13 +640,13 @@ const MvpNodesPage = () => {
           <Box sx={{ display: 'grid', placeItems: 'center' }}>
             {pinChecked ? (
               <Box
-                component={IconSquareCheckFilled}
+                component={SquareCheckIcon}
                 size={20}
                 sx={{ color: 'primary.main' }}
               />
             ) : (
               <Box
-                component={IconSquare}
+                component={SquareIcon}
                 size={20}
                 sx={{ color: 'text.secondary' }}
               />
@@ -646,8 +656,9 @@ const MvpNodesPage = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
           {!pinDraft && pinned.has(name) && (
             <Box
-              component={IconPinFilled}
-              size={15}
+              component={BookmarkIcon}
+              width={14}
+              height={14}
               sx={{ color: 'primary.main', mr: 0.75, flexShrink: 0 }}
             />
           )}
@@ -657,7 +668,7 @@ const MvpNodesPage = () => {
           >
             {name}
           </Typography>
-          {aiCheck && (
+          {aiEnabled && aiCheck && (
             <Box
               component="span"
               sx={{
@@ -747,7 +758,7 @@ const MvpNodesPage = () => {
             aria-keyshortcuts="ArrowLeft Escape"
             onClick={() => navigate('/')}
           >
-            <IconArrowLeft size={22} />
+            <ChevronLeftIcon size={18} />
           </IconButton>
         </Tooltip>
       }
@@ -761,43 +772,47 @@ const MvpNodesPage = () => {
                 onClick={onPinButton}
               >
                 {!pinDraft ? (
-                  <IconPin size={22} />
+                  <BookmarkIcon width={16} height={16} />
                 ) : pinDraft.length === 0 ? (
-                  <IconX size={22} />
+                  <XIcon size={18} />
                 ) : (
-                  <IconCheck size={22} />
+                  <CheckIcon size={18} />
                 )}
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip
-            title={
-              aiProgress ? t('mvp.nodes.ai.checking') : t('mvp.nodes.ai.check')
-            }
-          >
-            <span>
-              <IconButton
-                aria-label={t('mvp.nodes.ai.check')}
-                disabled={aiProgress !== null || members.length === 0}
-                onClick={onAiCheck}
-              >
-                <MvpProgressRing
-                  busy={aiProgress !== null}
-                  size={22}
-                  segments={
-                    aiProgress
-                      ? fractionSegments(
-                          aiProgress.done / aiProgress.total,
-                          RING_SEGMENTS,
-                        )
-                      : undefined
-                  }
+          {aiEnabled && (
+            <Tooltip
+              title={
+                aiProgress
+                  ? t('mvp.nodes.ai.checking')
+                  : t('mvp.nodes.ai.check')
+              }
+            >
+              <span>
+                <IconButton
+                  aria-label={t('mvp.nodes.ai.check')}
+                  disabled={aiProgress !== null || members.length === 0}
+                  onClick={onAiCheck}
                 >
-                  <IconSparkles size={22} />
-                </MvpProgressRing>
-              </IconButton>
-            </span>
-          </Tooltip>
+                  <MvpProgressRing
+                    busy={aiProgress !== null}
+                    size={18}
+                    segments={
+                      aiProgress
+                        ? fractionSegments(
+                            aiProgress.done / aiProgress.total,
+                            RING_SEGMENTS,
+                          )
+                        : undefined
+                    }
+                  >
+                    <BotIcon size={18} />
+                  </MvpProgressRing>
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
           <Tooltip
             title={
               <MvpShortcutHint
@@ -817,10 +832,10 @@ const MvpNodesPage = () => {
               >
                 <MvpProgressRing
                   busy={testing}
-                  size={22}
+                  size={18}
                   segments={testSegments}
                 >
-                  <IconGauge size={22} />
+                  <TimerIcon width={16} height={16} />
                 </MvpProgressRing>
               </IconButton>
             </span>
@@ -848,7 +863,7 @@ const MvpNodesPage = () => {
             </Box>
           ) : isError || !group || members.length === 0 ? (
             <Box sx={{ py: 10, textAlign: 'center' }}>
-              <Typography color="text.secondary">
+              <Typography color="textSecondary">
                 {t('mvp.nodes.empty')}
               </Typography>
             </Box>
@@ -900,7 +915,7 @@ const MvpNodesPage = () => {
                         })}
                       </span>
                       <Box
-                        component={IconChevronDown}
+                        component={ChevronDownIcon}
                         size={20}
                         sx={{
                           transition: 'transform 0.2s',
@@ -919,61 +934,62 @@ const MvpNodesPage = () => {
         </Box>
 
         <Box>
-          <Divider sx={{ mb: 3 }} />
-          <Typography sx={{ fontSize: 18, fontWeight: 650, mb: 0.5 }}>
-            {t('mvp.subscriptions.title')}
-          </Typography>
-          <Typography color="text.secondary" sx={{ fontSize: 13, mb: 2 }}>
-            {t('mvp.subscriptions.subtitle')}
-          </Typography>
-
-          <Stack direction="row" spacing={1} sx={{ mb: 2.5 }}>
-            <TextField
-              fullWidth
-              size="small"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && url.trim()) void onImport()
-              }}
-              placeholder={t('mvp.subscriptions.placeholder')}
-              type="url"
-              slotProps={{
-                htmlInput: { 'aria-label': t('mvp.subscriptions.inputLabel') },
-              }}
-            />
-            <Button
-              variant="contained"
-              startIcon={
-                <MvpProgressRing
-                  busy={importing}
-                  size={16}
-                  color="inherit"
-                  segments={importSteps.segments}
-                >
-                  <IconPlus size={22} />
-                </MvpProgressRing>
-              }
-              disabled={importing || !url.trim()}
-              onClick={onImport}
-              sx={{ flexShrink: 0 }}
+          <Box
+            component="button"
+            type="button"
+            aria-expanded={subscriptionsOpen}
+            onClick={() => setSubscriptionsOpen((open) => !open)}
+            sx={{
+              width: '100%',
+              mb: 1,
+              p: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              border: 0,
+              bgcolor: 'transparent',
+              color: 'text.secondary',
+              font: 'inherit',
+              cursor: 'pointer',
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            <Typography
+              component="span"
+              color="textPrimary"
+              sx={{ fontSize: 15, fontWeight: 600 }}
             >
-              {t('mvp.subscriptions.add')}
-            </Button>
-            <Tooltip title={t('mvp.common.scanQr')}>
-              <span>
-                <IconButton
-                  aria-label={t('mvp.common.scanQr')}
-                  disabled={importing}
-                  onClick={() => setQrScannerOpen(true)}
-                >
-                  <IconScan size={22} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Stack>
+              {t('mvp.subscriptions.label')}
+            </Typography>
+            <Box
+              component="span"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                fontSize: 13,
+                transition: 'color 0.15s',
+              }}
+            >
+              {subscriptionsOpen
+                ? t('mvp.subscriptions.collapse')
+                : t('mvp.subscriptions.manage')}
+              <Box
+                component={ChevronDownIcon}
+                size={16}
+                sx={{
+                  transition: 'transform 0.2s',
+                  transform: subscriptionsOpen ? 'rotate(180deg)' : 'none',
+                }}
+              />
+            </Box>
+          </Box>
 
-          <Stack sx={{ borderTop: 1, borderColor: 'divider' }}>
+          <Box
+            role="radiogroup"
+            aria-label={t('mvp.subscriptions.label')}
+            sx={{ borderTop: 1, borderColor: 'divider' }}
+          >
             {availableProfiles.map((profile) => {
               const active = profile.uid === profiles?.current
               const busy = profileAction?.uid === profile.uid
@@ -981,113 +997,208 @@ const MvpNodesPage = () => {
               const updating = busy && profileAction.kind === 'update'
 
               return (
-                <Box
-                  key={profile.uid}
-                  sx={{
-                    minHeight: 68,
-                    px: 1,
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto',
-                    alignItems: 'center',
-                    gap: 1,
-                    borderBottom: 1,
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Box sx={{ minWidth: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography
-                        noWrap
-                        sx={{ fontSize: 15, fontWeight: active ? 650 : 500 }}
-                      >
-                        {profile.name || profileSource(profile)}
-                      </Typography>
-                      {active && (
-                        <Typography color="primary" sx={{ fontSize: 12 }}>
-                          {t('mvp.subscriptions.current')}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Typography
-                      noWrap
-                      color="text.secondary"
-                      sx={{ fontSize: 12.5, mt: 0.25 }}
-                    >
-                      {profileSource(profile)}
-                      {profile.type === 'remote' &&
-                        ` · ${formatProfileUpdated(profile.updated)}`}
-                    </Typography>
-                  </Box>
-
+                <Collapse key={profile.uid} in={active || subscriptionsOpen}>
                   <Box
-                    sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(0, 1fr) auto',
+                      alignItems: 'center',
+                      borderBottom: 1,
+                      borderColor: 'divider',
+                      ...roundedHighlight(active && subscriptionsOpen),
+                      '&:hover .profile-actions, &:focus-within .profile-actions':
+                        { opacity: 1 },
+                    }}
                   >
-                    {!active && (
-                      <Tooltip title={t('mvp.subscriptions.use')}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            aria-label={t('mvp.subscriptions.useNamed', {
-                              name:
-                                profile.name ||
-                                t('mvp.subscriptions.fallbackName'),
-                            })}
-                            disabled={profileAction !== null || importing}
-                            onClick={() => onActivateProfile(profile)}
-                          >
-                            <MvpProgressRing busy={activating} size={17}>
-                              <IconArrowsExchange size={20} />
-                            </MvpProgressRing>
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    )}
-                    {profile.type === 'remote' && (
-                      <Tooltip title={t('mvp.subscriptions.update')}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            aria-label={t('mvp.subscriptions.updateNamed', {
-                              name:
-                                profile.name ||
-                                t('mvp.subscriptions.fallbackName'),
-                            })}
-                            disabled={profileAction !== null || importing}
-                            onClick={() => onUpdateProfile(profile)}
-                          >
-                            <MvpProgressRing
-                              busy={updating}
-                              size={17}
-                              segments={updateSteps.segments}
-                            >
-                              <IconRefresh size={20} />
-                            </MvpProgressRing>
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    )}
-                    <Tooltip title={t('mvp.subscriptions.delete')}>
-                      <span>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          aria-label={t('mvp.subscriptions.deleteNamed', {
-                            name:
-                              profile.name ||
-                              t('mvp.subscriptions.fallbackName'),
-                          })}
-                          disabled={profileAction !== null || importing}
-                          onClick={() => setDeleteTarget(profile)}
+                    <Box
+                      component="button"
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      tabIndex={subscriptionsOpen ? 0 : -1}
+                      disabled={
+                        !subscriptionsOpen ||
+                        profileAction !== null ||
+                        importing
+                      }
+                      onClick={() => onActivateProfile(profile)}
+                      sx={{
+                        minWidth: 0,
+                        minHeight: 60,
+                        px: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        border: 0,
+                        bgcolor: 'transparent',
+                        color: 'text.primary',
+                        font: 'inherit',
+                        textAlign: 'start',
+                        cursor: active ? 'default' : 'pointer',
+                        '&:disabled': { cursor: 'default' },
+                      }}
+                    >
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          noWrap
+                          sx={{ fontSize: 15, fontWeight: active ? 600 : 500 }}
                         >
-                          <IconTrash size={20} />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
+                          {profile.name || profileSource(profile)}
+                        </Typography>
+                        <Typography
+                          noWrap
+                          color="textSecondary"
+                          sx={{ fontSize: 12.5, mt: 0.25 }}
+                        >
+                          {profileSource(profile)}
+                          {profile.type === 'remote' &&
+                            ` · ${formatProfileUpdated(profile.updated)}`}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Stack
+                      className="profile-actions"
+                      direction="row"
+                      sx={{
+                        opacity: updating || activating ? 1 : 0,
+                        transition: 'opacity 0.15s',
+                      }}
+                    >
+                      {activating && (
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            display: 'grid',
+                            placeItems: 'center',
+                          }}
+                        >
+                          <MvpProgressRing size={16} />
+                        </Box>
+                      )}
+                      {!activating && profile.type === 'remote' && (
+                        <Tooltip title={t('mvp.subscriptions.update')}>
+                          <span>
+                            <IconButton
+                              aria-label={t('mvp.subscriptions.update')}
+                              disabled={profileAction !== null || importing}
+                              onClick={() => void onUpdateProfile(profile)}
+                            >
+                              <MvpProgressRing
+                                busy={updating}
+                                size={17}
+                                segments={updateSteps.segments}
+                              >
+                                <RefreshCwIcon size={17} />
+                              </MvpProgressRing>
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                      {!activating && (
+                        <Tooltip title={t('mvp.subscriptions.delete')}>
+                          <span>
+                            <IconButton
+                              aria-label={t('mvp.subscriptions.delete')}
+                              disabled={profileAction !== null || importing}
+                              onClick={() => setDeleteTarget(profile)}
+                              sx={{
+                                '&:hover, &.Mui-focusVisible': {
+                                  color: 'error.main',
+                                  bgcolor: (theme) =>
+                                    alpha(theme.palette.error.main, 0.1),
+                                },
+                              }}
+                            >
+                              <Trash2Icon size={17} />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Stack>
                   </Box>
-                </Box>
+                </Collapse>
               )
             })}
-          </Stack>
+          </Box>
+
+          <Collapse in={subscriptionsOpen}>
+            <Box
+              sx={{
+                minHeight: 60,
+                display: 'flex',
+                alignItems: 'center',
+                borderBottom: 1,
+                borderColor: 'divider',
+              }}
+            >
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  height: 36,
+                  pl: 1,
+                  pr: 0.25,
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: 2,
+                  bgcolor: 'action.hover',
+                  transition: 'background-color 0.15s',
+                  '&:focus-within': { bgcolor: 'action.selected' },
+                }}
+              >
+                <InputBase
+                  fullWidth
+                  value={url}
+                  disabled={importing}
+                  onChange={(event) => setUrl(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && url.trim()) void onImport()
+                    if (event.key === 'Escape') setUrl('')
+                  }}
+                  placeholder={t('mvp.subscriptions.placeholder')}
+                  type="url"
+                  inputProps={{
+                    'aria-label': t('mvp.subscriptions.inputLabel'),
+                  }}
+                  sx={{ fontSize: 14 }}
+                />
+                <Tooltip
+                  title={
+                    url.trim()
+                      ? t('mvp.subscriptions.add')
+                      : t('mvp.common.scanQr')
+                  }
+                >
+                  <span>
+                    <IconButton
+                      size="small"
+                      aria-label={
+                        url.trim()
+                          ? t('mvp.subscriptions.add')
+                          : t('mvp.common.scanQr')
+                      }
+                      disabled={importing || profileAction !== null}
+                      onClick={() =>
+                        url.trim() ? void onImport() : setQrScannerOpen(true)
+                      }
+                    >
+                      {importing ? (
+                        <MvpProgressRing
+                          size={16}
+                          segments={importSteps.segments}
+                        />
+                      ) : url.trim() ? (
+                        <CornerDownLeftIcon size={16} />
+                      ) : (
+                        <ScanLineIcon size={16} />
+                      )}
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Box>
+            </Box>
+          </Collapse>
         </Box>
       </Stack>
 
@@ -1101,7 +1212,6 @@ const MvpNodesPage = () => {
 
       <BaseDialog
         open={deleteTarget !== null}
-        icon={<IconTrash size={22} />}
         danger
         title={t('mvp.subscriptions.delete')}
         okBtn={t('mvp.subscriptions.deleteAction')}

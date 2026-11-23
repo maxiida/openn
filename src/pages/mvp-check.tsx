@@ -9,24 +9,24 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import {
-  IconAlertCircle,
-  IconAlertTriangle,
-  IconArrowLeft,
-  IconCircleCheck,
-  IconDeviceLaptop,
-  IconExclamationMark,
-  IconPlayerStop,
-  IconRefresh,
-  IconServer,
-  IconTicket,
-  IconWifi,
-  IconWorld,
-  IconX,
-  type Icon,
-} from '@tabler/icons-react'
+import { ReloadIcon } from '@radix-ui/react-icons'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import dayjs from 'dayjs'
+import {
+  ChevronLeftIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  ExclamationMarkIcon,
+  GlobeIcon,
+  LaptopIcon,
+  ServerIcon,
+  SquareIcon,
+  TicketIcon,
+  TriangleAlertIcon,
+  WifiIcon,
+  XIcon,
+  type LucideIcon,
+} from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
@@ -71,12 +71,12 @@ const LIVE_UPDATE_MS = 80
 type Tab = 'checkup' | 'speed'
 type Tone = 'success' | 'warning' | 'error' | 'info'
 
-const STEP_ICONS: Record<CheckStepId, Icon> = {
-  device: IconDeviceLaptop,
-  network: IconWifi,
-  subscription: IconTicket,
-  node: IconServer,
-  sites: IconWorld,
+const STEP_ICONS: Record<CheckStepId, LucideIcon> = {
+  device: LaptopIcon,
+  network: WifiIcon,
+  subscription: TicketIcon,
+  node: ServerIcon,
+  sites: GlobeIcon,
 }
 
 const toneSx = (tone: Tone | null) => (theme: Theme) => {
@@ -120,7 +120,7 @@ const Description = ({
   return (
     <Typography
       component="div"
-      color="text.secondary"
+      color="textSecondary"
       sx={{ mt: 0.75, maxWidth: 440, fontSize: 14, lineHeight: 1.55 }}
     >
       {tip ? (
@@ -168,7 +168,7 @@ const Hero = ({
       sx={{
         mt: GAP,
         fontSize: 20,
-        fontWeight: 650,
+        fontWeight: 600,
         letterSpacing: '-0.01em',
         textWrap: 'balance',
       }}
@@ -197,7 +197,7 @@ const RingStart = ({
       borderRadius: '50%',
       color: 'primary.main',
       fontSize: 19,
-      fontWeight: 650,
+      fontWeight: 600,
       transition: 'background-color 150ms',
       '&:hover': {
         bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
@@ -213,7 +213,7 @@ const RingNumber = ({ value, unit }: { value: string; unit: string }) => (
     <Typography
       sx={{
         fontSize: 40,
-        fontWeight: 650,
+        fontWeight: 600,
         letterSpacing: '-0.02em',
         lineHeight: 1,
         fontVariantNumeric: 'tabular-nums',
@@ -221,7 +221,7 @@ const RingNumber = ({ value, unit }: { value: string; unit: string }) => (
     >
       {value}
     </Typography>
-    <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 13 }}>
+    <Typography color="textSecondary" sx={{ mt: 0.5, fontSize: 13 }}>
       {unit}
     </Typography>
   </>
@@ -239,10 +239,8 @@ const PrimaryAction = ({
     onClick={onClick}
     sx={{
       minWidth: 138,
-      height: 42,
-      borderRadius: 999,
+      height: 40,
       fontSize: 15,
-      fontWeight: 600,
     }}
   >
     {children}
@@ -466,7 +464,7 @@ const CheckupTab = ({
       <Typography
         sx={{
           fontSize: 40,
-          fontWeight: 650,
+          fontWeight: 600,
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -489,13 +487,13 @@ const CheckupTab = ({
         : 'error'
     const ResultIcon =
       level === 'success'
-        ? IconCircleCheck
+        ? CircleCheckIcon
         : level === 'warning'
-          ? IconAlertTriangle
-          : IconAlertCircle
+          ? TriangleAlertIcon
+          : CircleAlertIcon
     center = (
       <Box sx={{ color: `${level}.main`, display: 'flex' }}>
-        <ResultIcon size={52} stroke={1.5} />
+        <ResultIcon size={52} strokeWidth={1.5} />
       </Box>
     )
     if (issue) {
@@ -540,7 +538,7 @@ const CheckupTab = ({
                 <RingCorner
                   label={t('mvp.check.actions.recheck')}
                   onClick={onRun}
-                  icon={<IconRefresh size={18} />}
+                  icon={<ReloadIcon width={16} height={16} />}
                 />
               )
             }
@@ -578,9 +576,9 @@ const CheckupTab = ({
                     : null
           const StepIcon =
             state?.status === 'error'
-              ? IconX
+              ? XIcon
               : state?.status === 'warn'
-                ? IconExclamationMark
+                ? ExclamationMarkIcon
                 : STEP_ICONS[step]
           return (
             <Box
@@ -829,8 +827,16 @@ const ResultCell = ({
   tip?: string
 }) => (
   <Tooltip title={tip ?? ''}>
-    <Box sx={{ py: 1.75, px: 0.75, textAlign: 'center', minWidth: 0 }}>
-      <Typography color="text.secondary" sx={{ fontSize: 12, mb: 0.625 }}>
+    <Box
+      sx={{
+        py: 1.75,
+        px: 0.75,
+        textAlign: 'center',
+        minWidth: 0,
+        cursor: tip ? 'help' : undefined,
+      }}
+    >
+      <Typography color="textSecondary" sx={{ fontSize: 12, mb: 0.625 }}>
         {label}
       </Typography>
       <Typography
@@ -994,7 +1000,7 @@ const SpeedTab = ({
       <RingCorner
         label={t('mvp.speedTest.actions.stop')}
         onClick={speed.stop}
-        icon={<IconPlayerStop size={18} />}
+        icon={<SquareIcon size={18} />}
       />
     )
     title = t('mvp.speedTest.running.title')
@@ -1010,7 +1016,7 @@ const SpeedTab = ({
       <RingCorner
         label={t('mvp.speedTest.actions.retry')}
         onClick={onStart}
-        icon={<IconRefresh size={18} />}
+        icon={<ReloadIcon width={16} height={16} />}
       />
     )
     const params = {
@@ -1032,7 +1038,7 @@ const SpeedTab = ({
       <RingCorner
         label={t('mvp.speedTest.actions.retry')}
         onClick={onStart}
-        icon={<IconRefresh size={18} />}
+        icon={<ReloadIcon width={16} height={16} />}
       />
     )
     title = t(`mvp.speedTest.result.${mode === 'direct' ? 'direct' : 'node'}`, {
@@ -1208,7 +1214,7 @@ const MvpCheckPage = () => {
             aria-keyshortcuts="Escape"
             onClick={() => navigate('/')}
           >
-            <IconArrowLeft size={22} />
+            <ChevronLeftIcon size={18} />
           </IconButton>
         </Tooltip>
       }

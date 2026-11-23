@@ -97,19 +97,16 @@ export const formatMvpDelay = (delay: number, timeout: number) => {
 const MVP_DELAY_TIERS = [
   {
     max: 500,
-    range: '< 500 ms',
     color: 'success.main',
     id: 'low',
   },
   {
     max: 1500,
-    range: '500–1500 ms',
     color: 'warning.main',
     id: 'medium',
   },
   {
     max: Number.POSITIVE_INFINITY,
-    range: '> 1500 ms',
     color: 'error.main',
     id: 'high',
   },
@@ -145,7 +142,6 @@ export const mvpDelayHint = (delay: number, timeout: number) => {
       const tier = mvpDelayTier(delay)
       return i18n.t(($) => $.mvp.delay.tierHint, {
         label: i18n.t(($) => $.mvp.delay[tier.id].label),
-        range: tier.range,
         hint: i18n.t(($) => $.mvp.delay[tier.id].hint),
       })
     }
@@ -194,9 +190,5 @@ export const mvpSpeedTier = (mbps: number) => {
 export const mvpSpeedHint = (mbps: number) => {
   const tier = mvpSpeedTier(mbps)
   const value = mbps >= 10 ? String(Math.round(mbps)) : mbps.toFixed(1)
-  return i18n.t(($) => $.mvp.delay.tierHint, {
-    label: tier.label,
-    range: `${value} Mbps`,
-    hint: tier.hint,
-  })
+  return i18n.t(($) => $.mvp.speed.valueHint, { value, hint: tier.hint })
 }

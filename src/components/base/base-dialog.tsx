@@ -1,6 +1,4 @@
 import {
-  alpha,
-  Box,
   Button,
   Dialog,
   DialogActions,
@@ -14,9 +12,7 @@ import { ReactNode } from 'react'
 interface Props {
   title: ReactNode
   open: boolean
-  /** Centers the dialog under this icon, for confirmations rather than forms. */
-  icon?: ReactNode
-  /** Paints the icon and the confirm button red, for actions that cannot be undone. */
+  /** Paints the confirm button red, for actions that cannot be undone. */
   danger?: boolean
   okBtn?: ReactNode
   cancelBtn?: ReactNode
@@ -41,7 +37,6 @@ export interface DialogRef {
 export const BaseDialog: React.FC<Props> = ({
   open,
   title,
-  icon,
   danger,
   children,
   okBtn,
@@ -63,38 +58,9 @@ export const BaseDialog: React.FC<Props> = ({
       onClose={onClose}
       disableEnforceFocus={disableEnforceFocus}
     >
-      <DialogTitle sx={icon ? { textAlign: 'center' } : undefined}>
-        {icon && (
-          <Box
-            sx={(theme) => {
-              const tone = theme.palette[danger ? 'error' : 'primary'].main
-              return {
-                width: 48,
-                height: 48,
-                mx: 'auto',
-                mb: 1.75,
-                display: 'grid',
-                placeItems: 'center',
-                borderRadius: '50%',
-                color: tone,
-                bgcolor: alpha(tone, 0.1),
-              }
-            }}
-          >
-            {icon}
-          </Box>
-        )}
-        {title}
-      </DialogTitle>
+      <DialogTitle>{title}</DialogTitle>
 
-      <DialogContent
-        sx={[
-          icon ? { textAlign: 'center', color: 'text.secondary' } : {},
-          ...(Array.isArray(contentSx) ? contentSx : [contentSx]),
-        ]}
-      >
-        {children}
-      </DialogContent>
+      <DialogContent sx={contentSx}>{children}</DialogContent>
 
       {!disableFooter && (
         <DialogActions>

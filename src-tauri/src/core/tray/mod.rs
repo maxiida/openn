@@ -196,6 +196,14 @@ impl Tray {
         Ok(())
     }
 
+    /// Re-tests the selected node right after a switch instead of on the slow schedule.
+    pub async fn recheck_health(&self, known_dead: bool) {
+        #[cfg(target_os = "macos")]
+        health::global().recheck(known_dead).await;
+        #[cfg(not(target_os = "macos"))]
+        let _ = known_dead;
+    }
+
     /// Whether the selected node has stopped responding, which the status dot shows in red.
     pub fn is_unhealthy(&self) -> bool {
         #[cfg(target_os = "macos")]

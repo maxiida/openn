@@ -26,6 +26,12 @@ pub struct IVerge {
     /// `light` or `dark` or `system`
     pub theme_mode: Option<String>,
 
+    /// Frosted glass behind the window; macOS only.
+    pub enable_glass: Option<bool>,
+
+    /// Checks whether the current node suits AI services such as ChatGPT and Claude.
+    pub enable_ai_check: Option<bool>,
+
     pub tray_event: Option<String>,
 
     pub env_type: Option<String>,
@@ -235,7 +241,7 @@ pub struct IVergeTheme {
 }
 
 impl IVerge {
-    pub const VALID_CLASH_CORES: &'static [&'static str] = &["verge-mihomo", "verge-mihomo-alpha"];
+    pub const VALID_CLASH_CORES: &'static [&'static str] = &["verge-mihomo"];
 
     pub async fn validate_and_fix_config() -> Result<()> {
         let config_path = dirs::verge_path()?;
@@ -330,6 +336,8 @@ impl IVerge {
             clash_core: Some("verge-mihomo".into()),
             language: Some("".into()),
             theme_mode: Some("system".into()),
+            enable_glass: Some(false),
+            enable_ai_check: Some(true),
             #[cfg(not(target_os = "windows"))]
             env_type: Some("bash".into()),
             #[cfg(target_os = "windows")]
@@ -416,6 +424,8 @@ impl IVerge {
 
         patch!(language);
         patch!(theme_mode);
+        patch!(enable_glass);
+        patch!(enable_ai_check);
         patch!(tray_event);
         patch!(env_type);
         patch!(start_page);

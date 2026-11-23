@@ -11,6 +11,8 @@ use tauri_plugin_dialog::{DialogExt as _, MessageDialogKind};
 
 const SETTINGS: &str = "app_menu_settings";
 const EXPORT_LOGS: &str = "app_menu_export_logs";
+const REPAIR: &str = "app_menu_repair";
+const UNINSTALL: &str = "app_menu_uninstall";
 
 // Replaces Tauri's default File/View/Window/Help menus. The Edit menu stays because
 // WKWebView only receives ⌘C/⌘V/⌘Z through menu key equivalents.
@@ -37,7 +39,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .select_all_with_text(t!("menu.selectAll"))
         .build()?;
     let help_menu = SubmenuBuilder::new(app, t!("menu.help"))
+        .text(REPAIR, t!("menu.repair"))
         .text(EXPORT_LOGS, t!("menu.exportLogs"))
+        .separator()
+        .text(UNINSTALL, t!("menu.uninstall"))
         .build()?;
     MenuBuilder::new(app)
         .items(&[&app_menu, &edit_menu, &help_menu])
@@ -80,15 +85,20 @@ pub fn refresh() {
     }
 }
 
+fn open_settings(path: &'static str) {
+    AsyncHandler::spawn(move || async move {
+        let _ = WindowManager::show_main_window().await;
+        handle::Handle::navigate(path);
+    });
+}
+
 // Also receives tray menu events, which the tray handles itself.
 pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     match event.id.as_ref() {
-        SETTINGS => {
-            AsyncHandler::spawn(|| async {
-                let _ = WindowManager::show_main_window().await;
-                handle::Handle::navigate("/settings");
-            });
-        }
+        SETTINGS => open_settings("/settings"),
+        // The settings page owns the confirmation dialogs for these.
+        REPAIR => open_settings("/settings?help=repair"),
+        UNINSTALL => open_settings("/settings?help=uninstall"),
         EXPORT_LOGS => {
             let app = app.clone();
             AsyncHandler::spawn(move || async move {

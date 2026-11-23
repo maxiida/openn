@@ -1,55 +1,28 @@
 import dayjs from 'dayjs'
 import i18n from 'i18next'
 import { dump } from 'js-yaml'
-import { selectNodeForGroup } from 'tauri-plugin-mihomo-api'
 
 import {
   createProfile,
   getClashMode,
   getProfiles,
-  getProxyView,
   importProfileWithFallbacks,
   patchClashMode,
   patchProfilesConfig,
-  recordSelectedNode,
 } from '@/services/cmds'
-import { getMainProxyGroup } from '@/utils/main-proxy-group'
 import { isValidUrl } from '@/utils/network'
 import parseUri from '@/utils/uri-parser'
 
 /** Called with 0 finished steps up front, then after each step. */
 export type MvpStepReporter = (done: number, total: number) => void
 
-export type MvpMode = 'rule' | 'global'
-
 const wait = (duration: number) =>
   new Promise((resolve) => setTimeout(resolve, duration))
 
-/**
- * The core's GLOBAL group starts on DIRECT, which would leave Global mode unproxied. Point it at
- * the group the node list drives, so the node picked there carries all traffic.
- */
-const routeGlobalThroughMainGroup = async () => {
-  const view = await getProxyView()
-  const main = getMainProxyGroup(view)
-  if (!view.global || !main || view.global.now === main.name) return
-  await selectNodeForGroup(view.global.name, main.name)
-  await recordSelectedNode(view.global.name, main.name)
-}
-
-export const setMvpMode = async (mode: MvpMode) => {
-  await patchClashMode(mode)
-  if (mode === 'global') await routeGlobalThroughMainGroup()
-}
-
-/** Keeps the core in a mode the app offers, falling back to Rule for any other. */
+/** Keeps the core in Rule mode, the only mode the app offers. */
 export const ensureMvpMode = async () => {
-  const saved = (await getClashMode())?.toLowerCase()
-  const mode: MvpMode = saved === 'global' ? 'global' : 'rule'
-  if (saved !== mode) {
-    await setMvpMode(mode)
-  } else if (mode === 'global') {
-    await routeGlobalThroughMainGroup()
+  if ((await getClashMode())?.toLowerCase() !== 'rule') {
+    await patchClashMode('rule')
   }
 }
 

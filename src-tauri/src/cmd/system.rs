@@ -15,6 +15,12 @@ pub fn get_connection_unhealthy() -> bool {
     crate::core::tray::Tray::global().is_unhealthy()
 }
 
+/// `known_dead` is the node list's last result for the node just picked.
+#[tauri::command]
+pub async fn recheck_connection_health(known_dead: bool) {
+    crate::core::tray::Tray::global().recheck_health(known_dead).await;
+}
+
 #[tauri::command]
 pub async fn get_pending_failures() -> Vec<PendingFailure> {
     notification::pending_failures()

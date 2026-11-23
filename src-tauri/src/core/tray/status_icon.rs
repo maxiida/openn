@@ -33,6 +33,8 @@ struct Visual {
     logo_alpha: f32,
     dot: [f32; 3],
     dot_alpha: f32,
+    /// The clear ring around the dot. It holds open while the dot pulses, so the logo never shows through.
+    cut_alpha: f32,
 }
 
 impl Visual {
@@ -46,6 +48,7 @@ impl Visual {
                 mix(self.dot[2], to.dot[2]),
             ],
             dot_alpha: mix(self.dot_alpha, to.dot_alpha),
+            cut_alpha: mix(self.cut_alpha, to.cut_alpha),
         }
     }
 }
@@ -117,7 +120,7 @@ fn render(v: Visual, ink: [f32; 3]) -> Image<'static> {
             let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
             let d = ((px - dot.0).powi(2) + (py - dot.1).powi(2)).sqrt();
             let cover = |r: f32| (r - d + 0.5).clamp(0.0, 1.0);
-            let la = f32::from(alpha[i]) / 255.0 * v.logo_alpha * (1.0 - cover(radius + gap) * v.dot_alpha);
+            let la = f32::from(alpha[i]) / 255.0 * v.logo_alpha * (1.0 - cover(radius + gap) * v.cut_alpha);
             let da = cover(*radius) * v.dot_alpha;
             let oa = la + da * (1.0 - la);
             if oa <= 0.0 {
@@ -161,6 +164,7 @@ impl StatusIcon {
             logo_alpha: IDLE_ALPHA,
             dot: GREEN,
             dot_alpha: 0.0,
+            cut_alpha: 0.0,
         }
     }
 
@@ -169,6 +173,7 @@ impl StatusIcon {
             logo_alpha: 1.0,
             dot: GREEN,
             dot_alpha: 1.0,
+            cut_alpha: 1.0,
         }
     }
 
@@ -177,6 +182,7 @@ impl StatusIcon {
             logo_alpha: 1.0,
             dot: RED,
             dot_alpha: 1.0,
+            cut_alpha: 1.0,
         }
     }
 
@@ -195,6 +201,7 @@ impl StatusIcon {
             logo_alpha: 1.0,
             dot: self.ink(),
             dot_alpha: alpha,
+            cut_alpha: 1.0,
         }
     }
 

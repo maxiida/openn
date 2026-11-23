@@ -112,12 +112,12 @@ const Layout = () => {
         style={{
           width: '100vw',
           height: '100vh',
-          background: mode === 'light' ? '#fff' : '#181a1b',
+          background: mode === 'light' ? '#FAF9F5' : '#1F1E1D',
           transition: 'background 0.2s',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: mode === 'light' ? '#333' : '#fff',
+          color: mode === 'light' ? '#141413' : '#ECEAE4',
         }}
       ></div>
     )
@@ -161,7 +161,7 @@ const Layout = () => {
           }
         }}
         sx={[
-          ({ palette }) => ({ bgcolor: palette.background.paper }),
+          ({ palette }) => ({ bgcolor: palette.background.default }),
           OS === 'linux'
             ? {
                 borderRadius: '8px',

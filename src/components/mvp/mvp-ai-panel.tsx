@@ -1,4 +1,11 @@
-import { Box, Button, Tooltip, Typography, type Theme } from '@mui/material'
+import {
+  Box,
+  Button,
+  Tooltip,
+  Typography,
+  type SxProps,
+  type Theme,
+} from '@mui/material'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,8 +15,6 @@ import {
   aiVerdictColor,
   type AiCheckResult,
 } from '@/services/ai-check'
-
-import { MvpProgressRing } from './mvp-progress-ring'
 
 // i18n codes that are not BCP 47 tags, which Intl.DisplayNames needs.
 const DISPLAY_LOCALES: Record<string, string> = { zhtw: 'zh-TW', jp: 'ja' }
@@ -36,6 +41,26 @@ const ink = (color: string) => (theme: Theme) => {
   }
 }
 
+const Hint = ({
+  title,
+  children,
+  sx,
+}: {
+  title: string
+  children: ReactNode
+  sx?: SxProps<Theme>
+}) => (
+  <Tooltip title={title} describeChild>
+    <Box
+      component="span"
+      tabIndex={0}
+      sx={[{ cursor: 'help' }, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
+      {children}
+    </Box>
+  </Tooltip>
+)
+
 const Fact = ({
   label,
   tip,
@@ -47,38 +72,35 @@ const Fact = ({
   children: ReactNode
   aside?: ReactNode
 }) => (
-  <Tooltip title={tip} describeChild>
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1.5,
+      py: 1.125,
+      fontSize: 14,
+      '& + &': { borderTop: '0.5px solid', borderColor: 'divider' },
+    }}
+  >
+    <Hint
+      title={tip}
+      sx={{ width: 56, flexShrink: 0, color: 'text.secondary', fontSize: 13 }}
+    >
+      {label}
+    </Hint>
     <Box
-      tabIndex={0}
       sx={{
+        flex: 1,
+        minWidth: 0,
         display: 'flex',
         alignItems: 'center',
-        gap: 1.5,
-        py: 1.125,
-        fontSize: 14,
-        cursor: 'help',
-        '& + &': { borderTop: '0.5px solid', borderColor: 'divider' },
+        gap: 1,
       }}
     >
-      <Box
-        sx={{ width: 56, flexShrink: 0, color: 'text.secondary', fontSize: 13 }}
-      >
-        {label}
-      </Box>
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-        }}
-      >
-        {children}
-      </Box>
-      {aside}
+      {children}
     </Box>
-  </Tooltip>
+    {aside}
+  </Box>
 )
 
 const PurityMeter = ({ score }: { score: number }) => (
@@ -142,7 +164,6 @@ export const MvpAiPanel = ({
           fontSize: 14,
         }}
       >
-        <MvpProgressRing busy size={14} />
         {t('mvp.home.checking')}
       </Box>
     )
@@ -167,7 +188,7 @@ export const MvpAiPanel = ({
             alignItems: 'center',
             gap: 1,
             fontSize: 16,
-            fontWeight: 650,
+            fontWeight: 600,
           },
           ink(color),
         ]}
@@ -193,7 +214,12 @@ export const MvpAiPanel = ({
             label={t('mvp.home.ai.facts.region')}
             tip={t('mvp.home.ai.tips.region')}
             aside={
-              <Box
+              <Hint
+                title={t(
+                  supported
+                    ? 'mvp.home.ai.tips.supported'
+                    : 'mvp.home.ai.tips.unsupported',
+                )}
                 sx={[
                   { flexShrink: 0, fontSize: 13 },
                   ink(supported ? 'success.main' : 'error.main'),
@@ -204,7 +230,7 @@ export const MvpAiPanel = ({
                     ? 'mvp.home.ai.region.supported'
                     : 'mvp.home.ai.region.unsupported',
                 )}
-              </Box>
+              </Hint>
             }
           >
             {place}
@@ -229,11 +255,19 @@ export const MvpAiPanel = ({
               </Box>
             }
           >
-            {t(
-              residential
-                ? 'mvp.home.ai.network.residential'
-                : 'mvp.home.ai.network.datacenter',
-            )}
+            <Hint
+              title={t(
+                residential
+                  ? 'mvp.home.ai.tips.residential'
+                  : 'mvp.home.ai.tips.datacenter',
+              )}
+            >
+              {t(
+                residential
+                  ? 'mvp.home.ai.network.residential'
+                  : 'mvp.home.ai.network.datacenter',
+              )}
+            </Hint>
             {!residential && (
               <Box
                 component="span"
@@ -249,36 +283,47 @@ export const MvpAiPanel = ({
             label={t('mvp.home.ai.facts.purity')}
             tip={t('mvp.home.ai.tips.purity')}
             aside={
-              <Box
+              <Hint
+                title={t('mvp.home.ai.tips.score')}
                 sx={[
                   {
                     width: 26,
                     flexShrink: 0,
                     textAlign: 'right',
-                    fontWeight: 650,
+                    fontWeight: 600,
                     fontVariantNumeric: 'tabular-nums',
                   },
                   ink(aiPurityColor(score)),
                 ]}
               >
                 {score}
-              </Box>
+              </Hint>
             }
           >
-            <PurityMeter score={score} />
+            <Hint
+              title={t('mvp.home.ai.tips.score')}
+              sx={{ flex: 1, minWidth: 0, display: 'flex', py: 1 }}
+            >
+              <PurityMeter score={score} />
+            </Hint>
           </Fact>
         )}
       </Box>
+      {score !== null && (
+        <Typography color="textDisabled" sx={{ mt: -0.5, fontSize: 12 }}>
+          {t('mvp.home.ai.source')}
+        </Typography>
+      )}
       {verdict !== 'good' && verdict !== 'unknown' && (
         <Button
           variant="contained"
           onClick={onChangeNode}
           sx={{
             alignSelf: 'flex-start',
-            borderRadius: 999,
             boxShadow: 'none',
             bgcolor: 'text.primary',
-            color: 'background.paper',
+            color: (theme) =>
+              theme.palette.getContrastText(theme.palette.text.primary),
             '&:hover': { bgcolor: 'text.secondary' },
           }}
         >

@@ -1,6 +1,6 @@
 [package]
 name = "clash-verge"
-version = "0.1.0-alpha.1"
+version = "0.1.1"
 description = "clash verge"
 authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
 license = "GPL-3.0-only"
@@ -52,6 +52,7 @@ tauri = { workspace = true, features = [
   "tray-icon",
   "image-ico",
   "image-png",
+  "macos-private-api",
 ] }
 parking_lot = { workspace = true }
 anyhow = { workspace = true }

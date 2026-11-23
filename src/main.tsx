@@ -2,6 +2,7 @@ import './assets/styles/index.scss'
 
 import { ResizeObserver } from '@juggle/resize-observer'
 import { ComposeContextProvider } from 'foxact/compose-context-provider'
+import { LucideProvider } from 'lucide-react'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router'
@@ -54,7 +55,9 @@ const initializeApp = (initialThemeMode: 'light' | 'dark') => {
           <SWRConfig value={swrConfig}>
             <WindowProvider>
               <AppDataProvider>
-                <RouterProvider router={router} />
+                <LucideProvider strokeWidth={1.5}>
+                  <RouterProvider router={router} />
+                </LucideProvider>
               </AppDataProvider>
             </WindowProvider>
           </SWRConfig>

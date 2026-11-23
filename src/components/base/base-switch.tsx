@@ -8,8 +8,8 @@ export const Switch = styled((props: SwitchProps) => (
     {...props}
   />
 ))(({ theme }) => ({
-  width: 42,
-  height: 26,
+  width: 36,
+  height: 20,
   padding: 0,
   marginRight: 1,
   '& .MuiSwitch-switchBase': {
@@ -18,7 +18,7 @@ export const Switch = styled((props: SwitchProps) => (
     transitionDuration: '300ms',
     '&.Mui-checked': {
       transform: 'translateX(16px)',
-      color: '#fff',
+      color: theme.palette.primary.contrastText,
       '& + .MuiSwitch-track': {
         backgroundColor: theme.palette.primary.main,
         opacity: 1,
@@ -28,9 +28,9 @@ export const Switch = styled((props: SwitchProps) => (
         opacity: 0.5,
       },
     },
-    '&.Mui-focusVisible .MuiSwitch-thumb': {
-      color: '#33cf4d',
-      border: '6px solid #fff',
+    '&.Mui-focusVisible + .MuiSwitch-track': {
+      outline: `2px solid ${theme.palette.text.secondary}`,
+      outlineOffset: 2,
     },
     '&.Mui-disabled .MuiSwitch-thumb': {
       color:
@@ -44,12 +44,15 @@ export const Switch = styled((props: SwitchProps) => (
   },
   '& .MuiSwitch-thumb': {
     boxSizing: 'border-box',
-    width: 22,
-    height: 22,
+    width: 16,
+    height: 16,
   },
   '& .MuiSwitch-track': {
-    borderRadius: 26 / 2,
-    backgroundColor: theme.palette.mode === 'light' ? '#BBBBBB' : '#39393D',
+    borderRadius: 20 / 2,
+    backgroundColor:
+      theme.palette.mode === 'light'
+        ? 'rgba(31, 30, 29, 0.22)'
+        : 'rgba(236, 234, 228, 0.2)',
     opacity: 1,
     transition: theme.transitions.create(['background-color'], {
       duration: 500,

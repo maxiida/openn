@@ -9,12 +9,6 @@
     "invalidQr": "二维码无效或暂不支持"
   },
   "home": {
-    "welcome": {
-      "title": "欢迎使用 Openn",
-      "subtitle": "粘贴订阅链接即可开始",
-      "linkLabel": "订阅链接",
-      "import": "导入"
-    },
     "status": {
       "connected": "已连接",
       "unhealthy": "节点无响应",
@@ -35,30 +29,26 @@
     "noNode": "暂无可用节点",
     "nodeUnavailable": "当前节点不可用，请更换节点",
     "awaitingRecovery": "等待恢复",
-    "speedTestPrompt": "点击右侧刷新按钮测速",
+    "speedTestPrompt": "还没测网速，点右边的刷新按钮",
     "checking": "正在检测…",
     "tags": {
       "sites": "网站",
-      "sitesIntro": "网站：常用的国外网站能不能打开",
       "ai": "AI",
-      "aiIntro": "AI：用 Claude、ChatGPT 等 AI 稳不稳",
       "delay": "延迟",
-      "delayIntro": "延迟：打开网页要等多久",
-      "speed": "网速",
-      "speedIntro": "网速：下载有多快"
+      "speed": "网速"
     },
     "sites": {
       "baidu": "Baidu",
       "domestic": "国内",
-      "foreignDownHint": "国外网站都打不开，可能是这个节点出了问题，换一个试试",
+      "foreignDownHint": "国外网站都打不开，换个节点试试",
       "allOkHint": "Google、YouTube 等常用网站都能打开",
       "partialHint": "{{list}}，其他正常",
       "separator": "，",
       "status": {
         "checking": "检测中…",
         "ok": "正常",
-        "slow": "有点慢",
-        "down": "打不开"
+        "down": "打不开",
+        "blocked": "地区不支持"
       }
     },
     "ai": {
@@ -83,10 +73,16 @@
         "purity": "纯净度"
       },
       "tips": {
-        "region": "节点出口在哪里，网站就会以为你在哪里。Claude、ChatGPT 不支持中国大陆、香港等地区。",
-        "network": "这个 IP 来自哪种网络。家庭宽带最像普通用户；机房是服务器，最容易被 AI 限制。",
-        "purity": "这个 IP 被多少人用过、有没有不良记录，分数越低越好。0–35 放心用，35–70 可能受限，70 以上不建议用。数据来自 IPPure。"
+        "region": "节点出口所在的地方，网站会以为你在这里",
+        "network": "这个 IP 来自哪种网络",
+        "purity": "这个 IP 被多少人用过、有没有不良记录",
+        "supported": "Claude、ChatGPT 在这个地区能用",
+        "unsupported": "Claude、ChatGPT 不对这个地区开放",
+        "residential": "普通人家里的网络，最不容易被 AI 限制",
+        "datacenter": "服务器用的网络，最容易被 AI 限制",
+        "score": "越低越好，35 以下放心用，70 以上不建议"
       },
+      "source": "数据来自 IPPure",
       "region": {
         "supported": "AI 支持",
         "unsupported": "AI 不支持"
@@ -100,9 +96,10 @@
       }
     },
     "blockers": {
-      "foreignTunnel": "检测到 Shadowrocket 等其他 VPN 正在运行。请先退出它，再点「连接」。",
-      "foreignSystemProxy": "系统代理被其他软件占用，可能导致网页打不开。请先退出那个软件，再点「连接」。",
-      "staleProxyEnv": "电脑里残留了旧的代理设置，部分应用可能连不上。重启电脑即可清除。"
+      "foreignTunnel": "其他 VPN 正在运行，请先退出再连接",
+      "foreignSystemProxy": "其他软件占用了系统代理，请先退出它",
+      "staleProxyEnv": "有旧的代理设置残留，重启电脑即可清除",
+      "recheck": "重新检测"
     },
     "setup": {
       "title": "需要授权一次",
@@ -118,7 +115,7 @@
       "qrImportSuccess": "二维码导入成功",
       "disconnectFailed": "断开失败，请再试一次",
       "setupIncomplete": "授权没有完成，请再点一次「连接」",
-      "connectFailedVpn": "连接失败。如果开着 Shadowrocket 等其他 VPN，请先退出它再试",
+      "connectFailedVpn": "连接失败，请先退出 Shadowrocket 等 VPN",
       "connectFailed": "连接失败，请再试一次"
     }
   },
@@ -153,18 +150,14 @@
     "expired": "已于 {{date}} 到期"
   },
   "subscriptions": {
-    "title": "订阅管理",
-    "subtitle": "添加、切换或删除订阅链接",
+    "label": "订阅",
+    "manage": "管理",
+    "collapse": "收起",
     "placeholder": "粘贴新的订阅链接",
     "inputLabel": "新的订阅链接",
     "add": "添加",
-    "current": "当前",
-    "use": "使用此订阅",
-    "useNamed": "使用 {{name}}",
     "update": "更新订阅",
-    "updateNamed": "更新 {{name}}",
     "delete": "删除订阅",
-    "deleteNamed": "删除 {{name}}",
     "deleteConfirm": "确定删除“{{name}}”吗？",
     "deleteAction": "删除",
     "fallbackName": "订阅",
@@ -190,7 +183,8 @@
     }
   },
   "qr": {
-    "subtitle": "将节点二维码放入取景框",
+    "title": "扫码添加订阅",
+    "hint": "将二维码对准摄像头",
     "pasteImage": "粘贴图片",
     "chooseImage": "选择图片",
     "errors": {
@@ -211,9 +205,9 @@
     "error": "连接失败",
     "untested": "未测速",
     "untestedHint": "还没有测速结果",
-    "timeoutHint": "超时：{{seconds}} 秒内没有响应，节点太慢或已失效",
-    "errorHint": "连接失败：节点可能已失效",
-    "tierHint": "{{label}}（{{range}}）：{{hint}}",
+    "timeoutHint": "{{seconds}} 秒没有响应，节点可能已失效",
+    "errorHint": "连不上，节点可能已失效",
+    "tierHint": "{{label}}，{{hint}}",
     "low": {
       "label": "延迟低",
       "hint": "网页和视频都很顺"
@@ -247,40 +241,40 @@
     "poor": {
       "label": "较差",
       "hint": "基本只能刷文字和聊天"
-    }
+    },
+    "valueHint": "网速 {{value}} Mbps，{{hint}}"
   },
   "settings": {
     "title": "设置",
-    "connection": "连接",
     "general": "通用",
-    "about": "关于",
-    "proxyMode": {
-      "label": "代理模式",
-      "rule": "规则",
-      "ruleTooltip": "国内网站直连，国外网站走代理。日常使用选这个。",
-      "global": "全局",
-      "globalTooltip": "所有网站都走代理，包括国内网站。国内网站可能变慢，也更费流量。",
-      "failed": "切换失败，请再试一次"
-    },
+    "help": "帮助",
+    "onboarding": "新手引导",
     "autoLaunch": {
       "label": "开机自动启动",
       "hint": "开机后在后台运行，不弹出窗口",
       "failed": "开机启动设置失败，请再试一次"
     },
+    "aiCheck": {
+      "label": "AI 可用性检测",
+      "hint": "查看节点能不能放心用 ChatGPT、Claude"
+    },
     "appearance": {
       "label": "外观",
+      "theme": "主题",
       "system": "跟随系统",
       "light": "浅色",
       "dark": "深色"
+    },
+    "glass": {
+      "label": "毛玻璃效果",
+      "hint": "窗口背后会隐约透出桌面"
     },
     "language": {
       "label": "语言",
       "system": "跟随系统"
     },
-    "version": "版本",
     "repair": {
       "label": "一键修复",
-      "hint": "连不上时试一试",
       "body": "将重新安装 Openn 的后台组件，并清理残留的代理设置。系统会请你输入电脑密码，修复期间会短暂断开。",
       "confirm": "开始修复",
       "done": "修复完成，回到首页点「连接」即可",
@@ -290,9 +284,14 @@
     },
     "exportLogs": {
       "label": "导出日志",
-      "hint": "出问题时导出一份日志，发给开发者排查",
       "done": "日志已保存到「下载」文件夹",
       "failed": "导出日志失败，请重试"
+    },
+    "uninstall": {
+      "label": "卸载 Openn",
+      "body": "将删除 Openn 的后台组件并退出，系统会请你输入电脑密码。之后把 Openn 从「应用程序」拖进废纸篓就卸载干净了。",
+      "confirm": "卸载并退出",
+      "failed": "卸载没有完成，请再试一次"
     }
   },
   "check": {
@@ -458,6 +457,52 @@
     },
     "notices": {
       "failed": "测速失败，请稍后重试"
+    }
+  },
+  "onboarding": {
+    "next": "继续",
+    "close": "关闭引导",
+    "theme": {
+      "dark": "切换到深色",
+      "light": "切换到浅色"
+    },
+    "welcome": {
+      "title": "欢迎使用 Openn",
+      "subtitle": "让代理更简单一点",
+      "start": "开始"
+    },
+    "subscription": {
+      "title": "添加订阅",
+      "subtitle": "粘贴服务商给你的订阅链接，节点会自动导入",
+      "label": "订阅链接",
+      "import": "导入",
+      "invalid": "这不像是订阅链接，请检查是否复制完整",
+      "clipboard": "剪贴板里有一条订阅链接",
+      "useClipboard": "使用",
+      "change": "换一个链接",
+      "nodes": "{{count}} 个节点"
+    },
+    "permission": {
+      "title": "授权一次",
+      "body": "Openn 需要安装一个后台组件",
+      "password": "系统会请你输入一次电脑密码",
+      "checking": "正在检查有没有其他 VPN…",
+      "clear": "没有冲突，可以继续",
+      "grant": "授权并继续",
+      "waiting": "等待授权",
+      "granted": "已授权",
+      "incomplete": "授权没有完成，请再试一次"
+    },
+    "connect": {
+      "title": "正在连接…",
+      "subtitle": "稍等几秒，正在一段段检查线路",
+      "done": "一切就绪",
+      "doneSubtitle": "Google、YouTube、ChatGPT 都能打开了",
+      "latency": "延迟 {{delay}} ms",
+      "menuBar": "Openn 会待在菜单栏，关掉窗口也在后台运行",
+      "tray": "Openn 会待在任务栏右下角，关掉窗口也在后台运行",
+      "finish": "开始使用",
+      "later": "先去首页"
     }
   }
 }

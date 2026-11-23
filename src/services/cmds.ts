@@ -478,6 +478,10 @@ export const getConnectionUnhealthy = async () => {
   return invoke<boolean>('get_connection_unhealthy')
 }
 
+export const recheckConnectionHealth = async (knownDead: boolean) => {
+  return invoke<void>('recheck_connection_health', { knownDead })
+}
+
 export const getRuntimeState = async () => {
   return invoke<RunState>('get_runtime_state')
 }
