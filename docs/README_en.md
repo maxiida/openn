@@ -1,135 +1,50 @@
-<h1 align="center">
-  <img src="../src-tauri/icons/icon.png" alt="Clash" width="128" />
-  <br>
-  Continuation of <a href="https://github.com/zzzgydi/clash-verge">Clash Verge</a>
-  <br>
-</h1>
-
-<h3 align="center">
-A Clash Meta GUI built with <a href="https://github.com/tauri-apps/tauri">Tauri</a>.
-</h3>
-
 <p align="center">
-  Languages:
-  <a href="../README.md">简体中文</a> ·
-  <a href="./README_en.md">English</a> ·
-  <a href="./README_es.md">Español</a> ·
-  <a href="./README_ru.md">Русский</a> ·
-  <a href="./README_ja.md">日本語</a> ·
-  <a href="./README_ko.md">한국어</a> ·
-  <a href="./README_fa.md">فارسی</a>
+  <img src="../src-tauri/icons/dock/plain.png" alt="Openn app icon" width="128">
 </p>
 
-## Preview
+<h1 align="center">Openn</h1>
 
-| Dark                                | Light                                 |
-| ----------------------------------- | ------------------------------------- |
-| ![Dark Preview](./preview_dark.png) | ![Light Preview](./preview_light.png) |
+<p align="center"><strong>A simple, beautifully designed proxy app for Mac that anyone can use.</strong></p>
 
-## Install
+<p align="center">
+  <a href="https://github.com/maxiida/openn/releases">Releases</a> ·
+  <a href="../Changelog.md">Changelog</a> ·
+  <a href="https://github.com/maxiida/openn/issues">Report an issue</a> ·
+  <a href="../README.md">简体中文</a>
+</p>
 
-Visit the [Release page](https://github.com/clash-verge-rev/clash-verge-rev/releases) to download the installer that matches your platform.<br>
-We provide packages for Windows (x64/x86), Linux (x64/arm64), and macOS 10.15+ (Intel/Apple).
+I still find a lot of the settings in Clash Verge hard to understand. Most days, I just want to open an app, click Connect, and get on with what I was doing. That’s why I built Openn.
 
-#### Choosing a Release Channel
+## Getting started
 
-| Channel     | Description                                                           | Link                                                                                   |
-| :---------- | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
-| Stable      | Official builds with high reliability, ideal for daily use.           | [Release](https://github.com/clash-verge-rev/clash-verge-rev/releases)                 |
-| Alpha (EOL) | Legacy builds used to validate the publish pipeline.                  | [Alpha](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/alpha)         |
-| AutoBuild   | Rolling builds for testing and feedback. Expect experimental changes. | [AutoBuild](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/autobuild) |
+This page describes the upcoming release. The installer for Macs with Apple silicon will be available on [GitHub Releases](https://github.com/maxiida/openn/releases).
 
-#### Installation Guides & FAQ
+On your first launch, paste the subscription link from your proxy provider and follow the prompts to grant permission. Openn tests your connections and helps you pick one that responds quickly. After that, use the same button to connect or disconnect. You can close the window and leave Openn running in the background.
 
-Read the [project documentation](https://clash-verge-rev.github.io/) for install steps, troubleshooting, and frequently asked questions.
+## Check your connection at a glance
 
-### Telegram Channel
+Openn checks your connection in the background. Its menu bar and Dock icons show how it’s doing.
 
-Join [@clash_verge_rev](https://t.me/clash_verge_re) for update announcements.
+| Working | Connection problem detected | Disconnected |
+| :---: | :---: | :---: |
+| <img src="../src-tauri/icons/dock/green.png" alt="Openn icon with a green dot" width="64"> | <img src="../src-tauri/icons/dock/red.png" alt="Openn icon with a red dot" width="64"> | <img src="../src-tauri/icons/dock/plain.png" alt="Openn icon without a status dot" width="64"> |
 
----
+## Find a connection for Claude or ChatGPT
 
-## Promotion
+A connection can work for everyday browsing and still run into region restrictions or extra verification on Claude or ChatGPT. Openn checks the region and risk score of the IP address your traffic goes out through. You can also check several connections at once before deciding which one to use.
 
-### ✈️ [Doggygo VPN — A Technical-Grade Proxy Service](https://verge.dginv.click/#/register?code=oaxsAGo6)
+## Find out why a page won’t load
 
-🚀 A high-performance, overseas, technical-grade proxy service offering free trials and discounted plans, fully unlocking streaming platforms and AI services. The world’s first provider to adopt the **QUIC protocol**.
+Is your internet down, has your subscription expired, or has your proxy stopped responding? Open **Network Check** and Openn will test each step from your Mac to the website and suggest what to try next.
 
-🎁 Register via the **Clash Verge exclusive invitation link** to receive **3 days of free trial**, with **1GB traffic per day**: 👉 [Register here](https://verge.dginv.click/#/register?code=oaxsAGo6)
+If things just feel slow, you can test your internet speed both with and without the proxy to see where the slowdown is.
 
-#### **Core Advantages:**
+## About the project
 
-- 📱 Self-developed iOS client (the industry’s “only one”), with technology proven in production and **significant ongoing R&D investment**
-- 🧑‍💻 **12-hour live customer support** (also assists with Clash Verge usage issues)
-- 💰 Discounted plans at **only CNY 21 per month, 160GB traffic, 20% off with annual billing**
-- 🌍 Overseas team, no risk of shutdown or exit scams, with up to **50% referral commission**
-- ⚙️ **Cluster-based load balancing** architecture with **real-time load monitoring and elastic scaling**, high-speed dedicated lines (compatible with legacy clients), ultra-low latency, unaffected by peak hours, **4K streaming loads instantly**
-- ⚡ The world’s first **QUIC-protocol-based proxy service**, now featuring faster **QUIC-family protocols** (best paired with the Clash Verge client)
-- 🎬 Unlocks **streaming platforms and mainstream AI services**
+Openn is based on [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev) and uses Mihomo to handle proxy connections. I redesigned the Mac interface and first-run setup to make connecting, checking your status, and troubleshooting easier. Thanks to the upstream maintainers for making Openn possible.
 
-🌐 Official Website: 👉 [https://狗狗加速.com](https://verge.dginv.click/#/register?code=oaxsAGo6)
+Your subscription and settings are stored on your Mac. Connection checks, speed tests, and AI checks contact third-party services as described in the [privacy notice](../PRIVACY.md). Openn is licensed under [GPL-3.0](../LICENSE).
 
-### 🤖 [GPTKefu — AI-Powered Customer Service Platform Deeply Integrated with Crisp](https://gptkefu.com)
+## Run from source
 
-- 🧠 Deep understanding of full conversation context + image recognition, automatically providing professional and precise replies — no more robotic responses.
-- ♾️ **Unlimited replies**, no quota anxiety — unlike other AI customer service products that charge per message.
-- 💬 Pre-sales inquiries, after-sales support, complex Q&A — covers all scenarios effortlessly, with real user cases to prove it.
-- ⚡ 3-minute setup, zero learning curve — instantly boost customer service efficiency and satisfaction.
-- 🎁 Free 14-day trial of the Premium plan — try before you pay: 👉 [Start Free Trial](https://gptkefu.com)
-- 📢 AI Customer Service TG Channel: [@crisp_ai](https://t.me/crisp_ai)
-
----
-
-## Features
-
-- Built on high-performance Rust with the Tauri 2 framework
-- Ships with the embedded [Clash.Meta (mihomo)](https://github.com/MetaCubeX/mihomo) core and supports switching to the `Alpha` channel
-- Clean, polished UI with theme color controls, proxy group/tray icons, and `CSS Injection`
-- Enhanced profile management (Merge and Script helpers) with configuration syntax hints
-- System proxy controls, guard mode, and `TUN` (virtual network adapter) support
-- Visual editors for nodes and rules
-- WebDAV-based backup and sync for configurations
-
-### FAQ
-
-See the [FAQ page](https://clash-verge-rev.github.io/faq/windows.html) for platform-specific guidance.
-
-### Donation
-
-[Support Clash Verge Rev development](https://github.com/sponsors/clash-verge-rev)
-
-## Development
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed contribution guidelines.
-
-After installing all **Tauri** prerequisites, run the development shell with:
-
-```shell
-pnpm i
-pnpm run prebuild
-pnpm dev
-```
-
-## Contributions
-
-Issues and pull requests are welcome!
-
-## Acknowledgement
-
-Clash Verge Rev builds on or draws inspiration from these projects:
-
-- [zzzgydi/clash-verge](https://github.com/zzzgydi/clash-verge): A Tauri-based Clash GUI for Windows, macOS, and Linux.
-- [tauri-apps/tauri](https://github.com/tauri-apps/tauri): Build smaller, faster, more secure desktop apps with a web frontend.
-- [Dreamacro/clash](https://github.com/Dreamacro/clash): A rule-based tunnel written in Go.
-- [MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo): A rule-based tunnel written in Go.
-- [Fndroid/clash_for_windows_pkg](https://github.com/Fndroid/clash_for_windows_pkg): A Clash GUI for Windows and macOS.
-- [vitejs/vite](https://github.com/vitejs/vite): Next-generation frontend tooling with blazing-fast DX.
-
-## Privacy
-
-Clash Verge Rev does not collect any user data; configuration and logs stay on
-your own device. See the [Privacy Policy](../PRIVACY.md) for details.
-
-## License
-
-GPL-3.0 License. See the [license file](../LICENSE) for details.
+The local build needs both the main repository and the background service. See the [development guide](./DEVELOPMENT.md) for setup, build, and release instructions.
