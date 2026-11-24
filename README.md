@@ -48,13 +48,37 @@ Openn 会在后台检查当前线路，菜单栏和 Dock 图标上的小点会�
 
 有的线路平时浏览网页没问题，用 Claude 或 ChatGPT 时却可能遇到地区限制或额外验证。Openn 会检查节点出口 IP 的地区和风险评分，帮你判断这条线路是否适合使用这些服务。你也可以在节点列表里一次检查多条线路，再决定换哪一条。
 
+<p align="center">
+  <img src="./docs/screenshots/ai-check.png" alt="Openn 的 AI 线路检测：显示节点出口地区、网络类型和纯净度评分" width="640">
+</p>
+
 选好合适的线路后，还可以在设置里让 Claude、ChatGPT 和 Gemini 固定走这条线路，其他网站照常走主节点。这样换主节点时，AI 账号的 IP 也不会跟着变。
+
+<p align="center">
+  <img src="./docs/screenshots/settings.png" alt="Openn 设置：开启「AI 单独用一个节点」并选择 AI 节点" width="640">
+</p>
 
 ## 网慢、网页打不开，自己也能查
 
 是家里的网断了、订阅过期了，还是节点没响应？打开「网络检测」，Openn 会从电脑一路查到网站，并提示你接下来可以怎么做。
 
+<p align="center">
+  <img src="./docs/screenshots/checkup.png" alt="Openn 网络检测：体检结果显示一切正常" width="640">
+</p>
+
 如果只是觉得慢，也可以分别测宽带本身的速度和经过代理后的速度，看看差在哪儿。
+
+## 和 Clash Verge Rev 有什么不同
+
+| | Openn | Clash Verge Rev |
+| :-- | :-- | :-- |
+| 适合谁 | 只想打开、连接、继续做事的人 | 想自己调规则和配置的人 |
+| 平台 | 仅 Apple 芯片的 Mac | Windows、macOS、Linux |
+| 首次使用 | 粘贴订阅链接，自动选节点 | 自己导入订阅、选节点 |
+| 判断线路能不能用 AI | 内置，显示地区和纯净度评分 | 没有 |
+| AI 固定走一条线路 | 设置里一个开关 | 自己写规则 |
+| 排查网络问题 | 内置「网络检测」，从电脑查到网站 | 没有 |
+| 规则、脚本、配置文件编辑 | 没有 | 有 |
 
 ## 关于这个项目
 

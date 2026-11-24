@@ -48,13 +48,37 @@ Openn checks your connection in the background. Its menu bar and Dock icons show
 
 A connection can work for everyday browsing and still run into region restrictions or extra verification on Claude or ChatGPT. Openn checks the region and risk score of the IP address your traffic goes out through. You can also check several connections at once before deciding which one to use.
 
+<p align="center">
+  <img src="./screenshots/ai-check.png" alt="Openn's AI connection check showing the exit region, network type and purity score" width="640">
+</p>
+
 Once you’ve found a good one, you can have Claude, ChatGPT, and Gemini always use it while everything else uses your main connection. Switching your main connection then won’t change the IP address your AI accounts see.
+
+<p align="center">
+  <img src="./screenshots/settings.png" alt="Openn settings with a dedicated connection for AI turned on" width="640">
+</p>
 
 ## Find out why a page won’t load
 
 Is your internet down, has your subscription expired, or has your proxy stopped responding? Open **Network Check** and Openn will test each step from your Mac to the website and suggest what to try next.
 
+<p align="center">
+  <img src="./screenshots/checkup.png" alt="Openn's Network Check reporting that everything is working" width="640">
+</p>
+
 If things just feel slow, you can test your internet speed both with and without the proxy to see where the slowdown is.
+
+## How it differs from Clash Verge Rev
+
+| | Openn | Clash Verge Rev |
+| :-- | :-- | :-- |
+| Built for | People who just want to connect and get on with their day | People who want to tune rules and configs themselves |
+| Platforms | Macs with Apple silicon only | Windows, macOS, Linux |
+| First run | Paste a subscription link, a server is picked for you | Import a subscription and pick a server yourself |
+| Is this connection OK for AI? | Built in, with region and purity score | Not included |
+| Keep AI on one connection | One switch in Settings | Write the rules yourself |
+| Troubleshooting | Built-in Network Check, from your Mac to the website | Not included |
+| Rule, script and config editing | Not included | Included |
 
 ## About the project
 
